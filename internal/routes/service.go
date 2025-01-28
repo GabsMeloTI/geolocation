@@ -1,0 +1,256 @@
+package routes
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"github.com/labstack/echo/v4"
+	"googlemaps.github.io/maps"
+	"math"
+	"strconv"
+)
+
+type InterfaceService interface {
+	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
+}
+
+type Service struct {
+	InterfaceService InterfaceRepository
+}
+
+func NewRoutesService(InterfaceService InterfaceRepository) *Service {
+	return &Service{InterfaceService}
+}
+
+func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return Response{}, err
+	}
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       frontInfo.Origin,
+		Destination:  frontInfo.Destination,
+		Alternatives: true,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Response{}, err
+	}
+
+	if len(routes) == 0 {
+		return Response{}, echo.ErrNotFound
+	}
+
+	var allRoutes []Route
+	var summaryRoute SummaryRoute
+	for _, route := range routes {
+		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx)
+		leg := route.Legs[0]
+
+		var tools []Toll
+		for _, toll := range foundTolls {
+			tools = append(tools, toll)
+		}
+
+		url := fmt.Sprintf("https://www.google.com/maps/?saddr=%f,%f&daddr=%f,%f",
+			leg.StartLocation.Lat, leg.StartLocation.Lng,
+			leg.EndLocation.Lat, leg.EndLocation.Lng,
+		)
+
+		allRoutes = append(allRoutes, Route{
+			Summary: Summary{
+				HasTolls: len(foundTolls) > 0,
+				Distance: Distance{
+					Text:  leg.Distance.HumanReadable,
+					Value: leg.Distance.Meters,
+				},
+				Duration: Duration{
+					Text:  leg.Duration.String(),
+					Value: leg.Duration.Hours(),
+				},
+				URL:  url,
+				Name: "",
+			},
+			Costs: Costs{
+				TagAndCash:      1.0,
+				Fuel:            1.0,
+				Tag:             1.0,
+				Cash:            1.0,
+				PrepaidCard:     1.0,
+				MaximumTollCost: 1.0,
+				MinimumTollCost: 1.0,
+			},
+			Tolls:    tools,
+			Polyline: route.OverviewPolyline.Points,
+		})
+
+		summaryRoute = SummaryRoute{
+			RouteOrigin: PrincipalRoute{
+				Location: Location{
+					Latitude:  leg.StartLocation.Lat,
+					Longitude: leg.StartLocation.Lng,
+				},
+				Address: leg.StartAddress,
+			},
+			RouteDestination: PrincipalRoute{
+				Location: Location{
+					Latitude:  leg.EndLocation.Lat,
+					Longitude: leg.EndLocation.Lng,
+				},
+				Address: leg.EndAddress,
+			},
+			FuelPrice: FuelPrice{
+				Value:    frontInfo.Price,
+				Currency: "BRL",
+				Units:    "km",
+				FuelUnit: "liter",
+			},
+			FuelEfficiency: FuelEfficiency{
+				City:     frontInfo.ConsumptionCity,
+				Hwy:      frontInfo.ConsumptionHwy,
+				Units:    "km",
+				FuelUnit: "liter",
+			},
+		}
+	}
+
+	return Response{
+		SummaryRoute: summaryRoute,
+		Routes:       allRoutes,
+	}, nil
+}
+
+func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context) []Toll {
+	var foundTolls []Toll
+	uniqueTolls := make(map[int64]bool)
+
+	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+	if err != nil {
+		return foundTolls
+	}
+
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				points := decodePolyline(step.Polyline.Points)
+				for _, point := range points {
+					for _, dbToll := range tolls {
+						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+						if latErr != nil || lonErr != nil {
+							continue
+						}
+
+						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+							if !uniqueTolls[dbToll.ID] {
+								uniqueTolls[dbToll.ID] = true
+
+								foundTolls = append(foundTolls, Toll{
+									ID:              int(dbToll.ID),
+									Latitude:        latitude,
+									Longitude:       longitude,
+									Name:            getStringFromNull(dbToll.PracaDePedagio),
+									Road:            getStringFromNull(dbToll.Rodovia),
+									State:           getStringFromNull(dbToll.Uf),
+									Country:         "Brasil",
+									Type:            "Pedágio",
+									TagCost:         10,
+									CashCost:        10,
+									Currency:        "BRL",
+									PrepaidCardCost: "1.0",
+									Arrival:         nil,
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return foundTolls
+}
+
+func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
+	if nullString.Valid {
+		return strconv.ParseFloat(nullString.String, 64)
+	}
+	return 0, fmt.Errorf("valor nulo")
+}
+
+func getStringFromNull(nullString sql.NullString) string {
+	if nullString.Valid {
+		return nullString.String
+	}
+	return ""
+}
+
+func decodePolyline(encoded string) []maps.LatLng {
+	var points []maps.LatLng
+	index, lat, lng := 0, 0, 0
+
+	for index < len(encoded) {
+		var result, shift uint
+		for {
+			b := encoded[index] - 63
+			index++
+			result |= uint(b&0x1F) << shift
+			shift += 5
+			if b < 0x20 {
+				break
+			}
+		}
+		dlat := int(result)
+		if dlat&1 != 0 {
+			dlat = ^(dlat >> 1)
+		} else {
+			dlat = dlat >> 1
+		}
+		lat += dlat
+
+		shift, result = 0, 0
+		for {
+			b := encoded[index] - 63
+			index++
+			result |= uint(b&0x1F) << shift
+			shift += 5
+			if b < 0x20 {
+				break
+			}
+		}
+		dlng := int(result)
+		if dlng&1 != 0 {
+			dlng = ^(dlng >> 1)
+		} else {
+			dlng = dlng >> 1
+		}
+		lng += dlng
+
+		points = append(points, maps.LatLng{
+			Lat: float64(lat) / 1e5,
+			Lng: float64(lng) / 1e5,
+		})
+	}
+	return points
+}
+
+func isNearby(lat1, lng1, lat2, lng2, radius float64) bool {
+	const earthRadius = 6371
+
+	dLat := (lat2 - lat1) * (math.Pi / 180)
+	dLng := (lng2 - lng1) * (math.Pi / 180)
+
+	lat1Rad := lat1 * (math.Pi / 180)
+	lat2Rad := lat2 * (math.Pi / 180)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Sin(dLng/2)*math.Sin(dLng/2)*math.Cos(lat1Rad)*math.Cos(lat2Rad)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	distance := earthRadius * c
+	return distance <= radius
+}
