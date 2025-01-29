@@ -1,6 +1,9 @@
 package routes
 
-import "time"
+import (
+	"googlemaps.github.io/maps"
+	"time"
+)
 
 type FrontInfo struct {
 	Origin          string  `json:"origin"`
@@ -60,9 +63,7 @@ type Summary struct {
 	Distance Distance `json:"distance"`
 	Duration Duration `json:"duration"`
 	URL      string   `json:"url"`
-	//Origin      string   `json:"origin"`
-	//Destination string   `json:"destination"`
-	Name string `json:"name"`
+	Name     string   `json:"name"`
 }
 
 type Distance struct {
@@ -105,4 +106,13 @@ type Toll struct {
 type Arrival struct {
 	Distance float64   `json:"distance"`
 	Time     time.Time `json:"time"`
+}
+
+type PlaceRequest struct {
+	Latitude  float64 `form:"latitude" binding:"required"`
+	Longitude float64 `form:"longitude" binding:"required"`
+}
+
+type PlaceResponse struct {
+	Place maps.PlacesSearchResult `json:"place"`
 }

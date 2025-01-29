@@ -45,6 +45,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	e.GET("/exact-place", container.HandlerRoutes.GetExactPlaceHandler)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

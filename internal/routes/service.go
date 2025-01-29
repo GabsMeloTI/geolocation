@@ -12,6 +12,7 @@ import (
 
 type InterfaceService interface {
 	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
+	GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error)
 }
 
 type Service struct {
@@ -123,6 +124,35 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		SummaryRoute: summaryRoute,
 		Routes:       allRoutes,
 	}, nil
+}
+
+func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return PlaceResponse{}, err
+	}
+
+	placeSearchRequest := &maps.NearbySearchRequest{
+		Location: &maps.LatLng{
+			Lat: placeRequest.Latitude,
+			Lng: placeRequest.Longitude,
+		},
+		Radius:  100,
+		Keyword: "pedágio",
+	}
+
+	searchResults, err := client.NearbySearch(ctx, placeSearchRequest)
+	if err != nil {
+		return PlaceResponse{}, err
+	}
+
+	if len(searchResults.Results) == 0 {
+		return PlaceResponse{}, nil
+	}
+
+	return PlaceResponse{Place: searchResults.Results[0]}, nil
 }
 
 func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context) []Toll {
