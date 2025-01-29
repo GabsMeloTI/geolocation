@@ -2,7 +2,6 @@ package routes
 
 import (
 	"googlemaps.github.io/maps"
-	"time"
 )
 
 type FrontInfo struct {
@@ -104,8 +103,8 @@ type Toll struct {
 }
 
 type Arrival struct {
-	Distance float64   `json:"distance"`
-	Time     time.Time `json:"time"`
+	Distance float64  `json:"distance"`
+	Time     time.Tim `json:"time"`
 }
 
 type PlaceRequest struct {

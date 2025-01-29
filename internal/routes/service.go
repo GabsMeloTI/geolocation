@@ -51,7 +51,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var allRoutes []Route
 	var summaryRoute SummaryRoute
 	for _, route := range routes {
-		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx)
+		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
 		leg := route.Legs[0]
 
 		var tools []Toll
@@ -127,6 +127,101 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}, nil
 }
 
+// TODO: TEMPO DO LOCAL DE ORIGEM ATÉ O PEDÁGIO, SÓ FAZER O TEMPO TOTAL - O TEMPO DE ORIGEM ATÉ O PEDÁGIO
+func (s *Service) time(ctx context.Context, origin, destination string) ([]time.Time, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return []time.Time{}, err
+	}
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: true,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return []time.Time{}, err
+	}
+
+	if len(routes) == 0 {
+		return []time.Time{}, echo.ErrNotFound
+	}
+
+	var allRoutes []time.Time
+	for _, route := range routes {
+		leg := route.Legs[0]
+
+		allRoutes = append(allRoutes, leg.ArrivalTime)
+	}
+
+	return allRoutes, nil
+}
+
+func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
+	var foundTolls []Toll
+	uniqueTolls := make(map[int64]bool)
+	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+	if err != nil {
+		return foundTolls
+	}
+
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				points := decodePolyline(step.Polyline.Points)
+				for _, point := range points {
+					for _, dbToll := range tolls {
+						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+						if latErr != nil || lonErr != nil {
+							continue
+						}
+
+						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+							if !uniqueTolls[dbToll.ID] {
+								uniqueTolls[dbToll.ID] = true
+
+								arrivalTimes, err := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+								var arrivalTime time.Time
+								if err == nil && len(arrivalTimes) > 0 {
+									arrivalTime = arrivalTimes[0]
+								} else {
+									arrivalTime = time.Now()
+								}
+
+								foundTolls = append(foundTolls, Toll{
+									ID:              int(dbToll.ID),
+									Latitude:        latitude,
+									Longitude:       longitude,
+									Name:            getStringFromNull(dbToll.PracaDePedagio),
+									Road:            getStringFromNull(dbToll.Rodovia),
+									State:           getStringFromNull(dbToll.Uf),
+									Country:         "Brasil",
+									Type:            "Pedágio",
+									TagCost:         10,
+									CashCost:        10,
+									Currency:        "BRL",
+									PrepaidCardCost: "1.0",
+									Arrival: Arrival{
+										Distance: 10,
+										Time:     arrivalTime,
+									},
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return foundTolls
+}
+
 func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
 	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
 
@@ -153,93 +248,6 @@ func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) 
 	}
 
 	return PlaceResponse{Place: searchResults.Results[0]}, nil
-}
-
-// TODO: TEMPO DO LOCAL DE ORIGEM ATÉ O PEDÁGIO, SÓ FAZER O TEMPO TOTAL - O TEMPO DE ORIGEM ATÉ O PEDÁGIO
-func (s *Service) Time(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
-	if err != nil {
-		return PlaceResponse{}, err
-	}
-
-	placeSearchRequest := &maps.NearbySearchRequest{
-		Location: &maps.LatLng{
-			Lat: placeRequest.Latitude,
-			Lng: placeRequest.Longitude,
-		},
-		Radius: 100,
-	}
-
-	searchResults, err := client.NearbySearch(ctx, placeSearchRequest)
-	if err != nil {
-		return PlaceResponse{}, err
-	}
-
-	if len(searchResults.Results) == 0 {
-		return PlaceResponse{}, nil
-	}
-
-	return PlaceResponse{Place: searchResults.Results[0]}, nil
-}
-
-func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context) []Toll {
-	var foundTolls []Toll
-	uniqueTolls := make(map[int64]bool)
-
-	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
-	if err != nil {
-		return foundTolls
-	}
-
-	for _, route := range routes {
-		for _, leg := range route.Legs {
-			for _, step := range leg.Steps {
-				points := decodePolyline(step.Polyline.Points)
-				for _, point := range points {
-					for _, dbToll := range tolls {
-						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-						if latErr != nil || lonErr != nil {
-							continue
-						}
-
-						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-							if !uniqueTolls[dbToll.ID] {
-								uniqueTolls[dbToll.ID] = true
-
-								//test, err := s.GetExactPlace(ctx, PlaceRequest{
-								//	Latitude:  latitude,
-								//	Longitude: longitude,
-								//})
-
-								foundTolls = append(foundTolls, Toll{
-									ID:              int(dbToll.ID),
-									Latitude:        latitude,
-									Longitude:       longitude,
-									Name:            getStringFromNull(dbToll.PracaDePedagio),
-									Road:            getStringFromNull(dbToll.Rodovia),
-									State:           getStringFromNull(dbToll.Uf),
-									Country:         "Brasil",
-									Type:            "Pedágio",
-									TagCost:         10,
-									CashCost:        10,
-									Currency:        "BRL",
-									PrepaidCardCost: "1.0",
-									Arrival: Arrival{
-										Distance: 10,
-										Time:     time.Now(),
-									},
-								})
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return foundTolls
 }
 
 func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
