@@ -8,6 +8,7 @@ import (
 	"googlemaps.github.io/maps"
 	"math"
 	"strconv"
+	"time"
 )
 
 type InterfaceService interface {
@@ -139,8 +140,36 @@ func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) 
 			Lat: placeRequest.Latitude,
 			Lng: placeRequest.Longitude,
 		},
-		Radius:  100,
-		Keyword: "pedágio",
+		Radius: 100,
+	}
+
+	searchResults, err := client.NearbySearch(ctx, placeSearchRequest)
+	if err != nil {
+		return PlaceResponse{}, err
+	}
+
+	if len(searchResults.Results) == 0 {
+		return PlaceResponse{}, nil
+	}
+
+	return PlaceResponse{Place: searchResults.Results[0]}, nil
+}
+
+// TODO: TEMPO DO LOCAL DE ORIGEM ATÉ O PEDÁGIO, SÓ FAZER O TEMPO TOTAL - O TEMPO DE ORIGEM ATÉ O PEDÁGIO
+func (s *Service) Time(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return PlaceResponse{}, err
+	}
+
+	placeSearchRequest := &maps.NearbySearchRequest{
+		Location: &maps.LatLng{
+			Lat: placeRequest.Latitude,
+			Lng: placeRequest.Longitude,
+		},
+		Radius: 100,
 	}
 
 	searchResults, err := client.NearbySearch(ctx, placeSearchRequest)
@@ -180,6 +209,11 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context) []T
 							if !uniqueTolls[dbToll.ID] {
 								uniqueTolls[dbToll.ID] = true
 
+								//test, err := s.GetExactPlace(ctx, PlaceRequest{
+								//	Latitude:  latitude,
+								//	Longitude: longitude,
+								//})
+
 								foundTolls = append(foundTolls, Toll{
 									ID:              int(dbToll.ID),
 									Latitude:        latitude,
@@ -193,7 +227,10 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context) []T
 									CashCost:        10,
 									Currency:        "BRL",
 									PrepaidCardCost: "1.0",
-									Arrival:         nil,
+									Arrival: Arrival{
+										Distance: 10,
+										Time:     time.Now(),
+									},
 								})
 							}
 						}
