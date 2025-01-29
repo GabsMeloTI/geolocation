@@ -2,6 +2,7 @@ package routes
 
 import (
 	"googlemaps.github.io/maps"
+	"time"
 )
 
 type FrontInfo struct {
@@ -87,24 +88,25 @@ type Costs struct {
 }
 
 type Toll struct {
-	ID              int     `json:"id"`
-	Latitude        float64 `json:"lat"`
-	Longitude       float64 `json:"lng"`
-	Name            string  `json:"name"`
-	Road            string  `json:"road"`
-	State           string  `json:"state"`
-	Country         string  `json:"country"`
-	Type            string  `json:"type"`
-	TagCost         float64 `json:"tagCost"`
-	CashCost        float64 `json:"cashCost"`
-	Currency        string  `json:"currency"`
-	PrepaidCardCost string  `json:"prepaidCardCost"`
-	Arrival         Arrival `json:"arrival"`
+	ID              int      `json:"id"`
+	Latitude        float64  `json:"lat"`
+	Longitude       float64  `json:"lng"`
+	Name            string   `json:"name"`
+	Road            string   `json:"road"`
+	State           string   `json:"state"`
+	Country         string   `json:"country"`
+	Type            string   `json:"type"`
+	TagCost         float64  `json:"tagCost"`
+	CashCost        float64  `json:"cashCost"`
+	Currency        string   `json:"currency"`
+	PrepaidCardCost string   `json:"prepaidCardCost"`
+	Arrival         Arrival  `json:"arrival"`
+	TagPrimary      []string `json:"tagPrimary"`
 }
 
 type Arrival struct {
-	Distance float64  `json:"distance"`
-	Time     time.Tim `json:"time"`
+	Distance float64   `json:"distance"`
+	Time     time.Time `json:"time"`
 }
 
 type PlaceRequest struct {

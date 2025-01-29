@@ -32,9 +32,18 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
+	origin, err := getGeocodeAddress(ctx, frontInfo.Origin)
+	if err != nil {
+		return Response{}, err
+	}
+
+	destination, err := getGeocodeAddress(ctx, frontInfo.Destination)
+	if err != nil {
+		return Response{}, err
+	}
 	routeRequest := &maps.DirectionsRequest{
-		Origin:       frontInfo.Origin,
-		Destination:  frontInfo.Destination,
+		Origin:       origin,
+		Destination:  destination,
 		Alternatives: true,
 		Mode:         maps.TravelModeDriving,
 		Region:       "br",
@@ -127,7 +136,28 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}, nil
 }
 
-// TODO: TEMPO DO LOCAL DE ORIGEM ATÉ O PEDÁGIO, SÓ FAZER O TEMPO TOTAL - O TEMPO DE ORIGEM ATÉ O PEDÁGIO
+func getGeocodeAddress(ctx context.Context, address string) (string, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return "", err
+	}
+
+	req := &maps.GeocodingRequest{
+		Address: address,
+		Region:  "br",
+	}
+
+	results, err := client.Geocode(ctx, req)
+	if err != nil || len(results) == 0 {
+		return "", fmt.Errorf("endereço não encontrado para: %s", address)
+	}
+
+	fmt.Printf("Endereço '%s' foi convertido para: %s\n", address, results[0].FormattedAddress)
+	return results[0].FormattedAddress, nil
+}
+
 func (s *Service) time(ctx context.Context, origin, destination string) ([]time.Time, error) {
 	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
 
@@ -211,6 +241,7 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, ori
 										Distance: 10,
 										Time:     arrivalTime,
 									},
+									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
 								})
 							}
 						}
