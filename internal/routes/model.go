@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"errors"
-	"fmt"
 	"googlemaps.github.io/maps"
 	"time"
 )
@@ -17,34 +15,35 @@ type FrontInfo struct {
 	Type            string  `json:"type"`
 }
 
-var vehicleAxleMap = map[string]int{
-	"Utilitário":              2,
-	"VUC":                     2,
-	"Caminhão 3/4":            2,
-	"Caminhão Toco":           2,
-	"Caminhão Truck":          3,
-	"Cavalo Mecânico Simples": 2,
-	"Cavalo Mecânico Trucado": 3,
-	"Carreta 2 Eixos":         4,
-	"Carreta 3 Eixos":         5,
-	"Bitrem":                  7,
-	"Bitrenzão":               9,
-	"Rodotrem":                9,
-	"Treminhão":               8,
-	"Tritrem":                 9,
-	"Bitruck":                 4,
-}
-
-func validateVehicleTypeAndAxles(info FrontInfo) error {
-	expectedAxles, exists := vehicleAxleMap[info.Type]
-	if !exists {
-		return errors.New("tipo de veículo inválido")
-	}
-	if info.Axles != expectedAxles {
-		return fmt.Errorf("número de eixos (%d) não corresponde ao esperado (%d) para o tipo de veículo %s", info.Axles, expectedAxles, info.Type)
-	}
-	return nil
-}
+// FEATURE
+//var vehicleAxleMap = map[string]int{
+//	"Utilitário":              2,
+//	"VUC":                     2,
+//	"Caminhão 3/4":            2,
+//	"Caminhão Toco":           2,
+//	"Caminhão Truck":          3,
+//	"Cavalo Mecânico Simples": 2,
+//	"Cavalo Mecânico Trucado": 3,
+//	"Carreta 2 Eixos":         4,
+//	"Carreta 3 Eixos":         5,
+//	"Bitrem":                  7,
+//	"Bitrenzão":               9,
+//	"Rodotrem":                9,
+//	"Treminhão":               8,
+//	"Tritrem":                 9,
+//	"Bitruck":                 4,
+//}
+//
+//func validateVehicleTypeAndAxles(info FrontInfo) error {
+//	expectedAxles, exists := vehicleAxleMap[info.Type]
+//	if !exists {
+//		return errors.New("tipo de veículo inválido")
+//	}
+//	if info.Axles != expectedAxles {
+//		return fmt.Errorf("número de eixos (%d) não corresponde ao esperado (%d) para o tipo de veículo %s", info.Axles, expectedAxles, info.Type)
+//	}
+//	return nil
+//}
 
 type Response struct {
 	SummaryRoute SummaryRoute `json:"summary"`
