@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 	"time"
 )
 
@@ -46,9 +45,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-	e.GET("/chupa", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "chupa ti!!!")
-	})
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
