@@ -21,6 +21,10 @@ func (h *Handler) CheckRouteTolls(e echo.Context) error {
 		return e.JSON(http.StatusBadRequest, err.Error())
 	}
 
+	if err := validateVehicleTypeAndAxles(frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
 	result, err := h.InterfaceService.CheckRouteTolls(e.Request().Context(), frontInfo)
 	if err != nil {
 		statusCode := http.StatusInternalServerError

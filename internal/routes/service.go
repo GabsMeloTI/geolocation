@@ -8,6 +8,7 @@ import (
 	"googlemaps.github.io/maps"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -144,6 +145,9 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 		return "", err
 	}
 
+	if strings.ToLower(address) == "bahia" {
+		address = "Salavador, Bahia"
+	}
 	req := &maps.GeocodingRequest{
 		Address: address,
 		Region:  "br",
@@ -154,7 +158,6 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 		return "", fmt.Errorf("endereço não encontrado para: %s", address)
 	}
 
-	fmt.Printf("Endereço '%s' foi convertido para: %s\n", address, results[0].FormattedAddress)
 	return results[0].FormattedAddress, nil
 }
 
