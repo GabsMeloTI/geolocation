@@ -25,7 +25,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
             set -e
             echo "Acessando diretório do projeto..."
-            cd /home/ubuntu/projects/GO-auth-service
+            cd /home/ubuntu/projects/geolocation
           
             echo "Atualizando código..."
             git fetch --all

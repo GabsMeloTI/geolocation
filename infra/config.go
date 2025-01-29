@@ -20,8 +20,6 @@ type Config struct {
 	AwsAccessKeyID     string
 	AwsSecretAccessKey string
 	AwsRegion          string
-	AwsQueueUrl        string
-	BasePath           string
 }
 
 func NewConfig() Config {
@@ -46,6 +44,5 @@ func NewConfig() Config {
 		AwsAccessKeyID:     os.Getenv("AWS_ACCESS_KEY"),
 		AwsSecretAccessKey: os.Getenv("AWS_SECRET_KEY"),
 		AwsRegion:          os.Getenv("AWS_REGION"),
-		AwsQueueUrl:        os.Getenv("AWS_QUEUE_URL"),
 	}
 }
