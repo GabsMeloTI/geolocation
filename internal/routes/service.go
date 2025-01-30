@@ -64,11 +64,15 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var allRoutes []Route
 	var summaryRoute SummaryRoute
 
+	var maxTollCost float64
+	var minTollCost = math.MaxFloat64
+
 	for _, route := range routes {
 		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
 
 		var totalDistance int
 		var totalDuration time.Duration
+		var totalTollCost float64
 
 		var locations []PrincipalRoute
 		for _, leg := range route.Legs {
@@ -93,10 +97,23 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Address: lastLeg.EndAddress,
 		})
 
-		if len(locations) <= 2 {
-			locations = []PrincipalRoute{}
+		// Calculando o custo total dos pedágios para esta rota
+		for _, toll := range foundTolls {
+			totalTollCost += toll.CashCost
 		}
 
+		// Atualizando o custo máximo e mínimo com base no total da rota
+		if totalTollCost > maxTollCost {
+			maxTollCost = totalTollCost
+		}
+		if totalTollCost < minTollCost {
+			minTollCost = totalTollCost
+		}
+
+		// Calculando o custo de combustível
+		fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
+
+		// Configurando a URL
 		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 			neturl.QueryEscape(origin), neturl.QueryEscape(destination),
 		)
@@ -104,6 +121,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 		}
 
+		// Adicionando a rota
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
@@ -118,52 +136,110 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				URL: url,
 			},
 			Costs: Costs{
-				TagAndCash:      1.0,
-				Fuel:            1.0,
-				Tag:             1.0,
-				Cash:            1.0,
-				PrepaidCard:     1.0,
-				MaximumTollCost: 1.0,
-				MinimumTollCost: 1.0,
+				TagAndCash:      totalTollCost,
+				Fuel:            fuelCost,
+				Tag:             totalTollCost,
+				Cash:            totalTollCost,
+				PrepaidCard:     totalTollCost,
+				MaximumTollCost: maxTollCost,
+				MinimumTollCost: minTollCost,
 			},
 			Tolls:    foundTolls,
 			Polyline: route.OverviewPolyline.Points,
 		})
-
-		summaryRoute = SummaryRoute{
-			RouteOrigin: PrincipalRoute{
-				Location: Location{
-					Latitude:  route.Legs[0].StartLocation.Lat,
-					Longitude: route.Legs[0].StartLocation.Lng,
-				},
-				Address: route.Legs[0].StartAddress,
-			},
-			RouteDestination: PrincipalRoute{
-				Location: Location{
-					Latitude:  lastLeg.EndLocation.Lat,
-					Longitude: lastLeg.EndLocation.Lng,
-				},
-				Address: lastLeg.EndAddress,
-			},
-			AllWayPoints: locations,
-			FuelPrice: FuelPrice{
-				Value:    frontInfo.Price,
-				Currency: "BRL",
-				Units:    "km",
-				FuelUnit: "liter",
-			},
-			FuelEfficiency: FuelEfficiency{
-				City:     frontInfo.ConsumptionCity,
-				Hwy:      frontInfo.ConsumptionHwy,
-				Units:    "km",
-				FuelUnit: "liter",
-			},
-		}
 	}
 
 	return Response{
 		SummaryRoute: summaryRoute,
 		Routes:       allRoutes,
+	}, nil
+}
+
+func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
+	var foundTolls []Toll
+	uniqueTolls := make(map[int64]bool)
+	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+	if err != nil {
+		return foundTolls
+	}
+
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				points := decodePolyline(step.Polyline.Points)
+				for _, point := range points {
+					for _, dbToll := range tolls {
+						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+						if latErr != nil || lonErr != nil {
+							continue
+						}
+
+						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+							if !uniqueTolls[dbToll.ID] {
+								uniqueTolls[dbToll.ID] = true
+
+								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+
+								formattedTime := arrivalTimes.Time.Round(time.Second).String()
+
+								foundTolls = append(foundTolls, Toll{
+									ID:              int(dbToll.ID),
+									Latitude:        latitude,
+									Longitude:       longitude,
+									Name:            getStringFromNull(dbToll.PracaDePedagio),
+									Road:            getStringFromNull(dbToll.Rodovia),
+									State:           getStringFromNull(dbToll.Uf),
+									Country:         "Brasil",
+									Type:            "Pedágio",
+									TagCost:         dbToll.Tarifa.Float64,
+									CashCost:        dbToll.Tarifa.Float64,
+									Currency:        "BRL",
+									PrepaidCardCost: dbToll.Tarifa.Float64,
+									ArrivalResponse: ArrivalResponse{
+										Distance: arrivalTimes.Distance,
+										Time:     formattedTime,
+									},
+									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return foundTolls
+}
+
+func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return Arrival{}, err
+	}
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: false,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Arrival{}, err
+	}
+
+	if len(routes) == 0 {
+		return Arrival{}, echo.ErrNotFound
+	}
+
+	leg := routes[0].Legs[0]
+	return Arrival{
+		Distance: leg.Distance.HumanReadable,
+		Time:     leg.Duration,
 	}, nil
 }
 
@@ -205,101 +281,6 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 	}
 
 	return results[0].FormattedAddress, nil
-}
-
-func (s *Service) time(ctx context.Context, origin, destination string) ([]time.Time, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
-	if err != nil {
-		return []time.Time{}, err
-	}
-
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: true,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
-	}
-	routes, _, err := client.Directions(ctx, routeRequest)
-	if err != nil {
-		return []time.Time{}, err
-	}
-
-	if len(routes) == 0 {
-		return []time.Time{}, echo.ErrNotFound
-	}
-
-	var allRoutes []time.Time
-	for _, route := range routes {
-		leg := route.Legs[0]
-
-		allRoutes = append(allRoutes, leg.ArrivalTime)
-	}
-
-	return allRoutes, nil
-}
-
-func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
-	var foundTolls []Toll
-	uniqueTolls := make(map[int64]bool)
-	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
-	if err != nil {
-		return foundTolls
-	}
-
-	for _, route := range routes {
-		for _, leg := range route.Legs {
-			for _, step := range leg.Steps {
-				points := decodePolyline(step.Polyline.Points)
-				for _, point := range points {
-					for _, dbToll := range tolls {
-						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-						if latErr != nil || lonErr != nil {
-							continue
-						}
-
-						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-							if !uniqueTolls[dbToll.ID] {
-								uniqueTolls[dbToll.ID] = true
-
-								arrivalTimes, err := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-								var arrivalTime time.Time
-								if err == nil && len(arrivalTimes) > 0 {
-									arrivalTime = arrivalTimes[0]
-								} else {
-									arrivalTime = time.Now()
-								}
-
-								foundTolls = append(foundTolls, Toll{
-									ID:              int(dbToll.ID),
-									Latitude:        latitude,
-									Longitude:       longitude,
-									Name:            getStringFromNull(dbToll.PracaDePedagio),
-									Road:            getStringFromNull(dbToll.Rodovia),
-									State:           getStringFromNull(dbToll.Uf),
-									Country:         "Brasil",
-									Type:            "Pedágio",
-									TagCost:         10,
-									CashCost:        10,
-									Currency:        "BRL",
-									PrepaidCardCost: "1.0",
-									Arrival: Arrival{
-										Distance: 10,
-										Time:     arrivalTime,
-									},
-									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
-								})
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return foundTolls
 }
 
 func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {

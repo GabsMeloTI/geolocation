@@ -120,25 +120,29 @@ type Costs struct {
 }
 
 type Toll struct {
-	ID              int      `json:"id"`
-	Latitude        float64  `json:"lat"`
-	Longitude       float64  `json:"lng"`
-	Name            string   `json:"name"`
-	Road            string   `json:"road"`
-	State           string   `json:"state"`
-	Country         string   `json:"country"`
-	Type            string   `json:"type"`
-	TagCost         float64  `json:"tagCost"`
-	CashCost        float64  `json:"cashCost"`
-	Currency        string   `json:"currency"`
-	PrepaidCardCost string   `json:"prepaidCardCost"`
-	Arrival         Arrival  `json:"arrival"`
-	TagPrimary      []string `json:"tagPrimary"`
+	ID              int             `json:"id"`
+	Latitude        float64         `json:"lat"`
+	Longitude       float64         `json:"lng"`
+	Name            string          `json:"name"`
+	Road            string          `json:"road"`
+	State           string          `json:"state"`
+	Country         string          `json:"country"`
+	Type            string          `json:"type"`
+	TagCost         float64         `json:"tagCost"`
+	CashCost        float64         `json:"cashCost"`
+	Currency        string          `json:"currency"`
+	PrepaidCardCost float64         `json:"prepaidCardCost"`
+	ArrivalResponse ArrivalResponse `json:"arrival"`
+	TagPrimary      []string        `json:"tagPrimary"`
 }
 
 type Arrival struct {
-	Distance float64   `json:"distance"`
-	Time     time.Time `json:"time"`
+	Distance string        `json:"distance"`
+	Time     time.Duration `json:"time"`
+}
+type ArrivalResponse struct {
+	Distance string `json:"distance"`
+	Time     string `json:"time"`
 }
 
 type PlaceRequest struct {

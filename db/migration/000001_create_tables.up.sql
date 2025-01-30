@@ -12,5 +12,6 @@ CREATE TABLE public.tolls (
                               situacao varchar(50) NULL,
                               data_da_inativacao varchar(50) NULL,
                               latitude varchar(50) NULL,
-                              longitude varchar(50) NULL
+                              longitude varchar(50) NULL,
+                              tarifa float NULL
 );
