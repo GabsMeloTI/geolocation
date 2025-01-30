@@ -172,12 +172,28 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
 
 	if strings.ToLower(address) == "bahia" {
 		address = "Salavador, Bahia"
 	}
+	autoCompleteReq := &maps.PlaceAutocompleteRequest{
+		Input:    address,
+		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+		Radius:   1000000,
+		Language: "pt-BR",
+		Types:    "geocode",
+	}
+
+	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+
+	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+		address = autoCompleteResp.Predictions[0].Description
+	} else if autoCompleteErr != nil {
+		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
+	}
+
 	req := &maps.GeocodingRequest{
 		Address: address,
 		Region:  "br",
@@ -185,7 +201,7 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 
 	results, err := client.Geocode(ctx, req)
 	if err != nil || len(results) == 0 {
-		return "", fmt.Errorf("endereço não encontrado para: %s", address)
+		return "", fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Como: %s, são paulo). Tente adicionar uma, cidade, um estado ou um CEP.", address, address)
 	}
 
 	return results[0].FormattedAddress, nil
