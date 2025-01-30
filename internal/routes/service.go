@@ -96,13 +96,14 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Address: lastLeg.EndAddress,
 		})
+		if len(locations) <= 2 {
+			locations = []PrincipalRoute{}
+		}
 
-		// Calculando o custo total dos pedágios para esta rota
 		for _, toll := range foundTolls {
 			totalTollCost += toll.CashCost
 		}
 
-		// Atualizando o custo máximo e mínimo com base no total da rota
 		if totalTollCost > maxTollCost {
 			maxTollCost = totalTollCost
 		}
@@ -110,10 +111,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			minTollCost = totalTollCost
 		}
 
-		// Calculando o custo de combustível
 		fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
 
-		// Configurando a URL
 		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 			neturl.QueryEscape(origin), neturl.QueryEscape(destination),
 		)
@@ -121,7 +120,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 		}
 
-		// Adicionando a rota
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
@@ -147,6 +145,36 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Tolls:    foundTolls,
 			Polyline: route.OverviewPolyline.Points,
 		})
+
+		summaryRoute = SummaryRoute{
+			RouteOrigin: PrincipalRoute{
+				Location: Location{
+					Latitude:  routes[0].Legs[0].StartLocation.Lat,
+					Longitude: routes[0].Legs[0].StartLocation.Lng,
+				},
+				Address: routes[0].Legs[0].StartAddress,
+			},
+			RouteDestination: PrincipalRoute{
+				Location: Location{
+					Latitude:  routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat,
+					Longitude: routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lng,
+				},
+				Address: routes[0].Legs[len(routes[0].Legs)-1].EndAddress,
+			},
+			AllWayPoints: locations,
+			FuelPrice: FuelPrice{
+				Value:    frontInfo.Price,
+				Currency: "BRL",
+				Units:    "km",
+				FuelUnit: "liter",
+			},
+			FuelEfficiency: FuelEfficiency{
+				City:     frontInfo.ConsumptionCity,
+				Hwy:      frontInfo.ConsumptionHwy,
+				Units:    "km",
+				FuelUnit: "liter",
+			},
+		}
 	}
 
 	return Response{
