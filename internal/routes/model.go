@@ -95,7 +95,6 @@ type Summary struct {
 	Distance Distance `json:"distance"`
 	Duration Duration `json:"duration"`
 	URL      string   `json:"url"`
-	Name     string   `json:"name"`
 }
 
 type Distance struct {
