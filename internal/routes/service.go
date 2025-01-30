@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
 	"math"
+	neturl "net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -42,11 +43,13 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	if err != nil {
 		return Response{}, err
 	}
+
 	routeRequest := &maps.DirectionsRequest{
 		Origin:       origin,
 		Destination:  destination,
-		Alternatives: true,
 		Mode:         maps.TravelModeDriving,
+		Waypoints:    frontInfo.Waypoints,
+		Alternatives: true,
 		Region:       "br",
 	}
 	routes, _, err := client.Directions(ctx, routeRequest)
@@ -60,33 +63,59 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	var allRoutes []Route
 	var summaryRoute SummaryRoute
+
 	for _, route := range routes {
 		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
-		leg := route.Legs[0]
 
-		var tools []Toll
-		for _, toll := range foundTolls {
-			tools = append(tools, toll)
+		var totalDistance int
+		var totalDuration time.Duration
+
+		var locations []PrincipalRoute
+		for _, leg := range route.Legs {
+			totalDistance += leg.Distance.Meters
+			totalDuration += leg.Duration
+
+			locations = append(locations, PrincipalRoute{
+				Location: Location{
+					Latitude:  leg.StartLocation.Lat,
+					Longitude: leg.StartLocation.Lng,
+				},
+				Address: leg.StartAddress,
+			})
 		}
 
-		url := fmt.Sprintf("https://www.google.com/maps/?saddr=%f,%f&daddr=%f,%f",
-			leg.StartLocation.Lat, leg.StartLocation.Lng,
-			leg.EndLocation.Lat, leg.EndLocation.Lng,
+		lastLeg := route.Legs[len(route.Legs)-1]
+		locations = append(locations, PrincipalRoute{
+			Location: Location{
+				Latitude:  lastLeg.EndLocation.Lat,
+				Longitude: lastLeg.EndLocation.Lng,
+			},
+			Address: lastLeg.EndAddress,
+		})
+
+		if len(locations) <= 2 {
+			locations = []PrincipalRoute{}
+		}
+
+		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+			neturl.QueryEscape(origin), neturl.QueryEscape(destination),
 		)
+		if len(frontInfo.Waypoints) > 0 {
+			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
+		}
 
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
 				Distance: Distance{
-					Text:  leg.Distance.HumanReadable,
-					Value: leg.Distance.Meters,
+					Text:  fmt.Sprintf("%d km", totalDistance/1000),
+					Value: totalDistance,
 				},
 				Duration: Duration{
-					Text:  leg.Duration.String(),
-					Value: leg.Duration.Hours(),
+					Text:  totalDuration.String(),
+					Value: totalDuration.Seconds(),
 				},
-				URL:  url,
-				Name: "",
+				URL: url,
 			},
 			Costs: Costs{
 				TagAndCash:      1.0,
@@ -97,25 +126,26 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				MaximumTollCost: 1.0,
 				MinimumTollCost: 1.0,
 			},
-			Tolls:    tools,
+			Tolls:    foundTolls,
 			Polyline: route.OverviewPolyline.Points,
 		})
 
 		summaryRoute = SummaryRoute{
 			RouteOrigin: PrincipalRoute{
 				Location: Location{
-					Latitude:  leg.StartLocation.Lat,
-					Longitude: leg.StartLocation.Lng,
+					Latitude:  route.Legs[0].StartLocation.Lat,
+					Longitude: route.Legs[0].StartLocation.Lng,
 				},
-				Address: leg.StartAddress,
+				Address: route.Legs[0].StartAddress,
 			},
 			RouteDestination: PrincipalRoute{
 				Location: Location{
-					Latitude:  leg.EndLocation.Lat,
-					Longitude: leg.EndLocation.Lng,
+					Latitude:  lastLeg.EndLocation.Lat,
+					Longitude: lastLeg.EndLocation.Lng,
 				},
-				Address: leg.EndAddress,
+				Address: lastLeg.EndAddress,
 			},
+			AllWayPoints: locations,
 			FuelPrice: FuelPrice{
 				Value:    frontInfo.Price,
 				Currency: "BRL",

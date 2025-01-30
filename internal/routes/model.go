@@ -6,13 +6,14 @@ import (
 )
 
 type FrontInfo struct {
-	Origin          string  `json:"origin"`
-	Destination     string  `json:"destination"`
-	ConsumptionCity float64 `json:"consumptionCity"`
-	ConsumptionHwy  float64 `json:"consumptionHwy"`
-	Price           float64 `json:"price"`
-	Axles           int     `json:"axles"`
-	Type            string  `json:"type"`
+	Origin          string   `json:"origin"`
+	Destination     string   `json:"destination"`
+	ConsumptionCity float64  `json:"consumptionCity"`
+	ConsumptionHwy  float64  `json:"consumptionHwy"`
+	Price           float64  `json:"price"`
+	Axles           int      `json:"axles"`
+	Type            string   `json:"type"`
+	Waypoints       []string `json:"waypoints"`
 }
 
 // FEATURE
@@ -51,10 +52,11 @@ type Response struct {
 }
 
 type SummaryRoute struct {
-	RouteOrigin      PrincipalRoute `json:"location_origin"`
-	RouteDestination PrincipalRoute `json:"location_destination"`
-	FuelPrice        FuelPrice      `json:"fuel_price"`
-	FuelEfficiency   FuelEfficiency `json:"fuel_efficiency"`
+	RouteOrigin      PrincipalRoute   `json:"location_origin"`
+	RouteDestination PrincipalRoute   `json:"location_destination"`
+	AllWayPoints     []PrincipalRoute `json:"all_stopping_points"`
+	FuelPrice        FuelPrice        `json:"fuel_price"`
+	FuelEfficiency   FuelEfficiency   `json:"fuel_efficiency"`
 }
 
 type PrincipalRoute struct {
