@@ -84,10 +84,11 @@ type FuelPrice struct {
 }
 
 type Route struct {
-	Summary  Summary `json:"summary"`
-	Costs    Costs   `json:"costs"`
-	Tolls    []Toll  `json:"tolls"`
-	Polyline string  `json:"polyline"`
+	Summary     Summary      `json:"summary"`
+	Costs       Costs        `json:"costs"`
+	Tolls       []Toll       `json:"tolls"`
+	Polyline    string       `json:"polyline"`
+	GasStations []GasStation `json:"gas_stations"`
 }
 
 type Summary struct {
@@ -95,6 +96,12 @@ type Summary struct {
 	Distance Distance `json:"distance"`
 	Duration Duration `json:"duration"`
 	URL      string   `json:"url"`
+}
+
+type GasStation struct {
+	Name     string   `json:"name"`
+	Address  string   `json:"address"`
+	Location Location `json:"location"`
 }
 
 type Distance struct {
@@ -112,7 +119,6 @@ type Costs struct {
 	Fuel            float64 `json:"fuel"`
 	Tag             float64 `json:"tag"`
 	Cash            float64 `json:"cash"`
-	LicensePlate    string  `json:"licensePlate"`
 	PrepaidCard     float64 `json:"prepaidCard"`
 	MaximumTollCost float64 `json:"maximumTollCost"`
 	MinimumTollCost float64 `json:"minimumTollCost"`
