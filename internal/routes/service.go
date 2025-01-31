@@ -68,7 +68,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	for _, route := range routes {
 		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
-		//findGasStationsAlongRoute, err := s.findGasStationsAlongRoute(ctx, client, route)
+		findGasStationsAlongRoute, err := s.findGasStationsAlongRoute(ctx, client, route)
+		if err != nil {
+			return Response{}, err
+		}
 
 		var totalDistance int
 		var totalDuration time.Duration
@@ -145,7 +148,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Tolls:       foundTolls,
 			Polyline:    route.OverviewPolyline.Points,
-			GasStations: nil,
+			GasStations: findGasStationsAlongRoute,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -273,91 +276,48 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 	}, nil
 }
 
-//func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
-//	var gasStations []GasStation
-//	uniqueGasStation := make(map[string]bool)
-//
-//	for _, leg := range route.Legs {
-//		for _, step := range leg.Steps {
-//			placesRequest := &maps.NearbySearchRequest{
-//				Location: &maps.LatLng{Lat: step.StartLocation.Lat, Lng: step.StartLocation.Lng},
-//				Radius:   10,
-//				Type:     "gas_station",
-//				Keyword:  "posto de gasolina",
-//			}
-//			placesResponse, err := client.NearbySearch(ctx, placesRequest)
-//			if err != nil {
-//				return nil, err
-//			}
-//			for _, result := range placesResponse.Results {
-//				if !uniqueGasStation[result.Name] {
-//					uniqueGasStation[result.Name] = true
-//
-//					gasStations = append(gasStations, GasStation{
-//						Name:     result.Name,
-//						Address:  result.Vicinity,
-//						Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
-//					})
-//				}
-//			}
-//		}
-//	}
-//	return gasStations, nil
-//}
+func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
+	var gasStations []GasStation
+	uniqueGasStations := make(map[string]bool)
 
-//func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
-//	var gasStations []GasStation
-//	var wg sync.WaitGroup
-//	var mu sync.Mutex
-//	errChan := make(chan error, 1)
-//	defer close(errChan)
-//
-//	leg := route.Legs[0]
-//	wg.Add(1)
-//	go func(leg maps.Leg) {
-//		defer wg.Done()
-//		placesRequest := &maps.NearbySearchRequest{
-//			Location: &maps.LatLng{Lat: leg.StartLocation.Lat, Lng: leg.StartLocation.Lng},
-//			Radius:   10000,
-//			Type:     "gas_station",
-//			Keyword:  "posto de gasolina",
-//		}
-//		placesResponse, err := client.NearbySearch(ctx, placesRequest)
-//		if err != nil {
-//			errChan <- err
-//			return
-//		}
-//		mu.Lock()
-//		for _, result := range placesResponse.Results {
-//			gasStations = append(gasStations, GasStation{
-//				Name:     result.Name,
-//				Address:  result.Vicinity,
-//				Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
-//			})
-//		}
-//		mu.Unlock()
-//	}(maps.Leg{
-//		Steps:             leg.Steps,
-//		Distance:          leg.Distance,
-//		Duration:          leg.Duration,
-//		DurationInTraffic: leg.DurationInTraffic,
-//		ArrivalTime:       leg.ArrivalTime,
-//		DepartureTime:     leg.DepartureTime,
-//		StartLocation:     leg.StartLocation,
-//		EndLocation:       leg.EndLocation,
-//		StartAddress:      leg.StartAddress,
-//		EndAddress:        leg.EndAddress,
-//		ViaWaypoint:       leg.ViaWaypoint,
-//	})
-//
-//	wg.Wait()
-//	select {
-//	case err := <-errChan:
-//		return nil, err
-//	default:
-//		return gasStations, nil
-//	}
-//}
+	var samplePoints []maps.LatLng
+	totalDistance := 0
+
+	for _, leg := range route.Legs {
+		for _, step := range leg.Steps {
+			totalDistance += step.Distance.Meters
+			if totalDistance >= 10000 {
+				samplePoints = append(samplePoints, step.StartLocation)
+				totalDistance = 0
+			}
+		}
+	}
+
+	for _, point := range samplePoints {
+		placesRequest := &maps.NearbySearchRequest{
+			Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
+			Radius:   5000,
+			Type:     "gas_station",
+		}
+
+		placesResponse, err := client.NearbySearch(ctx, placesRequest)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, result := range placesResponse.Results {
+			if !uniqueGasStations[result.Name] {
+				uniqueGasStations[result.Name] = true
+				gasStations = append(gasStations, GasStation{
+					Name:     result.Name,
+					Address:  result.Vicinity,
+					Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
+				})
+			}
+		}
+	}
+	return gasStations, nil
+}
 
 func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
@@ -370,21 +330,21 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 	if strings.ToLower(address) == "bahia" {
 		address = "Salavador, Bahia"
 	}
-	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
-	//	Input:    address,
-	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-	//	Radius:   1000000,
-	//	Language: "pt-BR",
-	//	Types:    "geocode",
-	//}
+	autoCompleteReq := &maps.PlaceAutocompleteRequest{
+		Input:    address,
+		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+		Radius:   1000000,
+		Language: "pt-BR",
+		Types:    "geocode",
+	}
 
-	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
 
-	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-	//	address = autoCompleteResp.Predictions[0].Description
-	//} else if autoCompleteErr != nil {
-	//	fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
-	//}
+	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+		address = autoCompleteResp.Predictions[0].Description
+	} else if autoCompleteErr != nil {
+		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
+	}
 
 	req := &maps.GeocodingRequest{
 		Address: address,

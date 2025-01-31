@@ -87,8 +87,8 @@ type Route struct {
 	Summary     Summary      `json:"summary"`
 	Costs       Costs        `json:"costs"`
 	Tolls       []Toll       `json:"tolls"`
-	Polyline    string       `json:"polyline"`
 	GasStations []GasStation `json:"gas_stations"`
+	Polyline    string       `json:"polyline"`
 }
 
 type Summary struct {
