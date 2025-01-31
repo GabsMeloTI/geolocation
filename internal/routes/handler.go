@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 type Handler struct {
@@ -36,28 +35,4 @@ func (h *Handler) CheckRouteTolls(e echo.Context) error {
 	}
 
 	return e.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetExactPlaceHandler(e echo.Context) error {
-	latStr := e.QueryParam("lat")
-	lat, err := strconv.ParseFloat(latStr, 64)
-	if err != nil {
-		return e.JSON(http.StatusBadRequest, err.Error())
-	}
-	lngStr := e.QueryParam("lng")
-	lng, err := strconv.ParseFloat(lngStr, 64)
-	if err != nil {
-		return e.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	arg := PlaceRequest{
-		Latitude:  lat,
-		Longitude: lng,
-	}
-	response, err := h.InterfaceService.GetExactPlace(e.Request().Context(), arg)
-	if err != nil {
-		return e.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	return e.JSON(http.StatusOK, response)
 }

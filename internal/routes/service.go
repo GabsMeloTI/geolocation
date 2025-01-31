@@ -15,7 +15,6 @@ import (
 
 type InterfaceService interface {
 	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
-	GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error)
 }
 
 type Service struct {
@@ -27,7 +26,7 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -244,7 +243,7 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, ori
 }
 
 func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -361,7 +360,7 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 //}
 
 func getGeocodeAddress(ctx context.Context, address string) (string, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -398,34 +397,6 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 	}
 
 	return results[0].FormattedAddress, nil
-}
-
-func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
-	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
-	if err != nil {
-		return PlaceResponse{}, err
-	}
-
-	placeSearchRequest := &maps.NearbySearchRequest{
-		Location: &maps.LatLng{
-			Lat: placeRequest.Latitude,
-			Lng: placeRequest.Longitude,
-		},
-		Radius: 100,
-	}
-
-	searchResults, err := client.NearbySearch(ctx, placeSearchRequest)
-	if err != nil {
-		return PlaceResponse{}, err
-	}
-
-	if len(searchResults.Results) == 0 {
-		return PlaceResponse{}, nil
-	}
-
-	return PlaceResponse{Place: searchResults.Results[0]}, nil
 }
 
 func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
