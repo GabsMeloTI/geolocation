@@ -7,25 +7,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
 	"math"
+	neturl "net/url"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 )
-
-var (
-	googleMapsClient *maps.Client
-	once             sync.Once
-	geoCache         = sync.Map{}
-)
-
-func initGoogleMapsClient() (*maps.Client, error) {
-	var err error
-	once.Do(func() {
-		googleMapsClient, err = maps.NewClient(maps.WithAPIKey("AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"))
-	})
-
-	return googleMapsClient, err
-}
 
 type InterfaceService interface {
 	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
@@ -40,43 +26,20 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func getCachedGeocodeAddress(ctx context.Context, address string) (string, error) {
-	if cached, found := geoCache.Load(address); found {
-		return cached.(string), nil
-	}
-
-	client, err := initGoogleMapsClient()
-	if err != nil {
-		return "", err
-	}
-
-	req := &maps.GeocodingRequest{
-		Address: address,
-		Region:  "br",
-	}
-
-	results, err := client.Geocode(ctx, req)
-	if err != nil || len(results) == 0 {
-		return "", fmt.Errorf("endereço não encontrado para: %s", address)
-	}
-
-	formattedAddress := results[0].FormattedAddress
-	geoCache.Store(address, formattedAddress)
-	return formattedAddress, nil
-}
-
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	client, err := initGoogleMapsClient()
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
 		return Response{}, err
 	}
 
-	origin, err := getCachedGeocodeAddress(ctx, frontInfo.Origin)
+	origin, err := getGeocodeAddress(ctx, frontInfo.Origin)
 	if err != nil {
 		return Response{}, err
 	}
 
-	destination, err := getCachedGeocodeAddress(ctx, frontInfo.Destination)
+	destination, err := getGeocodeAddress(ctx, frontInfo.Destination)
 	if err != nil {
 		return Response{}, err
 	}
@@ -86,75 +49,140 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Destination:  destination,
 		Mode:         maps.TravelModeDriving,
 		Waypoints:    frontInfo.Waypoints,
-		Alternatives: false,
+		Alternatives: true,
 		Region:       "br",
 	}
-
 	routes, _, err := client.Directions(ctx, routeRequest)
 	if err != nil {
 		return Response{}, err
 	}
 
 	if len(routes) == 0 {
-		return Response{}, fmt.Errorf("nenhuma rota encontrada")
+		return Response{}, echo.ErrNotFound
 	}
 
-	mainRoute := routes[0]
+	var allRoutes []Route
+	var summaryRoute SummaryRoute
 
-	foundTolls := s.findTollsInRoute([]maps.Route{mainRoute}, ctx, frontInfo.Origin)
+	var maxTollCost float64
+	var minTollCost = math.MaxFloat64
 
-	//gasStations, err := s.findGasStationsAlongRoute(ctx, client, mainRoute)
+	for _, route := range routes {
+		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
+		//findGasStationsAlongRoute, err := s.findGasStationsAlongRoute(ctx, client, route)
 
-	totalDistance := 0
-	totalDuration := time.Duration(0)
-	totalTollCost := 0.0
+		var totalDistance int
+		var totalDuration time.Duration
+		var totalTollCost float64
 
-	for _, leg := range mainRoute.Legs {
-		totalDistance += leg.Distance.Meters
-		totalDuration += leg.Duration
-	}
+		var locations []PrincipalRoute
+		for _, leg := range route.Legs {
+			totalDistance += leg.Distance.Meters
+			totalDuration += leg.Duration
 
-	for _, toll := range foundTolls {
-		totalTollCost += toll.CashCost
-	}
+			locations = append(locations, PrincipalRoute{
+				Location: Location{
+					Latitude:  leg.StartLocation.Lat,
+					Longitude: leg.StartLocation.Lng,
+				},
+				Address: leg.StartAddress,
+			})
+		}
 
-	return Response{
-		SummaryRoute: SummaryRoute{
+		lastLeg := route.Legs[len(route.Legs)-1]
+		locations = append(locations, PrincipalRoute{
+			Location: Location{
+				Latitude:  lastLeg.EndLocation.Lat,
+				Longitude: lastLeg.EndLocation.Lng,
+			},
+			Address: lastLeg.EndAddress,
+		})
+		if len(locations) <= 2 {
+			locations = []PrincipalRoute{}
+		}
+
+		for _, toll := range foundTolls {
+			totalTollCost += toll.CashCost
+		}
+
+		if totalTollCost > maxTollCost {
+			maxTollCost = totalTollCost
+		}
+		if totalTollCost < minTollCost {
+			minTollCost = totalTollCost
+		}
+
+		fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
+
+		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+			neturl.QueryEscape(origin), neturl.QueryEscape(destination),
+		)
+		if len(frontInfo.Waypoints) > 0 {
+			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
+		}
+
+		allRoutes = append(allRoutes, Route{
+			Summary: Summary{
+				HasTolls: len(foundTolls) > 0,
+
+				Distance: Distance{
+					Text:  fmt.Sprintf("%d km", totalDistance/1000),
+					Value: totalDistance,
+				},
+				Duration: Duration{
+					Text:  totalDuration.String(),
+					Value: totalDuration.Seconds(),
+				},
+				URL: url,
+			},
+			Costs: Costs{
+				TagAndCash:      totalTollCost,
+				Fuel:            fuelCost,
+				Tag:             totalTollCost,
+				Cash:            totalTollCost,
+				PrepaidCard:     totalTollCost,
+				MaximumTollCost: maxTollCost,
+				MinimumTollCost: minTollCost,
+			},
+			Tolls:       foundTolls,
+			Polyline:    route.OverviewPolyline.Points,
+			GasStations: nil,
+		})
+
+		summaryRoute = SummaryRoute{
 			RouteOrigin: PrincipalRoute{
 				Location: Location{
-					Latitude:  mainRoute.Legs[0].StartLocation.Lat,
-					Longitude: mainRoute.Legs[0].StartLocation.Lng,
+					Latitude:  routes[0].Legs[0].StartLocation.Lat,
+					Longitude: routes[0].Legs[0].StartLocation.Lng,
 				},
-				Address: mainRoute.Legs[0].StartAddress,
+				Address: routes[0].Legs[0].StartAddress,
 			},
 			RouteDestination: PrincipalRoute{
 				Location: Location{
-					Latitude:  mainRoute.Legs[len(mainRoute.Legs)-1].EndLocation.Lat,
-					Longitude: mainRoute.Legs[len(mainRoute.Legs)-1].EndLocation.Lng,
+					Latitude:  routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat,
+					Longitude: routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lng,
 				},
-				Address: mainRoute.Legs[len(mainRoute.Legs)-1].EndAddress,
+				Address: routes[0].Legs[len(routes[0].Legs)-1].EndAddress,
 			},
-		},
-		Routes: []Route{
-			{
-				Summary: Summary{
-					HasTolls: len(foundTolls) > 0,
-					Distance: Distance{
-						Text:  fmt.Sprintf("%d km", totalDistance/1000),
-						Value: totalDistance,
-					},
-					Duration: Duration{
-						Text:  totalDuration.String(),
-						Value: totalDuration.Seconds(),
-					},
-				},
-				Costs: Costs{
-					TagAndCash: totalTollCost,
-				},
-				Tolls:       foundTolls,
-				GasStations: nil,
+			AllWayPoints: locations,
+			FuelPrice: FuelPrice{
+				Value:    frontInfo.Price,
+				Currency: "BRL",
+				Units:    "km",
+				FuelUnit: "liter",
 			},
-		},
+			FuelEfficiency: FuelEfficiency{
+				City:     frontInfo.ConsumptionCity,
+				Hwy:      frontInfo.ConsumptionHwy,
+				Units:    "km",
+				FuelUnit: "liter",
+			},
+		}
+	}
+
+	return Response{
+		SummaryRoute: summaryRoute,
+		Routes:       allRoutes,
 	}, nil
 }
 
@@ -213,6 +241,37 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, ori
 		}
 	}
 	return foundTolls
+}
+
+func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
+
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	if err != nil {
+		return Arrival{}, err
+	}
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: false,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Arrival{}, err
+	}
+
+	if len(routes) == 0 {
+		return Arrival{}, echo.ErrNotFound
+	}
+
+	leg := routes[0].Legs[0]
+	return Arrival{
+		Distance: leg.Distance.HumanReadable,
+		Time:     leg.Duration,
+	}, nil
 }
 
 //func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
@@ -301,72 +360,44 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, ori
 //	}
 //}
 
-//func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
-//	var gasStations []GasStation
-//	uniqueLocations := make(map[string]bool)
-//
-//	for _, leg := range route.Legs {
-//		for _, step := range leg.Steps {
-//			locationKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
-//			if uniqueLocations[locationKey] {
-//				continue
-//			}
-//
-//			uniqueLocations[locationKey] = true
-//
-//			placesRequest := &maps.NearbySearchRequest{
-//				Location: &maps.LatLng{
-//					Lat: step.StartLocation.Lat,
-//					Lng: step.StartLocation.Lng,
-//				},
-//				Radius: 5000,
-//				Type:   "gas_station",
-//			}
-//
-//			placesResponse, err := client.NearbySearch(ctx, placesRequest)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			for _, result := range placesResponse.Results {
-//				gasStations = append(gasStations, GasStation{
-//					Name:     result.Name,
-//					Address:  result.Vicinity,
-//					Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
-//				})
-//			}
-//		}
-//	}
-//	return gasStations, nil
-//}
+func getGeocodeAddress(ctx context.Context, address string) (string, error) {
+	apiKey := "AIzaSyAvLoyVe2LlazHJfT0Kan5ZyX7dDb0exyQ"
 
-func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	client, err := initGoogleMapsClient()
+	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
-		return Arrival{}, err
+		return "", fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
 
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: false,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
+	if strings.ToLower(address) == "bahia" {
+		address = "Salavador, Bahia"
 	}
-	routes, _, err := client.Directions(ctx, routeRequest)
-	if err != nil {
-		return Arrival{}, err
+	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
+	//	Input:    address,
+	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+	//	Radius:   1000000,
+	//	Language: "pt-BR",
+	//	Types:    "geocode",
+	//}
+
+	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+
+	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+	//	address = autoCompleteResp.Predictions[0].Description
+	//} else if autoCompleteErr != nil {
+	//	fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
+	//}
+
+	req := &maps.GeocodingRequest{
+		Address: address,
+		Region:  "br",
 	}
 
-	if len(routes) == 0 {
-		return Arrival{}, echo.ErrNotFound
+	results, err := client.Geocode(ctx, req)
+	if err != nil || len(results) == 0 {
+		return "", fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Como: %s, são paulo). Tente adicionar uma, cidade, um estado ou um CEP.", address, address)
 	}
 
-	leg := routes[0].Legs[0]
-	return Arrival{
-		Distance: leg.Distance.HumanReadable,
-		Time:     leg.Duration,
-	}, nil
+	return results[0].FormattedAddress, nil
 }
 
 func (s *Service) GetExactPlace(ctx context.Context, placeRequest PlaceRequest) (PlaceResponse, error) {
