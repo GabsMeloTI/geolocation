@@ -26,7 +26,7 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
+	apiKey := "teste"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, ori
 }
 
 func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
+	apiKey := "teste"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -320,7 +320,7 @@ func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Cl
 }
 
 func getGeocodeAddress(ctx context.Context, address string) (string, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
+	apiKey := "teste"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
