@@ -10,6 +10,7 @@ import (
 	neturl "net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	apiKey := "teste"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -67,8 +68,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var minTollCost = math.MaxFloat64
 
 	for _, route := range routes {
-		foundTolls := s.findTollsInRoute([]maps.Route{route}, ctx, frontInfo.Origin)
-		findGasStationsAlongRoute, err := s.findGasStationsAlongRoute(ctx, client, route)
+		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin)
+		findGasStationsAlongRoute, err := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 		if err != nil {
 			return Response{}, err
 		}
@@ -188,65 +189,121 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}, nil
 }
 
-func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
+func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string) ([]Toll, error) {
 	var foundTolls []Toll
+	uniquePoints := make(map[string]bool)
 	uniqueTolls := make(map[int64]bool)
+
+	// Obter todos os pedágios do banco de dados (reduz número de chamadas)
 	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
 	if err != nil {
-		return foundTolls
+		return nil, err
 	}
 
+	// Consolidar pontos de todas as rotas
+	var consolidatedPoints []maps.LatLng
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				points := decodePolyline(step.Polyline.Points)
-				for _, point := range points {
-					for _, dbToll := range tolls {
-						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-						if latErr != nil || lonErr != nil {
-							continue
-						}
-
-						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-							if !uniqueTolls[dbToll.ID] {
-								uniqueTolls[dbToll.ID] = true
-
-								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-
-								formattedTime := arrivalTimes.Time.Round(time.Second).String()
-
-								foundTolls = append(foundTolls, Toll{
-									ID:              int(dbToll.ID),
-									Latitude:        latitude,
-									Longitude:       longitude,
-									Name:            getStringFromNull(dbToll.PracaDePedagio),
-									Road:            getStringFromNull(dbToll.Rodovia),
-									State:           getStringFromNull(dbToll.Uf),
-									Country:         "Brasil",
-									Type:            "Pedágio",
-									TagCost:         dbToll.Tarifa.Float64,
-									CashCost:        dbToll.Tarifa.Float64,
-									Currency:        "BRL",
-									PrepaidCardCost: dbToll.Tarifa.Float64,
-									ArrivalResponse: ArrivalResponse{
-										Distance: arrivalTimes.Distance,
-										Time:     formattedTime,
-									},
-									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
-								})
-							}
-						}
-					}
+				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
+				if !uniquePoints[pointKey] {
+					uniquePoints[pointKey] = true
+					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
 				}
 			}
 		}
 	}
-	return foundTolls
+
+	// Verificar proximidade com pedágios
+	for _, point := range consolidatedPoints {
+		for _, dbToll := range tolls {
+			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+			if latErr != nil || lonErr != nil {
+				continue
+			}
+
+			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+				if !uniqueTolls[dbToll.ID] {
+					uniqueTolls[dbToll.ID] = true
+
+					// Adicionar ao resultado final
+					foundTolls = append(foundTolls, Toll{
+						ID:        int(dbToll.ID),
+						Latitude:  latitude,
+						Longitude: longitude,
+						Name:      getStringFromNull(dbToll.PracaDePedagio),
+						Road:      getStringFromNull(dbToll.Rodovia),
+						State:     getStringFromNull(dbToll.Uf),
+						CashCost:  dbToll.Tarifa.Float64,
+					})
+				}
+			}
+		}
+	}
+
+	return foundTolls, nil
 }
 
+//func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
+//	var foundTolls []Toll
+//	uniqueTolls := make(map[int64]bool)
+//	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+//	if err != nil {
+//		return foundTolls
+//	}
+//
+//	for _, route := range routes {
+//		for _, leg := range route.Legs {
+//			for _, step := range leg.Steps {
+//				points := decodePolyline(step.Polyline.Points)
+//				for _, point := range points {
+//					for _, dbToll := range tolls {
+//						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+//						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+//						if latErr != nil || lonErr != nil {
+//							continue
+//						}
+//
+//						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+//							if !uniqueTolls[dbToll.ID] {
+//								uniqueTolls[dbToll.ID] = true
+//
+//								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+//
+//								formattedTime := arrivalTimes.Time.Round(time.Second).String()
+//
+//								foundTolls = append(foundTolls, Toll{
+//									ID:              int(dbToll.ID),
+//									Latitude:        latitude,
+//									Longitude:       longitude,
+//									Name:            getStringFromNull(dbToll.PracaDePedagio),
+//									Road:            getStringFromNull(dbToll.Rodovia),
+//									State:           getStringFromNull(dbToll.Uf),
+//									Country:         "Brasil",
+//									Type:            "Pedágio",
+//									TagCost:         dbToll.Tarifa.Float64,
+//									CashCost:        dbToll.Tarifa.Float64,
+//									Currency:        "BRL",
+//									PrepaidCardCost: dbToll.Tarifa.Float64,
+//									ArrivalResponse: ArrivalResponse{
+//										Distance: arrivalTimes.Distance,
+//										Time:     formattedTime,
+//									},
+//									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
+//								})
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
+//	return foundTolls
+//}
+
 func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	apiKey := "teste"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
@@ -276,51 +333,75 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 	}, nil
 }
 
-func (s *Service) findGasStationsAlongRoute(ctx context.Context, client *maps.Client, route maps.Route) ([]GasStation, error) {
+func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
 	var gasStations []GasStation
+	uniquePoints := make(map[string]bool)
 	uniqueGasStations := make(map[string]bool)
 
-	var samplePoints []maps.LatLng
-	totalDistance := 0
-
-	for _, leg := range route.Legs {
-		for _, step := range leg.Steps {
-			totalDistance += step.Distance.Meters
-			if totalDistance >= 10000 {
-				samplePoints = append(samplePoints, step.StartLocation)
-				totalDistance = 0
+	// Extrair pontos principais de todas as rotas
+	var consolidatedPoints []maps.LatLng
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
+				if !uniquePoints[pointKey] {
+					uniquePoints[pointKey] = true
+					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
+				}
 			}
 		}
 	}
 
-	for _, point := range samplePoints {
-		placesRequest := &maps.NearbySearchRequest{
-			Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
-			Radius:   5000,
-			Type:     "gas_station",
-		}
+	// Fazer chamadas ao Places API para grupos de pontos
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	chunkSize := 5 // Tamanho do grupo para evitar excesso de requisições
+	for i := 0; i < len(consolidatedPoints); i += chunkSize {
+		wg.Add(1)
+		go func(points []maps.LatLng) {
+			defer wg.Done()
 
-		placesResponse, err := client.NearbySearch(ctx, placesRequest)
-		if err != nil {
-			return nil, err
-		}
+			for _, point := range points {
+				placesRequest := &maps.NearbySearchRequest{
+					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
+					Radius:   10000, // Ampliar o raio para evitar duplicação
+					Type:     "gas_station",
+				}
+				placesResponse, err := client.NearbySearch(ctx, placesRequest)
+				if err != nil {
+					continue
+				}
 
-		for _, result := range placesResponse.Results {
-			if !uniqueGasStations[result.Name] {
-				uniqueGasStations[result.Name] = true
-				gasStations = append(gasStations, GasStation{
-					Name:     result.Name,
-					Address:  result.Vicinity,
-					Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
-				})
+				mu.Lock()
+				for _, result := range placesResponse.Results {
+					if !uniqueGasStations[result.Name] {
+						uniqueGasStations[result.Name] = true
+						gasStations = append(gasStations, GasStation{
+							Name:     result.Name,
+							Address:  result.Vicinity,
+							Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
+						})
+					}
+				}
+				mu.Unlock()
 			}
-		}
+		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
 	}
+
+	wg.Wait()
 	return gasStations, nil
 }
 
+// Função auxiliar para limitar chunks
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func getGeocodeAddress(ctx context.Context, address string) (string, error) {
-	apiKey := "teste"
+	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
 
 	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
 	if err != nil {
