@@ -129,6 +129,7 @@ type Toll struct {
 	Latitude        float64         `json:"lat"`
 	Longitude       float64         `json:"lng"`
 	Name            string          `json:"name"`
+	Concession      string          `json:"concession"`
 	Road            string          `json:"road"`
 	State           string          `json:"state"`
 	Country         string          `json:"country"`

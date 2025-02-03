@@ -9,6 +9,9 @@ import (
 type InterfaceRepository interface {
 	CreateTolls(ctx context.Context, arg db.CreateTollsParams) error
 	GetTollsByLonAndLat(ctx context.Context) ([]db.Toll, error)
+	CreateGasStations(ctx context.Context, arg db.CreateGasStationsParams) (db.GasStation, error)
+	GetGasStation(ctx context.Context, arg db.GetGasStationParams) ([]db.GetGasStationRow, error)
+	GetTollTags(ctx context.Context) ([]db.TollTag, error)
 }
 
 type Repository struct {
@@ -33,4 +36,13 @@ func (r *Repository) CreateTolls(ctx context.Context, arg db.CreateTollsParams) 
 }
 func (r *Repository) GetTollsByLonAndLat(ctx context.Context) ([]db.Toll, error) {
 	return r.Queries.GetTollsByLonAndLat(ctx)
+}
+func (r *Repository) CreateGasStations(ctx context.Context, arg db.CreateGasStationsParams) (db.GasStation, error) {
+	return r.Queries.CreateGasStations(ctx, arg)
+}
+func (r *Repository) GetGasStation(ctx context.Context, arg db.GetGasStationParams) ([]db.GetGasStationRow, error) {
+	return r.Queries.GetGasStation(ctx, arg)
+}
+func (r *Repository) GetTollTags(ctx context.Context) ([]db.TollTag, error) {
+	return r.Queries.GetTollTags(ctx)
 }

@@ -20,6 +20,7 @@ type Config struct {
 	AwsAccessKeyID     string
 	AwsSecretAccessKey string
 	AwsRegion          string
+	GoogleMapsKey      string
 }
 
 func NewConfig() Config {
@@ -44,5 +45,6 @@ func NewConfig() Config {
 		AwsAccessKeyID:     os.Getenv("AWS_ACCESS_KEY"),
 		AwsSecretAccessKey: os.Getenv("AWS_SECRET_KEY"),
 		AwsRegion:          os.Getenv("AWS_REGION"),
+		GoogleMapsKey:      os.Getenv("GOOGLE_MAPS_KEY"),
 	}
 }

@@ -15,3 +15,22 @@ CREATE TABLE public.tolls (
                               longitude varchar(50) NULL,
                               tarifa float NULL
 );
+
+
+CREATE TABLE gas_station (
+        id BIGSERIAL NOT NULL,
+        name varchar(100) NOT NULL,
+        latitude varchar(50) NOT NULL,
+        longitude varchar(50) NOT NULL,
+        address_name varchar(150) NOT NULL,
+        municipio varchar(50) NOT NULL,
+        specific_point varchar(255) NOT NULL
+);
+
+CREATE TABLE public.toll_tags (
+                                  id bigserial NOT NULL,
+                                  "name" varchar(50) NOT NULL,
+                                  dealership_accepts text NOT  NULL,
+                                  CONSTRAINT toll_tags_pkey PRIMARY KEY (id)
+);
+

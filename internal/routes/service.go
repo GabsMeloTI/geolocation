@@ -10,6 +10,7 @@ import (
 	neturl "net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,26 +20,25 @@ type InterfaceService interface {
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	GoogleMapsAPIKey string
 }
 
-func NewRoutesService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewRoutesService(InterfaceService InterfaceRepository, GoogleMapsAPIKey string) *Service {
+	return &Service{InterfaceService, GoogleMapsAPIKey}
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return Response{}, err
 	}
 
-	origin, err := getGeocodeAddress(ctx, frontInfo.Origin)
+	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
 	if err != nil {
 		return Response{}, err
 	}
 
-	destination, err := getGeocodeAddress(ctx, frontInfo.Destination)
+	destination, err := s.getGeocodeAddress(ctx, frontInfo.Destination)
 	if err != nil {
 		return Response{}, err
 	}
@@ -68,10 +68,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	for _, route := range routes {
 		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin)
-		//findGasStationsAlongRoute, err := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
-		if err != nil {
-			return Response{}, err
-		}
+		//findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
 		var totalDuration time.Duration
@@ -148,7 +145,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Tolls:       foundTolls,
 			Polyline:    route.OverviewPolyline.Points,
-			GasStations: nil,
+			GasStations: nil, //findGasStationsAlongRoute,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -198,6 +195,11 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 		return nil, err
 	}
 
+	resultTags, err := s.InterfaceService.GetTollTags(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var consolidatedPoints []maps.LatLng
 	for _, route := range routes {
 		for _, leg := range route.Legs {
@@ -219,18 +221,60 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 				continue
 			}
 
+			//resultTags, err := s.InterfaceService.GetTollTags(ctx)
+			//if err != nil {
+			//	return nil, err
+			//}
+			//
+			//var tags []string
+			//for _, resultTag := range resultTags {
+			//	resultSep := strings.Split(resultTag.DealershipAccepts, ",")
+			//	fmt.Println(resultSep, " - ")
+			//	for _, tag := range resultSep {
+			//		if tag == dbToll.Concessionaria.String {
+			//			tags = append(tags, dbToll.Concessionaria.String)
+			//		}
+			//	}
+			//}
+
 			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
+					//arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+					//formattedTime := arrivalTimes.Time.Round(time.Second).String()
+
+					concession := getStringFromNull(dbToll.Concessionaria)
+					var tags []string
+					for _, tagRecord := range resultTags {
+						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+						for _, accepted := range acceptedList {
+							if strings.TrimSpace(accepted) == concession {
+								tags = append(tags, tagRecord.Name)
+								break
+							}
+						}
+					}
+
 					foundTolls = append(foundTolls, Toll{
-						ID:        int(dbToll.ID),
-						Latitude:  latitude,
-						Longitude: longitude,
-						Name:      getStringFromNull(dbToll.PracaDePedagio),
-						Road:      getStringFromNull(dbToll.Rodovia),
-						State:     getStringFromNull(dbToll.Uf),
-						CashCost:  dbToll.Tarifa.Float64,
+						ID:              int(dbToll.ID),
+						Latitude:        latitude,
+						Longitude:       longitude,
+						Name:            getStringFromNull(dbToll.PracaDePedagio),
+						Concession:      dbToll.Concessionaria.String,
+						Road:            getStringFromNull(dbToll.Rodovia),
+						State:           getStringFromNull(dbToll.Uf),
+						Country:         "Brasil",
+						Type:            "Pedágio",
+						TagCost:         math.Round(dbToll.Tarifa.Float64 - (dbToll.Tarifa.Float64 * 0.05)),
+						CashCost:        dbToll.Tarifa.Float64,
+						Currency:        "BRL",
+						PrepaidCardCost: math.Round(dbToll.Tarifa.Float64 - (dbToll.Tarifa.Float64 * 0.05)),
+						ArrivalResponse: ArrivalResponse{
+							//Distance: arrivalTimes.Distance,
+							//Time:     formattedTime,
+						},
+						TagPrimary: tags,
 					})
 				}
 			}
@@ -240,100 +284,41 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	return foundTolls, nil
 }
 
-//func (s *Service) findTollsInRoute(routes []maps.Route, ctx context.Context, origin string) []Toll {
-//	var foundTolls []Toll
-//	uniqueTolls := make(map[int64]bool)
-//	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+//func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
+//
+//	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 //	if err != nil {
-//		return foundTolls
+//		return Arrival{}, err
 //	}
 //
-//	for _, route := range routes {
-//		for _, leg := range route.Legs {
-//			for _, step := range leg.Steps {
-//				points := decodePolyline(step.Polyline.Points)
-//				for _, point := range points {
-//					for _, dbToll := range tolls {
-//						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-//						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-//						if latErr != nil || lonErr != nil {
-//							continue
-//						}
-//
-//						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-//							if !uniqueTolls[dbToll.ID] {
-//								uniqueTolls[dbToll.ID] = true
-//
-//								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-//
-//								formattedTime := arrivalTimes.Time.Round(time.Second).String()
-//
-//								foundTolls = append(foundTolls, Toll{
-//									ID:              int(dbToll.ID),
-//									Latitude:        latitude,
-//									Longitude:       longitude,
-//									Name:            getStringFromNull(dbToll.PracaDePedagio),
-//									Road:            getStringFromNull(dbToll.Rodovia),
-//									State:           getStringFromNull(dbToll.Uf),
-//									Country:         "Brasil",
-//									Type:            "Pedágio",
-//									TagCost:         dbToll.Tarifa.Float64,
-//									CashCost:        dbToll.Tarifa.Float64,
-//									Currency:        "BRL",
-//									PrepaidCardCost: dbToll.Tarifa.Float64,
-//									ArrivalResponse: ArrivalResponse{
-//										Distance: arrivalTimes.Distance,
-//										Time:     formattedTime,
-//									},
-//									TagPrimary: []string{"Sem Parar", "ConectCar", "Veloe", "Move Mais", "Taggy"},
-//								})
-//							}
-//						}
-//					}
-//				}
-//			}
-//		}
+//	routeRequest := &maps.DirectionsRequest{
+//		Origin:       origin,
+//		Destination:  destination,
+//		Alternatives: false,
+//		Mode:         maps.TravelModeDriving,
+//		Region:       "br",
 //	}
-//	return foundTolls
+//	routes, _, err := client.Directions(ctx, routeRequest)
+//	if err != nil {
+//		return Arrival{}, err
+//	}
+//
+//	if len(routes) == 0 {
+//		return Arrival{}, echo.ErrNotFound
+//	}
+//
+//	leg := routes[0].Legs[0]
+//	return Arrival{
+//		Distance: leg.Distance.HumanReadable,
+//		Time:     leg.Duration,
+//	}, nil
 //}
-
-func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
-	if err != nil {
-		return Arrival{}, err
-	}
-
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: false,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
-	}
-	routes, _, err := client.Directions(ctx, routeRequest)
-	if err != nil {
-		return Arrival{}, err
-	}
-
-	if len(routes) == 0 {
-		return Arrival{}, echo.ErrNotFound
-	}
-
-	leg := routes[0].Legs[0]
-	return Arrival{
-		Distance: leg.Distance.HumanReadable,
-		Time:     leg.Duration,
-	}, nil
-}
 
 //func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
 //	var gasStations []GasStation
 //	uniquePoints := make(map[string]bool)
 //	uniqueGasStations := make(map[string]bool)
 //
-//	// Extrair pontos principais de todas as rotas
 //	var consolidatedPoints []maps.LatLng
 //	for _, route := range routes {
 //		for _, leg := range route.Legs {
@@ -347,19 +332,44 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 //		}
 //	}
 //
-//	// Fazer chamadas ao Places API para grupos de pontos
 //	var wg sync.WaitGroup
 //	var mu sync.Mutex
-//	chunkSize := 5 // Tamanho do grupo para evitar excesso de requisições
+//	chunkSize := 5
 //	for i := 0; i < len(consolidatedPoints); i += chunkSize {
 //		wg.Add(1)
 //		go func(points []maps.LatLng) {
 //			defer wg.Done()
 //
 //			for _, point := range points {
+//				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
+//					Column1: point.Lat,
+//					Column2: point.Lng,
+//					Column3: 0.05,
+//				})
+//				if err != nil {
+//					fmt.Printf("Erro ao consultar banco: %v\n", err)
+//					continue
+//				}
+//
+//				if len(dbGasStations) > 0 {
+//					mu.Lock()
+//					for _, dbStation := range dbGasStations {
+//						if !uniqueGasStations[dbStation.SpecificPoint] {
+//							uniqueGasStations[dbStation.SpecificPoint] = true
+//							gasStations = append(gasStations, GasStation{
+//								Name:     dbStation.SpecificPoint,
+//								Address:  dbStation.AddressName,
+//								Location: Location{Latitude: point.Lat, Longitude: point.Lng},
+//							})
+//						}
+//					}
+//					mu.Unlock()
+//					continue
+//				}
+//
 //				placesRequest := &maps.NearbySearchRequest{
 //					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
-//					Radius:   10000, // Ampliar o raio para evitar duplicação
+//					Radius:   10000,
 //					Type:     "gas_station",
 //				}
 //				placesResponse, err := client.NearbySearch(ctx, placesRequest)
@@ -371,11 +381,29 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 //				for _, result := range placesResponse.Results {
 //					if !uniqueGasStations[result.Name] {
 //						uniqueGasStations[result.Name] = true
-//						gasStations = append(gasStations, GasStation{
-//							Name:     result.Name,
-//							Address:  result.Vicinity,
-//							Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
+//
+//						gasStation := GasStation{
+//							Name:    result.Name,
+//							Address: result.Vicinity,
+//							Location: Location{
+//								Latitude:  result.Geometry.Location.Lat,
+//								Longitude: result.Geometry.Location.Lng,
+//							},
+//						}
+//
+//						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
+//							Name:          result.Name,
+//							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
+//							Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
+//							AddressName:   result.Vicinity,
+//							Municipio:     result.FormattedAddress,
+//							SpecificPoint: result.PlaceID,
 //						})
+//						if err != nil {
+//							fmt.Printf("Erro ao salvar posto: %v\n", err)
+//						}
+//
+//						gasStations = append(gasStations, gasStation)
 //					}
 //				}
 //				mu.Unlock()
@@ -387,17 +415,27 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 //	return gasStations, nil
 //}
 
-func min(a, b int) int {
-	if a < b {
-		return a
+//func min(a, b int) int {
+//	if a < b {
+//		return a
+//	}
+//	return b
+//}
+
+var (
+	geocodeCache      = make(map[string]string)
+	geocodeCacheMutex = sync.RWMutex{}
+)
+
+func (s *Service) getGeocodeAddress(ctx context.Context, address string) (string, error) {
+	geocodeCacheMutex.RLock()
+	if cachedAddress, found := geocodeCache[address]; found {
+		geocodeCacheMutex.RUnlock()
+		return cachedAddress, nil
 	}
-	return b
-}
+	geocodeCacheMutex.RUnlock()
 
-func getGeocodeAddress(ctx context.Context, address string) (string, error) {
-	apiKey := "AIzaSyAbzUZuCp1zcNNkzje_kmwVVqyOI5w8jkQ"
-
-	client, err := maps.NewClient(maps.WithAPIKey(apiKey))
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return "", fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
@@ -431,8 +469,53 @@ func getGeocodeAddress(ctx context.Context, address string) (string, error) {
 		return "", fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Como: %s, são paulo). Tente adicionar uma, cidade, um estado ou um CEP.", address, address)
 	}
 
-	return results[0].FormattedAddress, nil
+	formattedAddress := results[0].FormattedAddress
+
+	geocodeCacheMutex.Lock()
+	geocodeCache[address] = formattedAddress
+	geocodeCacheMutex.Unlock()
+
+	return formattedAddress, nil
 }
+
+//func getGeocodeAddress(ctx context.Context, address string) (string, error) {
+//
+//	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+//	if err != nil {
+//		return "", fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+//	}
+//
+//	if strings.ToLower(address) == "bahia" {
+//		address = "Salavador, Bahia"
+//	}
+//	autoCompleteReq := &maps.PlaceAutocompleteRequest{
+//		Input:    address,
+//		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+//		Radius:   1000000,
+//		Language: "pt-BR",
+//		Types:    "geocode",
+//	}
+//
+//	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+//
+//	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+//		address = autoCompleteResp.Predictions[0].Description
+//	} else if autoCompleteErr != nil {
+//		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
+//	}
+//
+//	req := &maps.GeocodingRequest{
+//		Address: address,
+//		Region:  "br",
+//	}
+//
+//	results, err := client.Geocode(ctx, req)
+//	if err != nil || len(results) == 0 {
+//		return "", fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Como: %s, são paulo). Tente adicionar uma, cidade, um estado ou um CEP.", address, address)
+//	}
+//
+//	return results[0].FormattedAddress, nil
+//}
 
 func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
 	if nullString.Valid {

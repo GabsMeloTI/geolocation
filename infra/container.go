@@ -43,7 +43,7 @@ func (c *ContainerDI) buildRepository() {
 }
 
 func (c *ContainerDI) buildService() {
-	c.ServiceRoutes = routes.NewRoutesService(c.RepositoryRoutes)
+	c.ServiceRoutes = routes.NewRoutesService(c.RepositoryRoutes, c.Config.GoogleMapsKey)
 }
 
 func (c *ContainerDI) buildHandler() {

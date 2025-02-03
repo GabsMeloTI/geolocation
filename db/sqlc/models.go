@@ -8,6 +8,16 @@ import (
 	"database/sql"
 )
 
+type GasStation struct {
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Latitude      string `json:"latitude"`
+	Longitude     string `json:"longitude"`
+	AddressName   string `json:"address_name"`
+	Municipio     string `json:"municipio"`
+	SpecificPoint string `json:"specific_point"`
+}
+
 type Toll struct {
 	ID               int64           `json:"id"`
 	Concessionaria   sql.NullString  `json:"concessionaria"`
@@ -24,4 +34,10 @@ type Toll struct {
 	Latitude         sql.NullString  `json:"latitude"`
 	Longitude        sql.NullString  `json:"longitude"`
 	Tarifa           sql.NullFloat64 `json:"tarifa"`
+}
+
+type TollTag struct {
+	ID                int64  `json:"id"`
+	Name              string `json:"name"`
+	DealershipAccepts string `json:"dealership_accepts"`
 }
