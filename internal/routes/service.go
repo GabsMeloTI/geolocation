@@ -10,7 +10,6 @@ import (
 	neturl "net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -69,7 +68,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	for _, route := range routes {
 		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin)
-		findGasStationsAlongRoute, err := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
+		//findGasStationsAlongRoute, err := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 		if err != nil {
 			return Response{}, err
 		}
@@ -149,7 +148,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Tolls:       foundTolls,
 			Polyline:    route.OverviewPolyline.Points,
-			GasStations: findGasStationsAlongRoute,
+			GasStations: nil,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -194,13 +193,11 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	uniquePoints := make(map[string]bool)
 	uniqueTolls := make(map[int64]bool)
 
-	// Obter todos os pedágios do banco de dados (reduz número de chamadas)
 	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Consolidar pontos de todas as rotas
 	var consolidatedPoints []maps.LatLng
 	for _, route := range routes {
 		for _, leg := range route.Legs {
@@ -214,7 +211,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 		}
 	}
 
-	// Verificar proximidade com pedágios
 	for _, point := range consolidatedPoints {
 		for _, dbToll := range tolls {
 			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
@@ -227,7 +223,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
-					// Adicionar ao resultado final
 					foundTolls = append(foundTolls, Toll{
 						ID:        int(dbToll.ID),
 						Latitude:  latitude,
@@ -333,66 +328,65 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 	}, nil
 }
 
-func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
-	var gasStations []GasStation
-	uniquePoints := make(map[string]bool)
-	uniqueGasStations := make(map[string]bool)
+//func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
+//	var gasStations []GasStation
+//	uniquePoints := make(map[string]bool)
+//	uniqueGasStations := make(map[string]bool)
+//
+//	// Extrair pontos principais de todas as rotas
+//	var consolidatedPoints []maps.LatLng
+//	for _, route := range routes {
+//		for _, leg := range route.Legs {
+//			for _, step := range leg.Steps {
+//				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
+//				if !uniquePoints[pointKey] {
+//					uniquePoints[pointKey] = true
+//					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
+//				}
+//			}
+//		}
+//	}
+//
+//	// Fazer chamadas ao Places API para grupos de pontos
+//	var wg sync.WaitGroup
+//	var mu sync.Mutex
+//	chunkSize := 5 // Tamanho do grupo para evitar excesso de requisições
+//	for i := 0; i < len(consolidatedPoints); i += chunkSize {
+//		wg.Add(1)
+//		go func(points []maps.LatLng) {
+//			defer wg.Done()
+//
+//			for _, point := range points {
+//				placesRequest := &maps.NearbySearchRequest{
+//					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
+//					Radius:   10000, // Ampliar o raio para evitar duplicação
+//					Type:     "gas_station",
+//				}
+//				placesResponse, err := client.NearbySearch(ctx, placesRequest)
+//				if err != nil {
+//					continue
+//				}
+//
+//				mu.Lock()
+//				for _, result := range placesResponse.Results {
+//					if !uniqueGasStations[result.Name] {
+//						uniqueGasStations[result.Name] = true
+//						gasStations = append(gasStations, GasStation{
+//							Name:     result.Name,
+//							Address:  result.Vicinity,
+//							Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
+//						})
+//					}
+//				}
+//				mu.Unlock()
+//			}
+//		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
+//	}
+//
+//	wg.Wait()
+//	return gasStations, nil
+//}
 
-	// Extrair pontos principais de todas as rotas
-	var consolidatedPoints []maps.LatLng
-	for _, route := range routes {
-		for _, leg := range route.Legs {
-			for _, step := range leg.Steps {
-				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
-				if !uniquePoints[pointKey] {
-					uniquePoints[pointKey] = true
-					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
-				}
-			}
-		}
-	}
-
-	// Fazer chamadas ao Places API para grupos de pontos
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	chunkSize := 5 // Tamanho do grupo para evitar excesso de requisições
-	for i := 0; i < len(consolidatedPoints); i += chunkSize {
-		wg.Add(1)
-		go func(points []maps.LatLng) {
-			defer wg.Done()
-
-			for _, point := range points {
-				placesRequest := &maps.NearbySearchRequest{
-					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
-					Radius:   10000, // Ampliar o raio para evitar duplicação
-					Type:     "gas_station",
-				}
-				placesResponse, err := client.NearbySearch(ctx, placesRequest)
-				if err != nil {
-					continue
-				}
-
-				mu.Lock()
-				for _, result := range placesResponse.Results {
-					if !uniqueGasStations[result.Name] {
-						uniqueGasStations[result.Name] = true
-						gasStations = append(gasStations, GasStation{
-							Name:     result.Name,
-							Address:  result.Vicinity,
-							Location: Location{Latitude: result.Geometry.Location.Lat, Longitude: result.Geometry.Location.Lng},
-						})
-					}
-				}
-				mu.Unlock()
-			}
-		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
-	}
-
-	wg.Wait()
-	return gasStations, nil
-}
-
-// Função auxiliar para limitar chunks
 func min(a, b int) int {
 	if a < b {
 		return a
