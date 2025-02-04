@@ -3,7 +3,7 @@ package routes
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	_ "encoding/json"
 	"errors"
 	"fmt"
 	db "geolocation/db/sqlc"
@@ -47,21 +47,21 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
-	normalizedWaypoints := strings.Join(frontInfo.Waypoints, ", ")
-	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      origin.FormattedAddress,
-		Destination: destination.FormattedAddress,
-		Waypoints: sql.NullString{
-			String: normalizedWaypoints,
-			Valid:  true,
-		},
-	})
-	if err == nil {
-		var resp Response
-		if err := json.Unmarshal(savedRoute.Response, &resp); err == nil {
-			return resp, nil
-		}
-	}
+	//normalizedWaypoints := strings.Join(frontInfo.Waypoints, ", ")
+	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+	//	Origin:      origin.FormattedAddress,
+	//	Destination: destination.FormattedAddress,
+	//	Waypoints: sql.NullString{
+	//		String: normalizedWaypoints,
+	//		Valid:  true,
+	//	},
+	//})
+	//if err == nil {
+	//	var resp Response
+	//	if err := json.Unmarshal(savedRoute.Response, &resp); err == nil {
+	//		return resp, nil
+	//	}
+	//}
 
 	routeRequest := &maps.DirectionsRequest{
 		Origin:       origin.FormattedAddress,
@@ -86,7 +86,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var minTollCost = math.MaxFloat64
 
 	for _, route := range routes {
-		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin)
+		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin, frontInfo.Type, float64(frontInfo.Axles))
 		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
@@ -151,7 +151,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
-
 				Distance: Distance{
 					Text:  fmt.Sprintf("%d km", totalDistance/1000),
 					Value: totalDistance,
@@ -176,6 +175,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Polyline:    route.OverviewPolyline.Points,
 			GasStations: findGasStationsAlongRoute,
 		})
+		fmt.Println(len(foundTolls))
 
 		summaryRoute = SummaryRoute{
 			RouteOrigin: PrincipalRoute{
@@ -213,107 +213,193 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Routes:       allRoutes,
 	}
 
-	responseJSON, err := json.Marshal(response)
-	if err == nil {
-		_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
-			Origin:      origin.FormattedAddress,
-			Destination: destination.FormattedAddress,
-			Waypoints: sql.NullString{
-				String: normalizedWaypoints,
-				Valid:  true,
-			},
-			Response: responseJSON,
-		})
-		if err != nil {
-			fmt.Printf("Erro ao salvar rota: %v\n", err)
-		}
-	} else {
-		fmt.Printf("Erro ao serializar response: %v\n", err)
-	}
+	//responseJSON, err := json.Marshal(response)
+	//if err == nil {
+	//	_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+	//		Origin:      origin.FormattedAddress,
+	//		Destination: destination.FormattedAddress,
+	//		Waypoints: sql.NullString{
+	//			String: normalizedWaypoints,
+	//			Valid:  true,
+	//		},
+	//		Response: responseJSON,
+	//	})
+	//	if err != nil {
+	//		fmt.Printf("Erro ao salvar rota: %v\n", err)
+	//	}
+	//} else {
+	//	fmt.Printf("Erro ao serializar response: %v\n", err)
+	//}
 
 	return response, nil
 }
 
-func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string) ([]Toll, error) {
-	var foundTolls []Toll
-	uniquePoints := make(map[string]bool)
-	uniqueTolls := make(map[int64]bool)
+//func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
+//	var foundTolls []Toll
+//	uniquePoints := make(map[string]bool)
+//	uniqueTolls := make(map[int64]bool)
+//
+//	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	resultTags, err := s.InterfaceService.GetTollTags(ctx)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	var consolidatedPoints []maps.LatLng
+//	for _, route := range routes {
+//		for _, leg := range route.Legs {
+//			for _, step := range leg.Steps {
+//				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
+//				if !uniquePoints[pointKey] {
+//					uniquePoints[pointKey] = true
+//					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
+//				}
+//			}
+//		}
+//	}
+//
+//	for _, point := range consolidatedPoints {
+//		for _, dbToll := range tolls {
+//			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+//			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+//			if latErr != nil || lonErr != nil {
+//				continue
+//			}
+//
+//			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+//				if !uniqueTolls[dbToll.ID] {
+//					uniqueTolls[dbToll.ID] = true
+//
+//					arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+//					formattedTime := arrivalTimes.Time.Round(time.Second).String()
+//
+//					concession := getStringFromNull(dbToll.Concessionaria)
+//					var tags []string
+//					for _, tagRecord := range resultTags {
+//						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+//						for _, accepted := range acceptedList {
+//							if strings.TrimSpace(accepted) == concession {
+//								tags = append(tags, tagRecord.Name)
+//								break
+//							}
+//						}
+//					}
+//
+//					totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
+//					if err != nil {
+//						return nil, err
+//					}
+//
+//					foundTolls = append(foundTolls, Toll{
+//						ID:              int(dbToll.ID),
+//						Latitude:        latitude,
+//						Longitude:       longitude,
+//						Name:            getStringFromNull(dbToll.PracaDePedagio),
+//						Concession:      dbToll.Concessionaria.String,
+//						Road:            getStringFromNull(dbToll.Rodovia),
+//						State:           getStringFromNull(dbToll.Uf),
+//						Country:         "Brasil",
+//						Type:            "Pedágio",
+//						TagCost:         math.Round(totalToll - (totalToll * 0.05)),
+//						CashCost:        totalToll,
+//						Currency:        "BRL",
+//						PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
+//						ArrivalResponse: ArrivalResponse{
+//							Distance: arrivalTimes.Distance,
+//							Time:     formattedTime,
+//						},
+//						TagPrimary: tags,
+//					})
+//				}
+//			}
+//		}
+//	}
+//
+//	return foundTolls, nil
+//}
 
+func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
+	var foundTolls []Toll
+	uniqueTolls := make(map[int64]bool)
 	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
 	if err != nil {
-		return nil, err
+		return foundTolls, nil
 	}
 
 	resultTags, err := s.InterfaceService.GetTollTags(ctx)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(len(resultTags))
+	fmt.Println(resultTags)
 
-	var consolidatedPoints []maps.LatLng
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
-				if !uniquePoints[pointKey] {
-					uniquePoints[pointKey] = true
-					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
-				}
-			}
-		}
-	}
+				points := decodePolyline(step.Polyline.Points)
+				for _, point := range points {
+					for _, dbToll := range tolls {
+						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+						if latErr != nil || lonErr != nil {
+							continue
+						}
 
-	for _, point := range consolidatedPoints {
-		for _, dbToll := range tolls {
-			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-			if latErr != nil || lonErr != nil {
-				continue
-			}
+						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+							if !uniqueTolls[dbToll.ID] {
+								uniqueTolls[dbToll.ID] = true
 
-			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-				if !uniqueTolls[dbToll.ID] {
-					uniqueTolls[dbToll.ID] = true
+								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+								formattedTime := arrivalTimes.Time.Round(time.Second).String()
 
-					arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-					formattedTime := arrivalTimes.Time.Round(time.Second).String()
+								concession := getStringFromNull(dbToll.Concessionaria)
+								var tags []string
+								for _, tagRecord := range resultTags {
+									acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+									for _, accepted := range acceptedList {
+										if strings.TrimSpace(accepted) == concession {
+											tags = append(tags, tagRecord.Name)
+											break
+										}
+									}
+								}
 
-					concession := getStringFromNull(dbToll.Concessionaria)
-					var tags []string
-					for _, tagRecord := range resultTags {
-						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
-						for _, accepted := range acceptedList {
-							if strings.TrimSpace(accepted) == concession {
-								tags = append(tags, tagRecord.Name)
-								break
+								totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
+								if err != nil {
+									return nil, err
+								}
+
+								foundTolls = append(foundTolls, Toll{
+									ID:              int(dbToll.ID),
+									Latitude:        latitude,
+									Longitude:       longitude,
+									Name:            getStringFromNull(dbToll.PracaDePedagio),
+									Concession:      dbToll.Concessionaria.String,
+									Road:            getStringFromNull(dbToll.Rodovia),
+									State:           getStringFromNull(dbToll.Uf),
+									Country:         "Brasil",
+									Type:            "Pedágio",
+									TagCost:         math.Round(totalToll - (totalToll * 0.05)),
+									CashCost:        totalToll,
+									Currency:        "BRL",
+									PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
+									ArrivalResponse: ArrivalResponse{
+										Distance: arrivalTimes.Distance,
+										Time:     formattedTime,
+									},
+									TagPrimary: tags,
+								})
 							}
 						}
 					}
-
-					foundTolls = append(foundTolls, Toll{
-						ID:              int(dbToll.ID),
-						Latitude:        latitude,
-						Longitude:       longitude,
-						Name:            getStringFromNull(dbToll.PracaDePedagio),
-						Concession:      dbToll.Concessionaria.String,
-						Road:            getStringFromNull(dbToll.Rodovia),
-						State:           getStringFromNull(dbToll.Uf),
-						Country:         "Brasil",
-						Type:            "Pedágio",
-						TagCost:         math.Round(dbToll.Tarifa.Float64 - (dbToll.Tarifa.Float64 * 0.05)),
-						CashCost:        dbToll.Tarifa.Float64,
-						Currency:        "BRL",
-						PrepaidCardCost: math.Round(dbToll.Tarifa.Float64 - (dbToll.Tarifa.Float64 * 0.05)),
-						ArrivalResponse: ArrivalResponse{
-							Distance: arrivalTimes.Distance,
-							Time:     formattedTime,
-						},
-						TagPrimary: tags,
-					})
 				}
 			}
 		}
 	}
-
 	return foundTolls, nil
 }
 
@@ -623,4 +709,81 @@ func (s *Service) AddSavedRoutesFavorite(ctx context.Context, id int32) error {
 	}
 
 	return nil
+}
+
+func priceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {
+	var calculation float64
+	switch os := vehicle; os {
+	case "Motorcycle":
+		calculation = price / 2
+		return calculation, nil
+	case "Auto":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price * axes
+		return calculation, nil
+	case "Bus":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price * axes
+		return calculation, nil
+	case "Truck":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price * axes
+		return calculation, nil
+	default:
+		fmt.Printf("incoorect value")
+	}
+
+	return calculation, nil
+}
+
+func decodePolyline(encoded string) []maps.LatLng {
+	var points []maps.LatLng
+	index, lat, lng := 0, 0, 0
+	for index < len(encoded) {
+		var result, shift uint
+		for {
+			b := encoded[index] - 63
+			index++
+			result |= uint(b&0x1F) << shift
+			shift += 5
+			if b < 0x20 {
+				break
+			}
+		}
+		dlat := int(result)
+		if dlat&1 != 0 {
+			dlat = ^(dlat >> 1)
+		} else {
+			dlat = dlat >> 1
+		}
+		lat += dlat
+		shift, result = 0, 0
+		for {
+			b := encoded[index] - 63
+			index++
+			result |= uint(b&0x1F) << shift
+			shift += 5
+			if b < 0x20 {
+				break
+			}
+		}
+		dlng := int(result)
+		if dlng&1 != 0 {
+			dlng = ^(dlng >> 1)
+		} else {
+			dlng = dlng >> 1
+		}
+		lng += dlng
+		points = append(points, maps.LatLng{
+			Lat: float64(lat) / 1e5,
+			Lng: float64(lng) / 1e5,
+		})
+	}
+	return points
 }
