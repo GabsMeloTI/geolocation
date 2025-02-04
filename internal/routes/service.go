@@ -325,6 +325,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
 	var foundTolls []Toll
 	uniqueTolls := make(map[int64]bool)
+
 	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
 	if err != nil {
 		return foundTolls, nil
@@ -334,72 +335,89 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(len(resultTags))
-	fmt.Println(resultTags)
+
+	uniquePoints := make(map[string]maps.LatLng)
+	sampleRate := 5
 
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				points := decodePolyline(step.Polyline.Points)
-				for _, point := range points {
-					for _, dbToll := range tolls {
-						latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-						longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-						if latErr != nil || lonErr != nil {
-							continue
-						}
-
-						if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-							if !uniqueTolls[dbToll.ID] {
-								uniqueTolls[dbToll.ID] = true
-
-								arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-								formattedTime := arrivalTimes.Time.Round(time.Second).String()
-
-								concession := getStringFromNull(dbToll.Concessionaria)
-								var tags []string
-								for _, tagRecord := range resultTags {
-									acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
-									for _, accepted := range acceptedList {
-										if strings.TrimSpace(accepted) == concession {
-											tags = append(tags, tagRecord.Name)
-											break
-										}
-									}
-								}
-
-								totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
-								if err != nil {
-									return nil, err
-								}
-
-								foundTolls = append(foundTolls, Toll{
-									ID:              int(dbToll.ID),
-									Latitude:        latitude,
-									Longitude:       longitude,
-									Name:            getStringFromNull(dbToll.PracaDePedagio),
-									Concession:      dbToll.Concessionaria.String,
-									Road:            getStringFromNull(dbToll.Rodovia),
-									State:           getStringFromNull(dbToll.Uf),
-									Country:         "Brasil",
-									Type:            "Pedágio",
-									TagCost:         math.Round(totalToll - (totalToll * 0.05)),
-									CashCost:        totalToll,
-									Currency:        "BRL",
-									PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
-									ArrivalResponse: ArrivalResponse{
-										Distance: arrivalTimes.Distance,
-										Time:     formattedTime,
-									},
-									TagPrimary: tags,
-								})
-							}
-						}
+				polyPoints := decodePolyline(step.Polyline.Points)
+				for i, point := range polyPoints {
+					if i%sampleRate == 0 {
+						key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
+						uniquePoints[key] = point
 					}
 				}
 			}
 		}
 	}
+
+	localTimeCache := make(map[string]Arrival)
+
+	for _, point := range uniquePoints {
+		for _, dbToll := range tolls {
+			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
+			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+			if latErr != nil || lonErr != nil {
+				continue
+			}
+
+			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+				if !uniqueTolls[dbToll.ID] {
+					uniqueTolls[dbToll.ID] = true
+
+					tollKey := fmt.Sprintf("%s|%s", origin, fmt.Sprintf("%f,%f", roundCoord(latitude), roundCoord(longitude)))
+					var arrivalTimes Arrival
+					var ok bool
+					if arrivalTimes, ok = localTimeCache[tollKey]; !ok {
+						arrivalTimes, _ = s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+						localTimeCache[tollKey] = arrivalTimes
+					}
+					formattedTime := arrivalTimes.Time.Round(time.Second).String()
+
+					concession := getStringFromNull(dbToll.Concessionaria)
+					var tags []string
+					for _, tagRecord := range resultTags {
+						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+						for _, accepted := range acceptedList {
+							if strings.TrimSpace(accepted) == concession {
+								tags = append(tags, tagRecord.Name)
+								break
+							}
+						}
+					}
+
+					totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
+					if err != nil {
+						return nil, err
+					}
+
+					foundTolls = append(foundTolls, Toll{
+						ID:              int(dbToll.ID),
+						Latitude:        latitude,
+						Longitude:       longitude,
+						Name:            getStringFromNull(dbToll.PracaDePedagio),
+						Concession:      dbToll.Concessionaria.String,
+						Road:            getStringFromNull(dbToll.Rodovia),
+						State:           getStringFromNull(dbToll.Uf),
+						Country:         "Brasil",
+						Type:            "Pedágio",
+						TagCost:         math.Round(totalToll - (totalToll * 0.05)),
+						CashCost:        totalToll,
+						Currency:        "BRL",
+						PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
+						ArrivalResponse: ArrivalResponse{
+							Distance: arrivalTimes.Distance,
+							Time:     formattedTime,
+						},
+						TagPrimary: tags,
+					})
+				}
+			}
+		}
+	}
+
 	return foundTolls, nil
 }
 
