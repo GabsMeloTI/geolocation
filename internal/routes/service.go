@@ -3,7 +3,10 @@ package routes
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
+	db "geolocation/db/sqlc"
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
 	"math"
@@ -16,6 +19,7 @@ import (
 
 type InterfaceService interface {
 	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
+	AddSavedRoutesFavorite(ctx context.Context, id int32) error
 }
 
 type Service struct {
@@ -43,9 +47,25 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
+	normalizedWaypoints := strings.Join(frontInfo.Waypoints, ", ")
+	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+		Origin:      origin.FormattedAddress,
+		Destination: destination.FormattedAddress,
+		Waypoints: sql.NullString{
+			String: normalizedWaypoints,
+			Valid:  true,
+		},
+	})
+	if err == nil {
+		var resp Response
+		if err := json.Unmarshal(savedRoute.Response, &resp); err == nil {
+			return resp, nil
+		}
+	}
+
 	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
+		Origin:       origin.FormattedAddress,
+		Destination:  destination.FormattedAddress,
 		Mode:         maps.TravelModeDriving,
 		Waypoints:    frontInfo.Waypoints,
 		Alternatives: true,
@@ -62,19 +82,19 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	var allRoutes []Route
 	var summaryRoute SummaryRoute
-
 	var maxTollCost float64
 	var minTollCost = math.MaxFloat64
 
 	for _, route := range routes {
 		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin)
-		//findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
+		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
 		var totalDuration time.Duration
 		var totalTollCost float64
 
 		var locations []PrincipalRoute
+		var wazeURL string
 		for _, leg := range route.Legs {
 			totalDistance += leg.Distance.Meters
 			totalDuration += leg.Duration
@@ -114,11 +134,19 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
 
 		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-			neturl.QueryEscape(origin), neturl.QueryEscape(destination),
+			neturl.QueryEscape(origin.FormattedAddress), neturl.QueryEscape(destination.FormattedAddress),
 		)
 		if len(frontInfo.Waypoints) > 0 {
 			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 		}
+
+		currentTimeMillis := (time.Now().UnixNano() + lastLeg.Duration.Nanoseconds()) / int64(time.Millisecond)
+		wazeURL = fmt.Sprintf(
+			"https://www.waze.com/pt-BR/live-map/directions/br/mt/cuiaba?to=place.%s&from=place.%s&time=%d&reverse=yes",
+			destination.PlaceID,
+			origin.PlaceID,
+			currentTimeMillis,
+		)
 
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
@@ -132,7 +160,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 					Text:  totalDuration.String(),
 					Value: totalDuration.Seconds(),
 				},
-				URL: url,
+				URL:     url,
+				URLWaze: wazeURL,
 			},
 			Costs: Costs{
 				TagAndCash:      totalTollCost,
@@ -145,7 +174,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Tolls:       foundTolls,
 			Polyline:    route.OverviewPolyline.Points,
-			GasStations: nil, //findGasStationsAlongRoute,
+			GasStations: findGasStationsAlongRoute,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -179,10 +208,30 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		}
 	}
 
-	return Response{
+	response := Response{
 		SummaryRoute: summaryRoute,
 		Routes:       allRoutes,
-	}, nil
+	}
+
+	responseJSON, err := json.Marshal(response)
+	if err == nil {
+		_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+			Origin:      origin.FormattedAddress,
+			Destination: destination.FormattedAddress,
+			Waypoints: sql.NullString{
+				String: normalizedWaypoints,
+				Valid:  true,
+			},
+			Response: responseJSON,
+		})
+		if err != nil {
+			fmt.Printf("Erro ao salvar rota: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Erro ao serializar response: %v\n", err)
+	}
+
+	return response, nil
 }
 
 func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string) ([]Toll, error) {
@@ -316,165 +365,181 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 	return arrival, nil
 }
 
-//func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-//
-//	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-//	if err != nil {
-//		return Arrival{}, err
-//	}
-//
-//	routeRequest := &maps.DirectionsRequest{
-//		Origin:       origin,
-//		Destination:  destination,
-//		Alternatives: false,
-//		Mode:         maps.TravelModeDriving,
-//		Region:       "br",
-//	}
-//	routes, _, err := client.Directions(ctx, routeRequest)
-//	if err != nil {
-//		return Arrival{}, err
-//	}
-//
-//	if len(routes) == 0 {
-//		return Arrival{}, echo.ErrNotFound
-//	}
-//
-//	leg := routes[0].Legs[0]
-//	return Arrival{
-//		Distance: leg.Distance.HumanReadable,
-//		Time:     leg.Duration,
-//	}, nil
-//}
+var (
+	gasStationsCache      = make(map[string][]GasStation)
+	gasStationsCacheMutex = sync.RWMutex{}
+)
 
-//func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
-//	var gasStations []GasStation
-//	uniquePoints := make(map[string]bool)
-//	uniqueGasStations := make(map[string]bool)
-//
-//	var consolidatedPoints []maps.LatLng
-//	for _, route := range routes {
-//		for _, leg := range route.Legs {
-//			for _, step := range leg.Steps {
-//				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
-//				if !uniquePoints[pointKey] {
-//					uniquePoints[pointKey] = true
-//					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
-//				}
-//			}
-//		}
-//	}
-//
-//	var wg sync.WaitGroup
-//	var mu sync.Mutex
-//	chunkSize := 5
-//	for i := 0; i < len(consolidatedPoints); i += chunkSize {
-//		wg.Add(1)
-//		go func(points []maps.LatLng) {
-//			defer wg.Done()
-//
-//			for _, point := range points {
-//				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
-//					Column1: point.Lat,
-//					Column2: point.Lng,
-//					Column3: 0.05,
-//				})
-//				if err != nil {
-//					fmt.Printf("Erro ao consultar banco: %v\n", err)
-//					continue
-//				}
-//
-//				if len(dbGasStations) > 0 {
-//					mu.Lock()
-//					for _, dbStation := range dbGasStations {
-//						if !uniqueGasStations[dbStation.SpecificPoint] {
-//							uniqueGasStations[dbStation.SpecificPoint] = true
-//							gasStations = append(gasStations, GasStation{
-//								Name:     dbStation.SpecificPoint,
-//								Address:  dbStation.AddressName,
-//								Location: Location{Latitude: point.Lat, Longitude: point.Lng},
-//							})
-//						}
-//					}
-//					mu.Unlock()
-//					continue
-//				}
-//
-//				placesRequest := &maps.NearbySearchRequest{
-//					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
-//					Radius:   10000,
-//					Type:     "gas_station",
-//				}
-//				placesResponse, err := client.NearbySearch(ctx, placesRequest)
-//				if err != nil {
-//					continue
-//				}
-//
-//				mu.Lock()
-//				for _, result := range placesResponse.Results {
-//					if !uniqueGasStations[result.Name] {
-//						uniqueGasStations[result.Name] = true
-//
-//						gasStation := GasStation{
-//							Name:    result.Name,
-//							Address: result.Vicinity,
-//							Location: Location{
-//								Latitude:  result.Geometry.Location.Lat,
-//								Longitude: result.Geometry.Location.Lng,
-//							},
-//						}
-//
-//						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
-//							Name:          result.Name,
-//							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
-//							Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
-//							AddressName:   result.Vicinity,
-//							Municipio:     result.FormattedAddress,
-//							SpecificPoint: result.PlaceID,
-//						})
-//						if err != nil {
-//							fmt.Printf("Erro ao salvar posto: %v\n", err)
-//						}
-//
-//						gasStations = append(gasStations, gasStation)
-//					}
-//				}
-//				mu.Unlock()
-//			}
-//		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
-//	}
-//
-//	wg.Wait()
-//	return gasStations, nil
-//}
+func roundCoord(coord float64) float64 {
+	return math.Round(coord*1000) / 1000
+}
 
-//func min(a, b int) int {
-//	if a < b {
-//		return a
-//	}
-//	return b
-//}
+func getCacheKeyForPoint(lat, lng float64) string {
+	return fmt.Sprintf("%f,%f", roundCoord(lat), roundCoord(lng))
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
+	var gasStations []GasStation
+	uniquePoints := make(map[string]bool)
+	uniqueGasStations := make(map[string]bool)
+
+	var consolidatedPoints []maps.LatLng
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				pointKey := getCacheKeyForPoint(step.StartLocation.Lat, step.StartLocation.Lng)
+				if !uniquePoints[pointKey] {
+					uniquePoints[pointKey] = true
+					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
+				}
+			}
+		}
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	chunkSize := 5
+
+	for i := 0; i < len(consolidatedPoints); i += chunkSize {
+		wg.Add(1)
+		go func(points []maps.LatLng) {
+			defer wg.Done()
+
+			for _, point := range points {
+				cacheKey := getCacheKeyForPoint(point.Lat, point.Lng)
+
+				gasStationsCacheMutex.RLock()
+				cachedStations, found := gasStationsCache[cacheKey]
+				gasStationsCacheMutex.RUnlock()
+				if found {
+					mu.Lock()
+					for _, gs := range cachedStations {
+						if !uniqueGasStations[gs.Name] {
+							uniqueGasStations[gs.Name] = true
+							gasStations = append(gasStations, gs)
+						}
+					}
+					mu.Unlock()
+					continue
+				}
+
+				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
+					Column1: point.Lat,
+					Column2: point.Lng,
+					Column3: 0.05,
+				})
+				if err != nil {
+					fmt.Printf("Erro ao consultar banco: %v\n", err)
+					continue
+				}
+
+				var cachedResult []GasStation
+				if len(dbGasStations) > 0 {
+					mu.Lock()
+					for _, dbStation := range dbGasStations {
+						if !uniqueGasStations[dbStation.SpecificPoint] {
+							uniqueGasStations[dbStation.SpecificPoint] = true
+							gs := GasStation{
+								Name:    dbStation.SpecificPoint,
+								Address: dbStation.AddressName,
+								Location: Location{
+									Latitude:  point.Lat,
+									Longitude: point.Lng,
+								},
+							}
+							gasStations = append(gasStations, gs)
+							cachedResult = append(cachedResult, gs)
+						}
+					}
+					mu.Unlock()
+					gasStationsCacheMutex.Lock()
+					gasStationsCache[cacheKey] = cachedResult
+					gasStationsCacheMutex.Unlock()
+					continue
+				}
+
+				placesRequest := &maps.NearbySearchRequest{
+					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
+					Radius:   10000,
+					Type:     "gas_station",
+				}
+				placesResponse, err := client.NearbySearch(ctx, placesRequest)
+				if err != nil {
+					fmt.Printf("Erro na NearbySearch: %v\n", err)
+					continue
+				}
+
+				mu.Lock()
+				for _, result := range placesResponse.Results {
+					if !uniqueGasStations[result.Name] {
+						uniqueGasStations[result.Name] = true
+
+						gs := GasStation{
+							Name:    result.Name,
+							Address: result.Vicinity,
+							Location: Location{
+								Latitude:  result.Geometry.Location.Lat,
+								Longitude: result.Geometry.Location.Lng,
+							},
+						}
+						gasStations = append(gasStations, gs)
+						cachedResult = append(cachedResult, gs)
+
+						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
+							Name:          result.Name,
+							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
+							Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
+							AddressName:   result.Vicinity,
+							Municipio:     result.FormattedAddress,
+							SpecificPoint: result.PlaceID,
+						})
+						if err != nil {
+							fmt.Printf("Erro ao salvar posto: %v\n", err)
+						}
+					}
+				}
+				mu.Unlock()
+
+				gasStationsCacheMutex.Lock()
+				gasStationsCache[cacheKey] = cachedResult
+				gasStationsCacheMutex.Unlock()
+			}
+		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
+	}
+
+	wg.Wait()
+	return gasStations, nil
+}
 
 var (
-	geocodeCache      = make(map[string]string)
+	geocodeCache      = make(map[string]GeocodeResult)
 	geocodeCacheMutex = sync.RWMutex{}
 )
 
-func (s *Service) getGeocodeAddress(ctx context.Context, address string) (string, error) {
+func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
 	geocodeCacheMutex.RLock()
-	if cachedAddress, found := geocodeCache[address]; found {
+	if cachedResult, found := geocodeCache[address]; found {
 		geocodeCacheMutex.RUnlock()
-		return cachedAddress, nil
+		return cachedResult, nil
 	}
 	geocodeCacheMutex.RUnlock()
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
-		return "", fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
 
 	if strings.ToLower(address) == "bahia" {
-		address = "Salavador, Bahia"
+		address = "Salvador, Bahia"
 	}
+
 	autoCompleteReq := &maps.PlaceAutocompleteRequest{
 		Input:    address,
 		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
@@ -484,7 +549,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (string
 	}
 
 	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-
 	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
 		address = autoCompleteResp.Predictions[0].Description
 	} else if autoCompleteErr != nil {
@@ -498,16 +562,19 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (string
 
 	results, err := client.Geocode(ctx, req)
 	if err != nil || len(results) == 0 {
-		return "", fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Como: %s, são paulo). Tente adicionar uma, cidade, um estado ou um CEP.", address, address)
+		return GeocodeResult{}, fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo).", address, address)
 	}
 
-	formattedAddress := results[0].FormattedAddress
+	result := GeocodeResult{
+		FormattedAddress: results[0].FormattedAddress,
+		PlaceID:          results[0].PlaceID,
+	}
 
 	geocodeCacheMutex.Lock()
-	geocodeCache[address] = formattedAddress
+	geocodeCache[address] = result
 	geocodeCacheMutex.Unlock()
 
-	return formattedAddress, nil
+	return result, nil
 }
 
 func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
@@ -539,4 +606,21 @@ func isNearby(lat1, lng1, lat2, lng2, radius float64) bool {
 
 	distance := earthRadius * c
 	return distance <= radius
+}
+
+func (s *Service) AddSavedRoutesFavorite(ctx context.Context, id int32) error {
+	_, err := s.InterfaceService.GetSavedRouteById(ctx, id)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errors.New("route not found")
+		}
+		return err
+	}
+
+	err = s.InterfaceService.AddSavedRoutesFavorite(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

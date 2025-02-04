@@ -96,6 +96,12 @@ type Summary struct {
 	Distance Distance `json:"distance"`
 	Duration Duration `json:"duration"`
 	URL      string   `json:"url"`
+	URLWaze  string   `json:"url_waze"`
+}
+
+type GeocodeResult struct {
+	FormattedAddress string
+	PlaceID          string
 }
 
 type GasStation struct {

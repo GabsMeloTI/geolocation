@@ -34,3 +34,16 @@ CREATE TABLE public.toll_tags (
                                   CONSTRAINT toll_tags_pkey PRIMARY KEY (id)
 );
 
+
+CREATE TABLE saved_routes (
+                              id SERIAL PRIMARY KEY,
+                              origin TEXT NOT NULL,
+                              destination TEXT NOT NULL,
+                              waypoints TEXT NULL,
+                              response JSONB NOT NULL,
+                              created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                              updated_at TIMESTAMPTZ NULL DEFAULT null,
+                              favorite boolean NULL default false
+);
+
+CREATE UNIQUE INDEX idx_saved_routes_unique ON saved_routes(origin, destination, waypoints);

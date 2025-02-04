@@ -6,6 +6,8 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
+	"time"
 )
 
 type GasStation struct {
@@ -16,6 +18,17 @@ type GasStation struct {
 	AddressName   string `json:"address_name"`
 	Municipio     string `json:"municipio"`
 	SpecificPoint string `json:"specific_point"`
+}
+
+type SavedRoute struct {
+	ID          int32           `json:"id"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   sql.NullTime    `json:"updated_at"`
+	Favorite    sql.NullBool    `json:"favorite"`
 }
 
 type Toll struct {
