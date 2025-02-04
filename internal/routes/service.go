@@ -47,22 +47,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
-	//normalizedWaypoints := strings.Join(frontInfo.Waypoints, ", ")
-	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-	//	Origin:      origin.FormattedAddress,
-	//	Destination: destination.FormattedAddress,
-	//	Waypoints: sql.NullString{
-	//		String: normalizedWaypoints,
-	//		Valid:  true,
-	//	},
-	//})
-	//if err == nil {
-	//	var resp Response
-	//	if err := json.Unmarshal(savedRoute.Response, &resp); err == nil {
-	//		return resp, nil
-	//	}
-	//}
-
 	routeRequest := &maps.DirectionsRequest{
 		Origin:       origin.FormattedAddress,
 		Destination:  destination.FormattedAddress,
@@ -75,7 +59,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	if err != nil {
 		return Response{}, err
 	}
-
 	if len(routes) == 0 {
 		return Response{}, echo.ErrNotFound
 	}
@@ -86,19 +69,17 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var minTollCost = math.MaxFloat64
 
 	for _, route := range routes {
-		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, frontInfo.Origin, frontInfo.Type, float64(frontInfo.Axles))
+		foundTolls, _ := s.findTollsInRoute(ctx, client, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
 		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
 		var totalDuration time.Duration
 		var totalTollCost float64
-
 		var locations []PrincipalRoute
-		var wazeURL string
+
 		for _, leg := range route.Legs {
 			totalDistance += leg.Distance.Meters
 			totalDuration += leg.Duration
-
 			locations = append(locations, PrincipalRoute{
 				Location: Location{
 					Latitude:  leg.StartLocation.Lat,
@@ -107,7 +88,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				Address: leg.StartAddress,
 			})
 		}
-
 		lastLeg := route.Legs[len(route.Legs)-1]
 		locations = append(locations, PrincipalRoute{
 			Location: Location{
@@ -123,7 +103,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		for _, toll := range foundTolls {
 			totalTollCost += toll.CashCost
 		}
-
 		if totalTollCost > maxTollCost {
 			maxTollCost = totalTollCost
 		}
@@ -141,7 +120,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		}
 
 		currentTimeMillis := (time.Now().UnixNano() + lastLeg.Duration.Nanoseconds()) / int64(time.Millisecond)
-		wazeURL = fmt.Sprintf(
+		wazeURL := fmt.Sprintf(
 			"https://www.waze.com/pt-BR/live-map/directions/br/mt/cuiaba?to=place.%s&from=place.%s&time=%d&reverse=yes",
 			destination.PlaceID,
 			origin.PlaceID,
@@ -175,7 +154,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Polyline:    route.OverviewPolyline.Points,
 			GasStations: findGasStationsAlongRoute,
 		})
-		fmt.Println(len(foundTolls))
 
 		summaryRoute = SummaryRoute{
 			RouteOrigin: PrincipalRoute{
@@ -213,25 +191,45 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Routes:       allRoutes,
 	}
 
-	//responseJSON, err := json.Marshal(response)
-	//if err == nil {
-	//	_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
-	//		Origin:      origin.FormattedAddress,
-	//		Destination: destination.FormattedAddress,
-	//		Waypoints: sql.NullString{
-	//			String: normalizedWaypoints,
-	//			Valid:  true,
-	//		},
-	//		Response: responseJSON,
-	//	})
-	//	if err != nil {
-	//		fmt.Printf("Erro ao salvar rota: %v\n", err)
-	//	}
-	//} else {
-	//	fmt.Printf("Erro ao serializar response: %v\n", err)
-	//}
-
 	return response, nil
+}
+
+func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origin, destination string) (Arrival, error) {
+	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
+
+	timeCacheMutex.RLock()
+	if arrival, exists := timeCache[cacheKey]; exists {
+		timeCacheMutex.RUnlock()
+		return arrival, nil
+	}
+	timeCacheMutex.RUnlock()
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: false,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Arrival{}, err
+	}
+	if len(routes) == 0 || len(routes[0].Legs) == 0 {
+		return Arrival{}, fmt.Errorf("no route/leg found for origin %s to destination %s", origin, destination)
+	}
+
+	leg := routes[0].Legs[0]
+	arrival := Arrival{
+		Distance: leg.Distance.HumanReadable,
+		Time:     leg.Duration,
+	}
+
+	timeCacheMutex.Lock()
+	timeCache[cacheKey] = arrival
+	timeCacheMutex.Unlock()
+
+	return arrival, nil
 }
 
 //func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
@@ -322,7 +320,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 //	return foundTolls, nil
 //}
 
-func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
+func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
 	var foundTolls []Toll
 	uniqueTolls := make(map[int64]bool)
 
@@ -337,24 +335,19 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	}
 
 	uniquePoints := make(map[string]maps.LatLng)
-	sampleRate := 5
-
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
 				polyPoints := decodePolyline(step.Polyline.Points)
-				for i, point := range polyPoints {
-					if i%sampleRate == 0 {
-						key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
-						uniquePoints[key] = point
-					}
+				for _, point := range polyPoints {
+					key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
+					uniquePoints[key] = point
 				}
 			}
 		}
 	}
 
 	localTimeCache := make(map[string]Arrival)
-
 	for _, point := range uniquePoints {
 		for _, dbToll := range tolls {
 			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
@@ -367,11 +360,17 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
-					tollKey := fmt.Sprintf("%s|%s", origin, fmt.Sprintf("%f,%f", roundCoord(latitude), roundCoord(longitude)))
+					tollKey := fmt.Sprintf("%s|%0.3f,%0.3f", origin, roundCoord(latitude), roundCoord(longitude))
 					var arrivalTimes Arrival
 					var ok bool
 					if arrivalTimes, ok = localTimeCache[tollKey]; !ok {
-						arrivalTimes, _ = s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
+						dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
+						var err error
+						arrivalTimes, err = s.timeWithClient(ctx, client, origin, dest)
+						if err != nil {
+							fmt.Printf("Error calling timeWithClient for tollKey %s: %v\n", tollKey, err)
+							continue
+						}
 						localTimeCache[tollKey] = arrivalTimes
 					}
 					formattedTime := arrivalTimes.Time.Round(time.Second).String()
@@ -417,7 +416,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 			}
 		}
 	}
-
 	return foundTolls, nil
 }
 
@@ -428,7 +426,6 @@ var (
 
 func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
 	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
-
 	timeCacheMutex.RLock()
 	if arrival, exists := timeCache[cacheKey]; exists {
 		timeCacheMutex.RUnlock()
@@ -468,6 +465,54 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 
 	return arrival, nil
 }
+
+//var (
+//	timeCache      = make(map[string]Arrival)
+//	timeCacheMutex = sync.RWMutex{}
+//)
+//
+//func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
+//	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
+//
+//	timeCacheMutex.RLock()
+//	if arrival, exists := timeCache[cacheKey]; exists {
+//		timeCacheMutex.RUnlock()
+//		return arrival, nil
+//	}
+//	timeCacheMutex.RUnlock()
+//
+//	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+//	if err != nil {
+//		return Arrival{}, err
+//	}
+//
+//	routeRequest := &maps.DirectionsRequest{
+//		Origin:       origin,
+//		Destination:  destination,
+//		Alternatives: false,
+//		Mode:         maps.TravelModeDriving,
+//		Region:       "br",
+//	}
+//	routes, _, err := client.Directions(ctx, routeRequest)
+//	if err != nil {
+//		return Arrival{}, err
+//	}
+//	if len(routes) == 0 {
+//		return Arrival{}, echo.ErrNotFound
+//	}
+//
+//	leg := routes[0].Legs[0]
+//	arrival := Arrival{
+//		Distance: leg.Distance.HumanReadable,
+//		Time:     leg.Duration,
+//	}
+//
+//	timeCacheMutex.Lock()
+//	timeCache[cacheKey] = arrival
+//	timeCacheMutex.Unlock()
+//
+//	return arrival, nil
+//}
 
 var (
 	gasStationsCache      = make(map[string][]GasStation)
