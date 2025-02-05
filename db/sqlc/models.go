@@ -32,21 +32,23 @@ type SavedRoute struct {
 }
 
 type Toll struct {
-	ID               int64           `json:"id"`
-	Concessionaria   sql.NullString  `json:"concessionaria"`
-	PracaDePedagio   sql.NullString  `json:"praca_de_pedagio"`
-	AnoDoPnvSnv      sql.NullInt32   `json:"ano_do_pnv_snv"`
-	Rodovia          sql.NullString  `json:"rodovia"`
-	Uf               sql.NullString  `json:"uf"`
-	KmM              sql.NullString  `json:"km_m"`
-	Municipio        sql.NullString  `json:"municipio"`
-	TipoPista        sql.NullString  `json:"tipo_pista"`
-	Sentido          sql.NullString  `json:"sentido"`
-	Situacao         sql.NullString  `json:"situacao"`
-	DataDaInativacao sql.NullString  `json:"data_da_inativacao"`
-	Latitude         sql.NullString  `json:"latitude"`
-	Longitude        sql.NullString  `json:"longitude"`
-	Tarifa           sql.NullFloat64 `json:"tarifa"`
+	ID               int64          `json:"id"`
+	CodigoAntt       sql.NullString `json:"codigo_antt"`
+	Concessionaria   sql.NullString `json:"concessionaria"`
+	PracaDePedagio   sql.NullString `json:"praca_de_pedagio"`
+	AnoDoPnvSnv      sql.NullInt32  `json:"ano_do_pnv_snv"`
+	Rodovia          sql.NullString `json:"rodovia"`
+	Uf               sql.NullString `json:"uf"`
+	KmM              sql.NullString `json:"km_m"`
+	Municipio        sql.NullString `json:"municipio"`
+	TipoPista        sql.NullString `json:"tipo_pista"`
+	Sentido          sql.NullString `json:"sentido"`
+	Situacao         sql.NullString `json:"situacao"`
+	DataDaInativacao sql.NullString `json:"data_da_inativacao"`
+	Latitude         sql.NullString `json:"latitude"`
+	Longitude        sql.NullString `json:"longitude"`
+	Tarifa           string         `json:"tarifa"`
+	FreeFlow         sql.NullBool   `json:"free_flow"`
 }
 
 type TollTag struct {

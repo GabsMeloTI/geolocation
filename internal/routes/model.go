@@ -6,46 +6,16 @@ import (
 )
 
 type FrontInfo struct {
-	Origin          string   `json:"origin"`
-	Destination     string   `json:"destination"`
-	ConsumptionCity float64  `json:"consumptionCity"`
-	ConsumptionHwy  float64  `json:"consumptionHwy"`
-	Price           float64  `json:"price"`
-	Axles           int      `json:"axles"`
-	Type            string   `json:"type"`
+	Origin          string   `json:"origin" validate:"required"`
+	Destination     string   `json:"destination" validate:"required"`
+	ConsumptionCity float64  `json:"consumptionCity" validate:"required"`
+	ConsumptionHwy  float64  `json:"consumptionHwy" validate:"required"`
+	Price           float64  `json:"price" validate:"required"`
+	Axles           int      `json:"axles" validate:"required"`
+	Type            string   `json:"type" validate:"required,oneof=truck bus auto motorcycle"`
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
 }
-
-// FEATURE
-//var vehicleAxleMap = map[string]int{
-//	"Utilitário":              2,
-//	"VUC":                     2,
-//	"Caminhão 3/4":            2,
-//	"Caminhão Toco":           2,
-//	"Caminhão Truck":          3,
-//	"Cavalo Mecânico Simples": 2,
-//	"Cavalo Mecânico Trucado": 3,
-//	"Carreta 2 Eixos":         4,
-//	"Carreta 3 Eixos":         5,
-//	"Bitrem":                  7,
-//	"Bitrenzão":               9,
-//	"Rodotrem":                9,
-//	"Treminhão":               8,
-//	"Tritrem":                 9,
-//	"Bitruck":                 4,
-//}
-//
-//func validateVehicleTypeAndAxles(info FrontInfo) error {
-//	expectedAxles, exists := vehicleAxleMap[info.Type]
-//	if !exists {
-//		return errors.New("tipo de veículo inválido")
-//	}
-//	if info.Axles != expectedAxles {
-//		return fmt.Errorf("número de eixos (%d) não corresponde ao esperado (%d) para o tipo de veículo %s", info.Axles, expectedAxles, info.Type)
-//	}
-//	return nil
-//}
 
 type Response struct {
 	SummaryRoute SummaryRoute `json:"summary"`
@@ -90,7 +60,6 @@ type Route struct {
 	Tolls        []Toll       `json:"tolls"`
 	GasStations  []GasStation `json:"gas_stations"`
 	Polyline     string       `json:"polyline"`
-	Rotograma    string       `json:"rotograma"`
 	Instructions []string     `json:"instructions"`
 }
 
@@ -125,7 +94,8 @@ type Duration struct {
 
 type Costs struct {
 	TagAndCash      float64 `json:"tagAndCash"`
-	Fuel            float64 `json:"fuel"`
+	FuelInTheCity   float64 `json:"fuel_in_the_city"`
+	FuelInTheHwy    float64 `json:"fuel_in_the_hwy"`
 	Tag             float64 `json:"tag"`
 	Cash            float64 `json:"cash"`
 	PrepaidCard     float64 `json:"prepaidCard"`

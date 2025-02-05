@@ -128,7 +128,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			minTollCost = totalTollCost
 		}
 
-		fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
+		//fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
+		//fuelCost := math.Round((float64(totalDistance)/100.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
+		fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * (float64(totalDistance) / 1000))
+		fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * (float64(totalDistance) / 1000))
 
 		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 			neturl.QueryEscape(origin.FormattedAddress), neturl.QueryEscape(destination.FormattedAddress),
@@ -143,15 +146,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			destination.PlaceID,
 			origin.PlaceID,
 			currentTimeMillis,
-		)
-
-		polyline := route.OverviewPolyline.Points
-		rotogramaURL := fmt.Sprintf(
-			"https://maps.googleapis.com/maps/api/staticmap?size=600x400&path=enc:%s&markers=color:green%%7Clabel:S%%7C%s&markers=color:red%%7Clabel:E%%7C%s&key=%s",
-			polyline,
-			neturl.QueryEscape(origin.FormattedAddress),
-			neturl.QueryEscape(destination.FormattedAddress),
-			s.GoogleMapsAPIKey,
 		)
 
 		allRoutes = append(allRoutes, Route{
@@ -170,7 +164,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Costs: Costs{
 				TagAndCash:      totalTollCost,
-				Fuel:            fuelCost,
+				FuelInTheCity:   fuelCostCity,
+				FuelInTheHwy:    fuelCostHwy,
 				Tag:             totalTollCost,
 				Cash:            totalTollCost,
 				PrepaidCard:     totalTollCost,
@@ -180,7 +175,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Tolls:        foundTolls,
 			Polyline:     route.OverviewPolyline.Points,
 			GasStations:  findGasStationsAlongRoute,
-			Rotograma:    rotogramaURL,
 			Instructions: instructions,
 		})
 
@@ -251,7 +245,7 @@ func selectBestRoute(routes []Route, routeType string) Route {
 		}
 	case "EFICIENTE":
 		for _, r := range routes {
-			if (r.Costs.Fuel + r.Costs.TagAndCash) < (selected.Costs.Fuel + selected.Costs.TagAndCash) {
+			if (r.Costs.FuelInTheCity + r.Costs.TagAndCash) < (selected.Costs.FuelInTheCity + selected.Costs.TagAndCash) {
 				selected = r
 			}
 		}
@@ -450,7 +444,9 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 						}
 					}
 
-					totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
+					tarifaFloat, err := strconv.ParseFloat(dbToll.Tarifa, 64)
+
+					totalToll, err := priceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
 					if err != nil {
 						return nil, err
 					}
@@ -624,7 +620,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 			defer wg.Done()
 			for _, point := range points {
 				cacheKey := fmt.Sprintf("gasStations:%s", getCacheKeyForPoint(point.Lat, point.Lng))
-				// Tenta recuperar do Redis
 				cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
 				if err == nil {
 					var cachedStations []GasStation
@@ -643,7 +638,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
 				}
 
-				// Se não estiver no cache, consulta o banco
 				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
 					Column1: point.Lat,
 					Column2: point.Lng,
@@ -706,7 +700,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 						gasStations = append(gasStations, gs)
 						cachedResult = append(cachedResult, gs)
 
-						// Salva o posto no banco
 						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
 							Name:          result.Name,
 							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
@@ -915,22 +908,22 @@ func (s *Service) AddSavedRoutesFavorite(ctx context.Context, id int32) error {
 func priceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {
 	var calculation float64
 	switch os := vehicle; os {
-	case "Motorcycle":
+	case "motorcycle":
 		calculation = price / 2
 		return calculation, nil
-	case "Auto":
+	case "auto":
 		if int(axes)%2 != 0 {
 			price = price / 2
 		}
 		calculation = price * axes
 		return calculation, nil
-	case "Bus":
+	case "bus":
 		if int(axes)%2 != 0 {
 			price = price / 2
 		}
 		calculation = price * axes
 		return calculation, nil
-	case "Truck":
+	case "truck":
 		if int(axes)%2 != 0 {
 			price = price / 2
 		}

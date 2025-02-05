@@ -1,8 +1,9 @@
 CREATE TABLE public.tolls (
-                              id BIGSERIAL NOT NULL,
+                              id bigserial NOT NULL,
+                              codigo_antt varchar(255),
                               concessionaria varchar(50) NULL,
                               praca_de_pedagio varchar(50) NULL,
-                              ano_do_pnv_snv int4 NULL,
+                              ano_do_pnv_snv int4 null default 2025,
                               rodovia varchar(50) NULL,
                               uf varchar(50) NULL,
                               km_m varchar(50) NULL,
@@ -13,8 +14,10 @@ CREATE TABLE public.tolls (
                               data_da_inativacao varchar(50) NULL,
                               latitude varchar(50) NULL,
                               longitude varchar(50) NULL,
-                              tarifa float NULL
+                              tarifa numeric NOT NULL,
+                              free_flow bool DEFAULT false NULL
 );
+
 
 
 CREATE TABLE gas_station (

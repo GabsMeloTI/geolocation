@@ -52,7 +52,7 @@ func (q *Queries) CreateTolls(ctx context.Context, arg CreateTollsParams) error 
 }
 
 const getTollsByLonAndLat = `-- name: GetTollsByLonAndLat :many
-SELECT id, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa
+SELECT id, codigo_antt, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa, free_flow
 FROM public.tolls
 `
 
@@ -67,6 +67,7 @@ func (q *Queries) GetTollsByLonAndLat(ctx context.Context) ([]Toll, error) {
 		var i Toll
 		if err := rows.Scan(
 			&i.ID,
+			&i.CodigoAntt,
 			&i.Concessionaria,
 			&i.PracaDePedagio,
 			&i.AnoDoPnvSnv,
@@ -81,6 +82,7 @@ func (q *Queries) GetTollsByLonAndLat(ctx context.Context) ([]Toll, error) {
 			&i.Latitude,
 			&i.Longitude,
 			&i.Tarifa,
+			&i.FreeFlow,
 		); err != nil {
 			return nil, err
 		}
