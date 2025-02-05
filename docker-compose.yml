@@ -20,19 +20,21 @@ services:
       retries: 5
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: go-app
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "${APP_PORT:-7777}:7777"
-    env_file:
-      - ./.env
-    command: ["make", "run"]
+      image: sua-imagem-da-aplicacao
+      ports:
+        - "8080:8080"
+      depends_on:
+        - redis
+      environment:
+        - REDIS_URL=redis://redis:6379
+
+      redis:
+        image: redis:6
+        ports:
+          - "6379:6379"
+        volumes:
+          - /var/lib/redis:/data
 
 volumes:
   postgres_data:
+  redis_data:

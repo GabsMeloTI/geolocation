@@ -3,10 +3,13 @@ package routes
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	_ "encoding/json"
 	"errors"
 	"fmt"
 	db "geolocation/db/sqlc"
+	cache "geolocation/pkg"
+	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
 	"html"
@@ -415,7 +418,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 		}
 	}
 
-	localTimeCache := make(map[string]Arrival)
+	// Em vez de um cache local, utilizamos a função time (que usa Redis)
 	for _, point := range uniquePoints {
 		for _, dbToll := range tolls {
 			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
@@ -428,18 +431,11 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
-					tollKey := fmt.Sprintf("%s|%0.3f,%0.3f", origin, roundCoord(latitude), roundCoord(longitude))
-					var arrivalTimes Arrival
-					var ok bool
-					if arrivalTimes, ok = localTimeCache[tollKey]; !ok {
-						dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
-						var err error
-						arrivalTimes, err = s.timeWithClient(ctx, client, origin, dest)
-						if err != nil {
-							fmt.Printf("Error calling timeWithClient for tollKey %s: %v\n", tollKey, err)
-							continue
-						}
-						localTimeCache[tollKey] = arrivalTimes
+					dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
+					arrivalTimes, err := s.time(ctx, origin, dest)
+					if err != nil {
+						fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
+						continue
 					}
 					formattedTime := arrivalTimes.Time.Round(time.Second).String()
 
@@ -493,13 +489,17 @@ var (
 )
 
 func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
-	timeCacheMutex.RLock()
-	if arrival, exists := timeCache[cacheKey]; exists {
-		timeCacheMutex.RUnlock()
-		return arrival, nil
+	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
+
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var arrival Arrival
+		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
+			return arrival, nil
+		}
+	} else if err != redis.Nil {
+		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
 	}
-	timeCacheMutex.RUnlock()
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -517,7 +517,7 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 	if err != nil {
 		return Arrival{}, err
 	}
-	if len(routes) == 0 {
+	if len(routes) == 0 || len(routes[0].Legs) == 0 {
 		return Arrival{}, echo.ErrNotFound
 	}
 
@@ -527,9 +527,12 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 		Time:     leg.Duration,
 	}
 
-	timeCacheMutex.Lock()
-	timeCache[cacheKey] = arrival
-	timeCacheMutex.Unlock()
+	data, err := json.Marshal(arrival)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
+		}
+	}
 
 	return arrival, nil
 }
@@ -582,11 +585,6 @@ func (s *Service) time(ctx context.Context, origin, destination string) (Arrival
 //	return arrival, nil
 //}
 
-var (
-	gasStationsCache      = make(map[string][]GasStation)
-	gasStationsCacheMutex = sync.RWMutex{}
-)
-
 func roundCoord(coord float64) float64 {
 	return math.Round(coord*1000) / 1000
 }
@@ -595,19 +593,12 @@ func getCacheKeyForPoint(lat, lng float64) string {
 	return fmt.Sprintf("%f,%f", roundCoord(lat), roundCoord(lng))
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
 	var gasStations []GasStation
-	uniquePoints := make(map[string]bool)
 	uniqueGasStations := make(map[string]bool)
-
 	var consolidatedPoints []maps.LatLng
+	uniquePoints := make(map[string]bool)
+
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
@@ -625,40 +616,42 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 	chunkSize := 5
 
 	for i := 0; i < len(consolidatedPoints); i += chunkSize {
+		end := i + chunkSize
+		if end > len(consolidatedPoints) {
+			end = len(consolidatedPoints)
+		}
 		wg.Add(1)
 		go func(points []maps.LatLng) {
 			defer wg.Done()
-
 			for _, point := range points {
-				cacheKey := getCacheKeyForPoint(point.Lat, point.Lng)
-
-				gasStationsCacheMutex.RLock()
-				cachedStations, found := gasStationsCache[cacheKey]
-				gasStationsCacheMutex.RUnlock()
-				if found {
-					mu.Lock()
-					for _, gs := range cachedStations {
-						if !uniqueGasStations[gs.Name] {
-							uniqueGasStations[gs.Name] = true
-							gasStations = append(gasStations, gs)
+				cacheKey := fmt.Sprintf("gasStations:%s", getCacheKeyForPoint(point.Lat, point.Lng))
+				// Tenta recuperar do Redis
+				cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+				if err == nil {
+					var cachedStations []GasStation
+					if err := json.Unmarshal([]byte(cached), &cachedStations); err == nil {
+						mu.Lock()
+						for _, gs := range cachedStations {
+							if !uniqueGasStations[gs.Name] {
+								uniqueGasStations[gs.Name] = true
+								gasStations = append(gasStations, gs)
+							}
 						}
+						mu.Unlock()
+						continue
 					}
-					mu.Unlock()
-					continue
+				} else if err != redis.Nil {
+					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
 				}
 
+				// Se não estiver no cache, consulta o banco
 				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
 					Column1: point.Lat,
 					Column2: point.Lng,
 					Column3: 0.05,
 				})
-				if err != nil {
-					fmt.Printf("Erro ao consultar banco: %v\n", err)
-					continue
-				}
-
 				var cachedResult []GasStation
-				if len(dbGasStations) > 0 {
+				if err == nil && len(dbGasStations) > 0 {
 					mu.Lock()
 					for _, dbStation := range dbGasStations {
 						if !uniqueGasStations[dbStation.SpecificPoint] {
@@ -676,12 +669,18 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 						}
 					}
 					mu.Unlock()
-					gasStationsCacheMutex.Lock()
-					gasStationsCache[cacheKey] = cachedResult
-					gasStationsCacheMutex.Unlock()
+					if len(cachedResult) > 0 {
+						data, err := json.Marshal(cachedResult)
+						if err == nil {
+							if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+								fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
+							}
+						}
+					}
 					continue
 				}
 
+				// Se o banco não retornar dados, usa a API NearbySearch do Google
 				placesRequest := &maps.NearbySearchRequest{
 					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
 					Radius:   10000,
@@ -709,6 +708,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 						gasStations = append(gasStations, gs)
 						cachedResult = append(cachedResult, gs)
 
+						// Salva o posto no banco
 						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
 							Name:          result.Name,
 							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
@@ -723,32 +723,36 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					}
 				}
 				mu.Unlock()
-
-				gasStationsCacheMutex.Lock()
-				gasStationsCache[cacheKey] = cachedResult
-				gasStationsCacheMutex.Unlock()
+				if len(cachedResult) > 0 {
+					data, err := json.Marshal(cachedResult)
+					if err == nil {
+						if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+							fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
+						}
+					}
+				}
 			}
-		}(consolidatedPoints[i:min(i+chunkSize, len(consolidatedPoints))])
+		}(consolidatedPoints[i:end])
 	}
 
 	wg.Wait()
 	return gasStations, nil
 }
 
-var (
-	geocodeCache      = make(map[string]GeocodeResult)
-	geocodeCacheMutex = sync.RWMutex{}
-)
-
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	address = stateToCapital(address)
+	address = stateToCapital(strings.ToLower(address))
 
-	geocodeCacheMutex.RLock()
-	if cachedResult, found := geocodeCache[address]; found {
-		geocodeCacheMutex.RUnlock()
-		return cachedResult, nil
+	cacheKey := fmt.Sprintf("geocode:%s", address)
+
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var result GeocodeResult
+		if err := json.Unmarshal([]byte(cached), &result); err == nil {
+			return result, nil
+		}
+	} else if err != redis.Nil {
+		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
 	}
-	geocodeCacheMutex.RUnlock()
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -789,9 +793,12 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		PlaceID:          results[0].PlaceID,
 	}
 
-	geocodeCacheMutex.Lock()
-	geocodeCache[address] = result
-	geocodeCacheMutex.Unlock()
+	data, err := json.Marshal(result)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
+		}
+	}
 
 	return result, nil
 }
