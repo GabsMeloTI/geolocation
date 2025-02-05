@@ -418,7 +418,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 		}
 	}
 
-	// Em vez de um cache local, utilizamos a função time (que usa Redis)
 	for _, point := range uniquePoints {
 		for _, dbToll := range tolls {
 			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
@@ -427,7 +426,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 				continue
 			}
 
-			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
+			if isNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
@@ -680,7 +679,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					continue
 				}
 
-				// Se o banco não retornar dados, usa a API NearbySearch do Google
 				placesRequest := &maps.NearbySearchRequest{
 					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
 					Radius:   10000,
