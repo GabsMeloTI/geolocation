@@ -12,7 +12,7 @@ type FrontInfo struct {
 	ConsumptionHwy  float64  `json:"consumptionHwy" validate:"required"`
 	Price           float64  `json:"price" validate:"required"`
 	Axles           int      `json:"axles" validate:"required"`
-	Type            string   `json:"type" validate:"required,oneof=truck bus auto motorcycle"`
+	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
 }
