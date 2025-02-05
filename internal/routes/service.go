@@ -9,8 +9,10 @@ import (
 	db "geolocation/db/sqlc"
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
+	"html"
 	"math"
 	neturl "net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,7 +56,13 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Waypoints:    frontInfo.Waypoints,
 		Alternatives: true,
 		Region:       "br",
+		Language:     "pt-BR",
 	}
+
+	if strings.ToUpper(frontInfo.Type) == "BARATO" {
+		routeRequest.Avoid = []maps.Avoid{"tolls"}
+	}
+
 	routes, _, err := client.Directions(ctx, routeRequest)
 	if err != nil {
 		return Response{}, err
@@ -76,6 +84,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		var totalDuration time.Duration
 		var totalTollCost float64
 		var locations []PrincipalRoute
+		var instructions []string
 
 		for _, leg := range route.Legs {
 			totalDistance += leg.Distance.Meters
@@ -87,6 +96,12 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				},
 				Address: leg.StartAddress,
 			})
+
+			for _, step := range leg.Steps {
+				instr := removeHTMLTags(step.HTMLInstructions)
+				instr = html.UnescapeString(instr)
+				instructions = append(instructions, instr)
+			}
 		}
 		lastLeg := route.Legs[len(route.Legs)-1]
 		locations = append(locations, PrincipalRoute{
@@ -127,6 +142,15 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			currentTimeMillis,
 		)
 
+		polyline := route.OverviewPolyline.Points
+		rotogramaURL := fmt.Sprintf(
+			"https://maps.googleapis.com/maps/api/staticmap?size=600x400&path=enc:%s&markers=color:green%%7Clabel:S%%7C%s&markers=color:red%%7Clabel:E%%7C%s&key=%s",
+			polyline,
+			neturl.QueryEscape(origin.FormattedAddress),
+			neturl.QueryEscape(destination.FormattedAddress),
+			s.GoogleMapsAPIKey,
+		)
+
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
@@ -150,9 +174,11 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				MaximumTollCost: maxTollCost,
 				MinimumTollCost: minTollCost,
 			},
-			Tolls:       foundTolls,
-			Polyline:    route.OverviewPolyline.Points,
-			GasStations: findGasStationsAlongRoute,
+			Tolls:        foundTolls,
+			Polyline:     route.OverviewPolyline.Points,
+			GasStations:  findGasStationsAlongRoute,
+			Rotograma:    rotogramaURL,
+			Instructions: instructions,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -186,12 +212,54 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		}
 	}
 
+	selectedRoute := selectBestRoute(allRoutes, frontInfo.TypeRoute)
+
 	response := Response{
 		SummaryRoute: summaryRoute,
-		Routes:       allRoutes,
+		Routes:       []Route{selectedRoute},
 	}
 
 	return response, nil
+}
+
+func removeHTMLTags(s string) string {
+	re := regexp.MustCompile(`<[^>]*>`)
+	return re.ReplaceAllString(s, " ")
+}
+
+func selectBestRoute(routes []Route, routeType string) Route {
+	if len(routes) == 0 {
+		return Route{}
+	}
+
+	selected := routes[0]
+	switch strings.ToUpper(routeType) {
+	case "RÁPIDA":
+		for _, r := range routes {
+			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
+				selected = r
+			}
+		}
+	case "BARATO":
+		for _, r := range routes {
+			if r.Costs.TagAndCash < selected.Costs.TagAndCash {
+				selected = r
+			}
+		}
+	case "EFICIENTE":
+		for _, r := range routes {
+			if (r.Costs.Fuel + r.Costs.TagAndCash) < (selected.Costs.Fuel + selected.Costs.TagAndCash) {
+				selected = r
+			}
+		}
+	default:
+		for _, r := range routes {
+			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
+				selected = r
+			}
+		}
+	}
+	return selected
 }
 
 func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origin, destination string) (Arrival, error) {
@@ -673,6 +741,8 @@ var (
 )
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
+	address = stateToCapital(address)
+
 	geocodeCacheMutex.RLock()
 	if cachedResult, found := geocodeCache[address]; found {
 		geocodeCacheMutex.RUnlock()
@@ -724,6 +794,69 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	geocodeCacheMutex.Unlock()
 
 	return result, nil
+}
+
+func stateToCapital(address string) string {
+	state := strings.ToLower(strings.TrimSpace(address))
+
+	switch state {
+	case "acre":
+		return "Rio Branco, Acre"
+	case "alagoas":
+		return "Maceió, Alagoas"
+	case "amapá", "amapa":
+		return "Macapá, Amapá"
+	case "amazonas":
+		return "Manaus, Amazonas"
+	case "bahia":
+		return "Salvador, Bahia"
+	case "ceará", "ceara":
+		return "Fortaleza, Ceará"
+	case "espírito santo", "espirito santo":
+		return "Vitória, Espírito Santo"
+	case "goiás", "goias":
+		return "Goiânia, Goiás"
+	case "maranhão", "maranhao":
+		return "São Luís, Maranhão"
+	case "mato grosso":
+		return "Cuiabá, Mato Grosso"
+	case "mato grosso do sul":
+		return "Campo Grande, Mato Grosso do Sul"
+	case "minas gerais":
+		return "Belo Horizonte, Minas Gerais"
+	case "pará", "para":
+		return "Belém, Pará"
+	case "paraíba", "paraiba":
+		return "João Pessoa, Paraíba"
+	case "paraná", "parana":
+		return "Curitiba, Paraná"
+	case "pernambuco":
+		return "Recife, Pernambuco"
+	case "piauí", "piaui":
+		return "Teresina, Piauí"
+	case "rio de janeiro":
+		return "Rio de Janeiro, Rio de Janeiro"
+	case "rio grande do norte":
+		return "Natal, Rio Grande do Norte"
+	case "rio grande do sul":
+		return "Porto Alegre, Rio Grande do Sul"
+	case "rondônia", "rondonia":
+		return "Porto Velho, Rondônia"
+	case "roraima":
+		return "Boa Vista, Roraima"
+	case "santa catarina":
+		return "Florianópolis, Santa Catarina"
+	case "são paulo", "sao paulo":
+		return "São Paulo, São Paulo"
+	case "sergipe":
+		return "Aracaju, Sergipe"
+	case "tocantins":
+		return "Palmas, Tocantins"
+	case "distrito federal":
+		return "Brasília, Distrito Federal"
+	default:
+		return address
+	}
 }
 
 func parseNullStringToFloat(nullString sql.NullString) (float64, error) {

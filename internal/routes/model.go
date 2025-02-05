@@ -14,6 +14,7 @@ type FrontInfo struct {
 	Axles           int      `json:"axles"`
 	Type            string   `json:"type"`
 	Waypoints       []string `json:"waypoints"`
+	TypeRoute       string   `json:"typeRoute"`
 }
 
 // FEATURE
@@ -84,11 +85,13 @@ type FuelPrice struct {
 }
 
 type Route struct {
-	Summary     Summary      `json:"summary"`
-	Costs       Costs        `json:"costs"`
-	Tolls       []Toll       `json:"tolls"`
-	GasStations []GasStation `json:"gas_stations"`
-	Polyline    string       `json:"polyline"`
+	Summary      Summary      `json:"summary"`
+	Costs        Costs        `json:"costs"`
+	Tolls        []Toll       `json:"tolls"`
+	GasStations  []GasStation `json:"gas_stations"`
+	Polyline     string       `json:"polyline"`
+	Rotograma    string       `json:"rotograma"`
+	Instructions []string     `json:"instructions"`
 }
 
 type Summary struct {
