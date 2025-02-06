@@ -43,10 +43,37 @@ CREATE TABLE saved_routes (
                               origin TEXT NOT NULL,
                               destination TEXT NOT NULL,
                               waypoints TEXT NULL,
+                              request JSONB NOT NULL,
                               response JSONB NOT NULL,
                               created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                               updated_at TIMESTAMPTZ NULL DEFAULT null,
-                              favorite boolean NULL default false
+                              favorite boolean NULL default false,
+                              expired_at timestamp not null
+);
+CREATE UNIQUE INDEX idx_saved_routes_unique ON saved_routes(origin, destination, waypoints);
+
+create table favorite_route (
+                                id BIGSERIAL PRIMARY KEY,
+                                tolls_id bigint not null,
+                                response JSONB NOT NULL,
+                                user_organization varchar not null,
+                                created_who varchar not null,
+                                created_at timestamp not null default now(),
+                                updated_who varchar null,
+                                updated_at timestamp null
 );
 
-CREATE UNIQUE INDEX idx_saved_routes_unique ON saved_routes(origin, destination, waypoints);
+CREATE TABLE public.balanca (
+                                id bigint NOT NULL,
+                                concessionaria varchar(50) NOT NULL,
+                                km varchar(50) NOT NULL,
+                                lat varchar(50) NOT NULL,
+                                lng varchar(50) NOT NULL,
+                                nome varchar(50) NOT NULL,
+                                rodovia varchar(50) NOT NULL,
+                                sentido varchar(50) NOT NULL,
+                                uf varchar(50)NOT NULL
+);
+
+
+

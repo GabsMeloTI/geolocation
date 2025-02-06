@@ -9,31 +9,23 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 )
-
-const addSavedRoutesFavorite = `-- name: AddSavedRoutesFavorite :exec
-UPDATE public.saved_routes
-SET favorite=true, upated_at=now()
-WHERE id = $1
-`
-
-func (q *Queries) AddSavedRoutesFavorite(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, addSavedRoutesFavorite, id)
-	return err
-}
 
 const createSavedRoutes = `-- name: CreateSavedRoutes :one
 INSERT INTO public.saved_routes
-(id, origin, destination, waypoints, response, created_at)
-VALUES(nextval('saved_routes_id_seq'::regclass), $1, $2, $3, $4, now())
-    RETURNING id, origin, destination, waypoints, response, created_at, updated_at, favorite
+(id, origin, destination, waypoints, request, response, created_at, expired_at)
+VALUES(nextval('saved_routes_id_seq'::regclass), $1, $2, $3, $4, $5,now(), $6)
+    RETURNING id, origin, destination, waypoints, request, response, created_at, updated_at, favorite, expired_at
 `
 
 type CreateSavedRoutesParams struct {
 	Origin      string          `json:"origin"`
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
+	Request     json.RawMessage `json:"request"`
 	Response    json.RawMessage `json:"response"`
+	ExpiredAt   time.Time       `json:"expired_at"`
 }
 
 func (q *Queries) CreateSavedRoutes(ctx context.Context, arg CreateSavedRoutesParams) (SavedRoute, error) {
@@ -41,7 +33,9 @@ func (q *Queries) CreateSavedRoutes(ctx context.Context, arg CreateSavedRoutesPa
 		arg.Origin,
 		arg.Destination,
 		arg.Waypoints,
+		arg.Request,
 		arg.Response,
+		arg.ExpiredAt,
 	)
 	var i SavedRoute
 	err := row.Scan(
@@ -49,16 +43,18 @@ func (q *Queries) CreateSavedRoutes(ctx context.Context, arg CreateSavedRoutesPa
 		&i.Origin,
 		&i.Destination,
 		&i.Waypoints,
+		&i.Request,
 		&i.Response,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Favorite,
+		&i.ExpiredAt,
 	)
 	return i, err
 }
 
 const getSavedRouteById = `-- name: GetSavedRouteById :one
-SELECT id, origin, destination, waypoints, response, created_at, updated_at, favorite
+SELECT id, origin, destination, waypoints, request, response, created_at, updated_at, favorite, expired_at
 FROM public.saved_routes
 WHERE ID = $1
 `
@@ -71,16 +67,18 @@ func (q *Queries) GetSavedRouteById(ctx context.Context, id int32) (SavedRoute, 
 		&i.Origin,
 		&i.Destination,
 		&i.Waypoints,
+		&i.Request,
 		&i.Response,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Favorite,
+		&i.ExpiredAt,
 	)
 	return i, err
 }
 
 const getSavedRoutes = `-- name: GetSavedRoutes :one
-SELECT id, origin, destination, waypoints, response, created_at, updated_at, favorite
+SELECT id, origin, destination, waypoints, request, response, created_at, updated_at, favorite, expired_at
 FROM public.saved_routes
 WHERE origin = $1 AND
       destination = $2 AND
@@ -101,10 +99,12 @@ func (q *Queries) GetSavedRoutes(ctx context.Context, arg GetSavedRoutesParams) 
 		&i.Origin,
 		&i.Destination,
 		&i.Waypoints,
+		&i.Request,
 		&i.Response,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Favorite,
+		&i.ExpiredAt,
 	)
 	return i, err
 }

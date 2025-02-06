@@ -24,7 +24,6 @@ import (
 
 type InterfaceService interface {
 	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
-	AddSavedRoutesFavorite(ctx context.Context, id int32) error
 }
 
 type Service struct {
@@ -37,6 +36,35 @@ func NewRoutesService(InterfaceService InterfaceRepository, GoogleMapsAPIKey str
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
+	cacheKey := fmt.Sprintf("route:%s:%s:%s", frontInfo.Origin, frontInfo.Destination, strings.Join(frontInfo.Waypoints, ","))
+
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var cachedResponse Response
+		if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
+			return recalculateCosts(cachedResponse, frontInfo), nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		return Response{}, err
+	}
+
+	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+		Origin:      frontInfo.Origin,
+		Destination: frontInfo.Destination,
+		Waypoints: sql.NullString{
+			String: strings.Join(frontInfo.Waypoints, ","),
+			Valid:  true,
+		},
+	})
+
+	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
+		var dbResponse Response
+		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
+			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 24*time.Hour)
+			return recalculateCosts(dbResponse, frontInfo), nil
+		}
+	}
+
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return Response{}, err
@@ -81,6 +109,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	for _, route := range routes {
 		foundTolls, _ := s.findTollsInRoute(ctx, client, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
+		foundBalancas, _ := s.findBalancaInRoute(ctx, client, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
 		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
@@ -128,8 +157,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			minTollCost = totalTollCost
 		}
 
-		//fuelCost := math.Round((float64(totalDistance)/1000.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
-		//fuelCost := math.Round((float64(totalDistance)/100.0/frontInfo.ConsumptionHwy*frontInfo.Price)*100) / 100
 		fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * (float64(totalDistance) / 1000))
 		fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * (float64(totalDistance) / 1000))
 
@@ -173,8 +200,9 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				MinimumTollCost: minTollCost,
 			},
 			Tolls:        foundTolls,
-			Polyline:     route.OverviewPolyline.Points,
+			Balanca:      foundBalancas,
 			GasStations:  findGasStationsAlongRoute,
+			Polyline:     route.OverviewPolyline.Points,
 			Instructions: instructions,
 		})
 
@@ -210,13 +238,48 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}
 
 	selectedRoute := selectBestRoute(allRoutes, frontInfo.TypeRoute)
-
 	response := Response{
 		SummaryRoute: summaryRoute,
 		Routes:       []Route{selectedRoute},
 	}
 
+	responseJSON, _ := json.Marshal(response)
+	requestJSON, _ := json.Marshal(routeRequest)
+
+	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 24*time.Hour).Err(); err != nil {
+		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
+		return Response{}, errors.New("Erro ao salvar cache do Redis")
+	}
+
+	waypoints := strings.Join(frontInfo.Waypoints, ",")
+	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+		Origin:      frontInfo.Origin,
+		Destination: frontInfo.Destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		Request:   requestJSON,
+		Response:  responseJSON,
+		ExpiredAt: time.Now().Add(24 * time.Hour),
+	})
+
 	return response, nil
+}
+
+func recalculateCosts(response Response, frontInfo FrontInfo) Response {
+	for i := range response.Routes {
+		route := &response.Routes[i]
+		totalDistance := float64(route.Summary.Distance.Value) / 1000
+
+		fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * totalDistance)
+		fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * totalDistance)
+
+		route.Costs.FuelInTheCity = fuelCostCity
+		route.Costs.FuelInTheHwy = fuelCostHwy
+	}
+
+	return response
 }
 
 func removeHTMLTags(s string) string {
@@ -476,6 +539,58 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 		}
 	}
 	return foundTolls, nil
+}
+
+func (s *Service) findBalancaInRoute(ctx context.Context, client *maps.Client, routes []maps.Route, origin, vehicle string, axes float64) ([]Balanca, error) {
+	var foundBalancas []Balanca
+	uniqueBalanca := make(map[int64]bool)
+
+	tolls, err := s.InterfaceService.GetBalanca(ctx)
+	if err != nil {
+		return foundBalancas, nil
+	}
+
+	uniquePoints := make(map[string]maps.LatLng)
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				polyPoints := decodePolyline(step.Polyline.Points)
+				for _, point := range polyPoints {
+					key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
+					uniquePoints[key] = point
+				}
+			}
+		}
+	}
+
+	for _, point := range uniquePoints {
+		for _, dbBalanca := range tolls {
+			latitude, latErr := parseStringToFloat(dbBalanca.Lat)
+			longitude, lonErr := parseStringToFloat(dbBalanca.Lng)
+			if latErr != nil || lonErr != nil {
+				continue
+			}
+
+			if isNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
+				if !uniqueBalanca[dbBalanca.ID] {
+					uniqueBalanca[dbBalanca.ID] = true
+
+					foundBalancas = append(foundBalancas, Balanca{
+						ID:             int(dbBalanca.ID),
+						Concessionaria: dbBalanca.Concessionaria,
+						Km:             dbBalanca.Km,
+						Lat:            latitude,
+						Lng:            longitude,
+						Nome:           dbBalanca.Nome,
+						Rodovia:        dbBalanca.Rodovia,
+						Sentido:        dbBalanca.Sentido,
+						Uf:             dbBalanca.Uf,
+					})
+				}
+			}
+		}
+	}
+	return foundBalancas, nil
 }
 
 var (
@@ -863,6 +978,9 @@ func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
 	}
 	return 0, fmt.Errorf("valor nulo")
 }
+func parseStringToFloat(text string) (float64, error) {
+	return strconv.ParseFloat(text, 64)
+}
 
 func getStringFromNull(nullString sql.NullString) string {
 	if nullString.Valid {
@@ -886,23 +1004,6 @@ func isNearby(lat1, lng1, lat2, lng2, radius float64) bool {
 
 	distance := earthRadius * c
 	return distance <= radius
-}
-
-func (s *Service) AddSavedRoutesFavorite(ctx context.Context, id int32) error {
-	_, err := s.InterfaceService.GetSavedRouteById(ctx, id)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return errors.New("route not found")
-		}
-		return err
-	}
-
-	err = s.InterfaceService.AddSavedRoutesFavorite(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func priceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {

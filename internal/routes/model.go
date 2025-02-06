@@ -55,12 +55,26 @@ type FuelPrice struct {
 }
 
 type Route struct {
-	Summary      Summary      `json:"summary"`
-	Costs        Costs        `json:"costs"`
-	Tolls        []Toll       `json:"tolls"`
+	Summary Summary   `json:"summary"`
+	Costs   Costs     `json:"costs"`
+	Tolls   []Toll    `json:"tolls"`
+	Balanca []Balanca `json:"balances"`
+
 	GasStations  []GasStation `json:"gas_stations"`
 	Polyline     string       `json:"polyline"`
 	Instructions []string     `json:"instructions"`
+}
+
+type Balanca struct {
+	ID             int     `json:"id"`
+	Concessionaria string  `json:"concessionaria"`
+	Km             string  `json:"km"`
+	Lat            float64 `json:"lat"`
+	Lng            float64 `json:"lng"`
+	Nome           string  `json:"nome"`
+	Rodovia        string  `json:"rodovia"`
+	Sentido        string  `json:"sentido"`
+	Uf             string  `json:"uf"`
 }
 
 type Summary struct {

@@ -14,8 +14,8 @@ type InterfaceRepository interface {
 	GetTollTags(ctx context.Context) ([]db.TollTag, error)
 	CreateSavedRoutes(ctx context.Context, arg db.CreateSavedRoutesParams) (db.SavedRoute, error)
 	GetSavedRoutes(ctx context.Context, arg db.GetSavedRoutesParams) (db.SavedRoute, error)
-	AddSavedRoutesFavorite(ctx context.Context, arg int32) error
 	GetSavedRouteById(ctx context.Context, arg int32) (db.SavedRoute, error)
+	GetBalanca(ctx context.Context) ([]db.Balanca, error)
 }
 
 type Repository struct {
@@ -56,9 +56,9 @@ func (r *Repository) CreateSavedRoutes(ctx context.Context, arg db.CreateSavedRo
 func (r *Repository) GetSavedRoutes(ctx context.Context, arg db.GetSavedRoutesParams) (db.SavedRoute, error) {
 	return r.Queries.GetSavedRoutes(ctx, arg)
 }
-func (r *Repository) AddSavedRoutesFavorite(ctx context.Context, arg int32) error {
-	return r.Queries.AddSavedRoutesFavorite(ctx, arg)
-}
 func (r *Repository) GetSavedRouteById(ctx context.Context, arg int32) (db.SavedRoute, error) {
 	return r.Queries.GetSavedRouteById(ctx, arg)
+}
+func (r *Repository) GetBalanca(ctx context.Context) ([]db.Balanca, error) {
+	return r.Queries.GetBalanca(ctx)
 }

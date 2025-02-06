@@ -10,6 +10,29 @@ import (
 	"time"
 )
 
+type Balanca struct {
+	ID             int64  `json:"id"`
+	Concessionaria string `json:"concessionaria"`
+	Km             string `json:"km"`
+	Lat            string `json:"lat"`
+	Lng            string `json:"lng"`
+	Nome           string `json:"nome"`
+	Rodovia        string `json:"rodovia"`
+	Sentido        string `json:"sentido"`
+	Uf             string `json:"uf"`
+}
+
+type FavoriteRoute struct {
+	ID               int64           `json:"id"`
+	TollsID          int64           `json:"tolls_id"`
+	Response         json.RawMessage `json:"response"`
+	UserOrganization string          `json:"user_organization"`
+	CreatedWho       string          `json:"created_who"`
+	CreatedAt        time.Time       `json:"created_at"`
+	UpdatedWho       sql.NullString  `json:"updated_who"`
+	UpdatedAt        sql.NullTime    `json:"updated_at"`
+}
+
 type GasStation struct {
 	ID            int64  `json:"id"`
 	Name          string `json:"name"`
@@ -25,10 +48,12 @@ type SavedRoute struct {
 	Origin      string          `json:"origin"`
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
+	Request     json.RawMessage `json:"request"`
 	Response    json.RawMessage `json:"response"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   sql.NullTime    `json:"updated_at"`
 	Favorite    sql.NullBool    `json:"favorite"`
+	ExpiredAt   time.Time       `json:"expired_at"`
 }
 
 type Toll struct {
