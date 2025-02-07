@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"os"
 
 	"github.com/go-redis/redis/v8"
@@ -15,7 +16,7 @@ var (
 func InitRedis() {
 	redisAddr := os.Getenv("REDIS_URL")
 	if redisAddr == "" {
-		redisAddr = "3.238.112.146:6379"
+		errors.New("REDIS_URL not found")
 	}
 
 	Rdb = redis.NewClient(&redis.Options{
