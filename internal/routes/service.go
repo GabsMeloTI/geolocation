@@ -36,7 +36,7 @@ func NewRoutesService(InterfaceService InterfaceRepository, GoogleMapsAPIKey str
 }
 
 func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	cacheKey := fmt.Sprintf("route:%s:%s:%s", frontInfo.Origin, frontInfo.Destination, strings.Join(frontInfo.Waypoints, ","))
+	cacheKey := fmt.Sprintf("route:%s:%s:%s", strings.ToLower(frontInfo.Origin), strings.ToLower(frontInfo.Destination), strings.ToLower(strings.Join(frontInfo.Waypoints, ",")))
 
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
@@ -49,10 +49,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}
 
 	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      frontInfo.Origin,
-		Destination: frontInfo.Destination,
+		Origin:      strings.ToLower(frontInfo.Origin),
+		Destination: strings.ToLower(frontInfo.Destination),
 		Waypoints: sql.NullString{
-			String: strings.Join(frontInfo.Waypoints, ","),
+			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
 			Valid:  true,
 		},
 	})
@@ -87,10 +87,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Alternatives: true,
 		Region:       "br",
 		Language:     "pt-BR",
-	}
-
-	if strings.ToUpper(frontInfo.Type) == "BARATO" {
-		routeRequest.Avoid = []maps.Avoid{"tolls"}
 	}
 
 	routes, _, err := client.Directions(ctx, routeRequest)
@@ -250,10 +246,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, errors.New("Erro ao salvar cache do Redis")
 	}
 
-	waypoints := strings.Join(frontInfo.Waypoints, ",")
+	waypoints := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
 	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
-		Origin:      frontInfo.Origin,
-		Destination: frontInfo.Destination,
+		Origin:      strings.ToLower(frontInfo.Origin),
+		Destination: strings.ToLower(frontInfo.Destination),
 		Waypoints: sql.NullString{
 			String: waypoints,
 			Valid:  true,
