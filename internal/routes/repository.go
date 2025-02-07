@@ -16,6 +16,7 @@ type InterfaceRepository interface {
 	GetSavedRoutes(ctx context.Context, arg db.GetSavedRoutesParams) (db.SavedRoute, error)
 	GetSavedRouteById(ctx context.Context, arg int32) (db.SavedRoute, error)
 	GetBalanca(ctx context.Context) ([]db.Balanca, error)
+	CreateFavoriteRoute(ctx context.Context, arg db.CreateFavoriteRouteParams) (db.FavoriteRoute, error)
 }
 
 type Repository struct {
@@ -61,4 +62,7 @@ func (r *Repository) GetSavedRouteById(ctx context.Context, arg int32) (db.Saved
 }
 func (r *Repository) GetBalanca(ctx context.Context) ([]db.Balanca, error) {
 	return r.Queries.GetBalanca(ctx)
+}
+func (r *Repository) CreateFavoriteRoute(ctx context.Context, arg db.CreateFavoriteRouteParams) (db.FavoriteRoute, error) {
+	return r.Queries.CreateFavoriteRoute(ctx, arg)
 }

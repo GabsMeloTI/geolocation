@@ -9,13 +9,13 @@ import (
 	"fmt"
 	db "geolocation/db/sqlc"
 	cache "geolocation/pkg"
+	"geolocation/validation"
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	"googlemaps.github.io/maps"
 	"html"
 	"math"
 	neturl "net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,7 +42,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	if err == nil {
 		var cachedResponse Response
 		if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
-			return recalculateCosts(cachedResponse, frontInfo), nil
+			return RecalculateCosts(cachedResponse, frontInfo), nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
 		return Response{}, err
@@ -56,12 +56,11 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Valid:  true,
 		},
 	})
-
 	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
 		var dbResponse Response
 		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 24*time.Hour)
-			return recalculateCosts(dbResponse, frontInfo), nil
+			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+			return RecalculateCosts(dbResponse, frontInfo), nil
 		}
 	}
 
@@ -108,8 +107,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var minTollCost = math.MaxFloat64
 
 	for _, route := range routes {
-		foundTolls, _ := s.findTollsInRoute(ctx, client, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
-		foundBalancas, _ := s.findBalancaInRoute(ctx, client, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
+		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
+		foundBalancas, _ := s.findBalancaInRoute(ctx, []maps.Route{route})
 		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
@@ -130,7 +129,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			})
 
 			for _, step := range leg.Steps {
-				instr := removeHTMLTags(step.HTMLInstructions)
+				instr := validation.RemoveHTMLTags(step.HTMLInstructions)
 				instr = html.UnescapeString(instr)
 				instructions = append(instructions, instr)
 			}
@@ -237,7 +236,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		}
 	}
 
-	selectedRoute := selectBestRoute(allRoutes, frontInfo.TypeRoute)
+	selectedRoute := SelectBestRoute(allRoutes, frontInfo.TypeRoute)
 	response := Response{
 		SummaryRoute: summaryRoute,
 		Routes:       []Route{selectedRoute},
@@ -246,7 +245,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	responseJSON, _ := json.Marshal(response)
 	requestJSON, _ := json.Marshal(routeRequest)
 
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 24*time.Hour).Err(); err != nil {
+	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
 		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
 		return Response{}, errors.New("Erro ao salvar cache do Redis")
 	}
@@ -261,76 +260,24 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		},
 		Request:   requestJSON,
 		Response:  responseJSON,
-		ExpiredAt: time.Now().Add(24 * time.Hour),
+		ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
 	})
 
 	return response, nil
 }
 
-func recalculateCosts(response Response, frontInfo FrontInfo) Response {
-	for i := range response.Routes {
-		route := &response.Routes[i]
-		totalDistance := float64(route.Summary.Distance.Value) / 1000
-
-		fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * totalDistance)
-		fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * totalDistance)
-
-		route.Costs.FuelInTheCity = fuelCostCity
-		route.Costs.FuelInTheHwy = fuelCostHwy
-	}
-
-	return response
-}
-
-func removeHTMLTags(s string) string {
-	re := regexp.MustCompile(`<[^>]*>`)
-	return re.ReplaceAllString(s, " ")
-}
-
-func selectBestRoute(routes []Route, routeType string) Route {
-	if len(routes) == 0 {
-		return Route{}
-	}
-
-	selected := routes[0]
-	switch strings.ToUpper(routeType) {
-	case "RÁPIDA":
-		for _, r := range routes {
-			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-				selected = r
-			}
-		}
-	case "BARATO":
-		for _, r := range routes {
-			if r.Costs.TagAndCash < selected.Costs.TagAndCash {
-				selected = r
-			}
-		}
-	case "EFICIENTE":
-		for _, r := range routes {
-			if (r.Costs.FuelInTheCity + r.Costs.TagAndCash) < (selected.Costs.FuelInTheCity + selected.Costs.TagAndCash) {
-				selected = r
-			}
-		}
-	default:
-		for _, r := range routes {
-			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-				selected = r
-			}
-		}
-	}
-	return selected
-}
-
 func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origin, destination string) (Arrival, error) {
-	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
+	cacheKey := fmt.Sprintf("timeWithClient:%s|%s", origin, destination)
 
-	timeCacheMutex.RLock()
-	if arrival, exists := timeCache[cacheKey]; exists {
-		timeCacheMutex.RUnlock()
-		return arrival, nil
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var arrival Arrival
+		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
+			return arrival, nil
+		}
+	} else if err != redis.Nil {
+		return Arrival{}, err
 	}
-	timeCacheMutex.RUnlock()
 
 	routeRequest := &maps.DirectionsRequest{
 		Origin:       origin,
@@ -339,12 +286,13 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 		Mode:         maps.TravelModeDriving,
 		Region:       "br",
 	}
+
 	routes, _, err := client.Directions(ctx, routeRequest)
 	if err != nil {
 		return Arrival{}, err
 	}
 	if len(routes) == 0 || len(routes[0].Legs) == 0 {
-		return Arrival{}, fmt.Errorf("no route/leg found for origin %s to destination %s", origin, destination)
+		return Arrival{}, fmt.Errorf("rota ou trecho não encontrado para origem %s e destino %s", origin, destination)
 	}
 
 	leg := routes[0].Legs[0]
@@ -353,102 +301,17 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 		Time:     leg.Duration,
 	}
 
-	timeCacheMutex.Lock()
-	timeCache[cacheKey] = arrival
-	timeCacheMutex.Unlock()
+	data, err := json.Marshal(arrival)
+	if err == nil {
+		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache no Redis (timeWithClient): %v\n", err)
+		}
+	}
 
 	return arrival, nil
 }
 
-//func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
-//	var foundTolls []Toll
-//	uniquePoints := make(map[string]bool)
-//	uniqueTolls := make(map[int64]bool)
-//
-//	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	resultTags, err := s.InterfaceService.GetTollTags(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var consolidatedPoints []maps.LatLng
-//	for _, route := range routes {
-//		for _, leg := range route.Legs {
-//			for _, step := range leg.Steps {
-//				pointKey := fmt.Sprintf("%f,%f", step.StartLocation.Lat, step.StartLocation.Lng)
-//				if !uniquePoints[pointKey] {
-//					uniquePoints[pointKey] = true
-//					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
-//				}
-//			}
-//		}
-//	}
-//
-//	for _, point := range consolidatedPoints {
-//		for _, dbToll := range tolls {
-//			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-//			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
-//			if latErr != nil || lonErr != nil {
-//				continue
-//			}
-//
-//			if isNearby(point.Lat, point.Lng, latitude, longitude, 5.0) {
-//				if !uniqueTolls[dbToll.ID] {
-//					uniqueTolls[dbToll.ID] = true
-//
-//					arrivalTimes, _ := s.time(ctx, origin, fmt.Sprintf("%f,%f", latitude, longitude))
-//					formattedTime := arrivalTimes.Time.Round(time.Second).String()
-//
-//					concession := getStringFromNull(dbToll.Concessionaria)
-//					var tags []string
-//					for _, tagRecord := range resultTags {
-//						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
-//						for _, accepted := range acceptedList {
-//							if strings.TrimSpace(accepted) == concession {
-//								tags = append(tags, tagRecord.Name)
-//								break
-//							}
-//						}
-//					}
-//
-//					totalToll, err := priceTollsFromVehicle(vehicle, dbToll.Tarifa.Float64, axes)
-//					if err != nil {
-//						return nil, err
-//					}
-//
-//					foundTolls = append(foundTolls, Toll{
-//						ID:              int(dbToll.ID),
-//						Latitude:        latitude,
-//						Longitude:       longitude,
-//						Name:            getStringFromNull(dbToll.PracaDePedagio),
-//						Concession:      dbToll.Concessionaria.String,
-//						Road:            getStringFromNull(dbToll.Rodovia),
-//						State:           getStringFromNull(dbToll.Uf),
-//						Country:         "Brasil",
-//						Type:            "Pedágio",
-//						TagCost:         math.Round(totalToll - (totalToll * 0.05)),
-//						CashCost:        totalToll,
-//						Currency:        "BRL",
-//						PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
-//						ArrivalResponse: ArrivalResponse{
-//							Distance: arrivalTimes.Distance,
-//							Time:     formattedTime,
-//						},
-//						TagPrimary: tags,
-//					})
-//				}
-//			}
-//		}
-//	}
-//
-//	return foundTolls, nil
-//}
-
-func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
+func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
 	var foundTolls []Toll
 	uniqueTolls := make(map[int64]bool)
 
@@ -466,9 +329,9 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				polyPoints := decodePolyline(step.Polyline.Points)
+				polyPoints := DecodePolyline(step.Polyline.Points)
 				for _, point := range polyPoints {
-					key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
+					key := fmt.Sprintf("%f,%f", RoundCoord(point.Lat), RoundCoord(point.Lng))
 					uniquePoints[key] = point
 				}
 			}
@@ -477,25 +340,25 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 
 	for _, point := range uniquePoints {
 		for _, dbToll := range tolls {
-			latitude, latErr := parseNullStringToFloat(dbToll.Latitude)
-			longitude, lonErr := parseNullStringToFloat(dbToll.Longitude)
+			latitude, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
+			longitude, lonErr := validation.ParseNullStringToFloat(dbToll.Longitude)
 			if latErr != nil || lonErr != nil {
 				continue
 			}
 
-			if isNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
+			if IsNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
 					dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
-					arrivalTimes, err := s.time(ctx, origin, dest)
+					arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
 					if err != nil {
 						fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
 						continue
 					}
 					formattedTime := arrivalTimes.Time.Round(time.Second).String()
 
-					concession := getStringFromNull(dbToll.Concessionaria)
+					concession := validation.GetStringFromNull(dbToll.Concessionaria)
 					var tags []string
 					for _, tagRecord := range resultTags {
 						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
@@ -509,7 +372,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 
 					tarifaFloat, err := strconv.ParseFloat(dbToll.Tarifa, 64)
 
-					totalToll, err := priceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
+					totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
 					if err != nil {
 						return nil, err
 					}
@@ -518,10 +381,10 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 						ID:              int(dbToll.ID),
 						Latitude:        latitude,
 						Longitude:       longitude,
-						Name:            getStringFromNull(dbToll.PracaDePedagio),
+						Name:            validation.GetStringFromNull(dbToll.PracaDePedagio),
 						Concession:      dbToll.Concessionaria.String,
-						Road:            getStringFromNull(dbToll.Rodovia),
-						State:           getStringFromNull(dbToll.Uf),
+						Road:            validation.GetStringFromNull(dbToll.Rodovia),
+						State:           validation.GetStringFromNull(dbToll.Uf),
 						Country:         "Brasil",
 						Type:            "Pedágio",
 						TagCost:         math.Round(totalToll - (totalToll * 0.05)),
@@ -541,7 +404,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, client *maps.Client, rou
 	return foundTolls, nil
 }
 
-func (s *Service) findBalancaInRoute(ctx context.Context, client *maps.Client, routes []maps.Route, origin, vehicle string, axes float64) ([]Balanca, error) {
+func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) ([]Balanca, error) {
 	var foundBalancas []Balanca
 	uniqueBalanca := make(map[int64]bool)
 
@@ -554,9 +417,9 @@ func (s *Service) findBalancaInRoute(ctx context.Context, client *maps.Client, r
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				polyPoints := decodePolyline(step.Polyline.Points)
+				polyPoints := DecodePolyline(step.Polyline.Points)
 				for _, point := range polyPoints {
-					key := fmt.Sprintf("%f,%f", roundCoord(point.Lat), roundCoord(point.Lng))
+					key := fmt.Sprintf("%f,%f", RoundCoord(point.Lat), RoundCoord(point.Lng))
 					uniquePoints[key] = point
 				}
 			}
@@ -565,13 +428,13 @@ func (s *Service) findBalancaInRoute(ctx context.Context, client *maps.Client, r
 
 	for _, point := range uniquePoints {
 		for _, dbBalanca := range tolls {
-			latitude, latErr := parseStringToFloat(dbBalanca.Lat)
-			longitude, lonErr := parseStringToFloat(dbBalanca.Lng)
+			latitude, latErr := validation.ParseStringToFloat(dbBalanca.Lat)
+			longitude, lonErr := validation.ParseStringToFloat(dbBalanca.Lng)
 			if latErr != nil || lonErr != nil {
 				continue
 			}
 
-			if isNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
+			if IsNearby(point.Lat, point.Lng, latitude, longitude, 2.0) {
 				if !uniqueBalanca[dbBalanca.ID] {
 					uniqueBalanca[dbBalanca.ID] = true
 
@@ -593,116 +456,6 @@ func (s *Service) findBalancaInRoute(ctx context.Context, client *maps.Client, r
 	return foundBalancas, nil
 }
 
-var (
-	timeCache      = make(map[string]Arrival)
-	timeCacheMutex = sync.RWMutex{}
-)
-
-func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
-
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	if err == nil {
-		var arrival Arrival
-		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
-			return arrival, nil
-		}
-	} else if err != redis.Nil {
-		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
-	}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-	if err != nil {
-		return Arrival{}, err
-	}
-
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: false,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
-	}
-	routes, _, err := client.Directions(ctx, routeRequest)
-	if err != nil {
-		return Arrival{}, err
-	}
-	if len(routes) == 0 || len(routes[0].Legs) == 0 {
-		return Arrival{}, echo.ErrNotFound
-	}
-
-	leg := routes[0].Legs[0]
-	arrival := Arrival{
-		Distance: leg.Distance.HumanReadable,
-		Time:     leg.Duration,
-	}
-
-	data, err := json.Marshal(arrival)
-	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
-		}
-	}
-
-	return arrival, nil
-}
-
-//var (
-//	timeCache      = make(map[string]Arrival)
-//	timeCacheMutex = sync.RWMutex{}
-//)
-//
-//func (s *Service) time(ctx context.Context, origin, destination string) (Arrival, error) {
-//	cacheKey := fmt.Sprintf("%s|%s", origin, destination)
-//
-//	timeCacheMutex.RLock()
-//	if arrival, exists := timeCache[cacheKey]; exists {
-//		timeCacheMutex.RUnlock()
-//		return arrival, nil
-//	}
-//	timeCacheMutex.RUnlock()
-//
-//	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-//	if err != nil {
-//		return Arrival{}, err
-//	}
-//
-//	routeRequest := &maps.DirectionsRequest{
-//		Origin:       origin,
-//		Destination:  destination,
-//		Alternatives: false,
-//		Mode:         maps.TravelModeDriving,
-//		Region:       "br",
-//	}
-//	routes, _, err := client.Directions(ctx, routeRequest)
-//	if err != nil {
-//		return Arrival{}, err
-//	}
-//	if len(routes) == 0 {
-//		return Arrival{}, echo.ErrNotFound
-//	}
-//
-//	leg := routes[0].Legs[0]
-//	arrival := Arrival{
-//		Distance: leg.Distance.HumanReadable,
-//		Time:     leg.Duration,
-//	}
-//
-//	timeCacheMutex.Lock()
-//	timeCache[cacheKey] = arrival
-//	timeCacheMutex.Unlock()
-//
-//	return arrival, nil
-//}
-
-func roundCoord(coord float64) float64 {
-	return math.Round(coord*1000) / 1000
-}
-
-func getCacheKeyForPoint(lat, lng float64) string {
-	return fmt.Sprintf("%f,%f", roundCoord(lat), roundCoord(lng))
-}
-
 func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
 	var gasStations []GasStation
 	uniqueGasStations := make(map[string]bool)
@@ -712,7 +465,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				pointKey := getCacheKeyForPoint(step.StartLocation.Lat, step.StartLocation.Lng)
+				pointKey := GetCacheKeyForPoint(step.StartLocation.Lat, step.StartLocation.Lng)
 				if !uniquePoints[pointKey] {
 					uniquePoints[pointKey] = true
 					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
@@ -734,15 +487,15 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 		go func(points []maps.LatLng) {
 			defer wg.Done()
 			for _, point := range points {
-				cacheKey := fmt.Sprintf("gasStations:%s", getCacheKeyForPoint(point.Lat, point.Lng))
+				cacheKey := fmt.Sprintf("gasStations:%s", GetCacheKeyForPoint(point.Lat, point.Lng))
 				cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
 				if err == nil {
 					var cachedStations []GasStation
 					if err := json.Unmarshal([]byte(cached), &cachedStations); err == nil {
 						mu.Lock()
 						for _, gs := range cachedStations {
-							if !uniqueGasStations[gs.Name] {
-								uniqueGasStations[gs.Name] = true
+							if !uniqueGasStations[gs.Address] {
+								uniqueGasStations[gs.Address] = true
 								gasStations = append(gasStations, gs)
 							}
 						}
@@ -845,8 +598,57 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 	return gasStations, nil
 }
 
+func (s *Service) calculateTimeToToll(ctx context.Context, origin, destination string) (Arrival, error) {
+	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
+
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var arrival Arrival
+		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
+			return arrival, nil
+		}
+	} else if err != redis.Nil {
+		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
+	}
+
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return Arrival{}, err
+	}
+
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: false,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Arrival{}, err
+	}
+	if len(routes) == 0 || len(routes[0].Legs) == 0 {
+		return Arrival{}, echo.ErrNotFound
+	}
+
+	leg := routes[0].Legs[0]
+	arrival := Arrival{
+		Distance: leg.Distance.HumanReadable,
+		Time:     leg.Duration,
+	}
+
+	data, err := json.Marshal(arrival)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
+		}
+	}
+
+	return s.timeWithClient(ctx, client, origin, destination)
+}
+
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	address = stateToCapital(strings.ToLower(address))
+	address = StateToCapital(strings.ToLower(address))
 
 	cacheKey := fmt.Sprintf("geocode:%s", address)
 
@@ -863,10 +665,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
-	}
-
-	if strings.ToLower(address) == "bahia" {
-		address = "Salvador, Bahia"
 	}
 
 	autoCompleteReq := &maps.PlaceAutocompleteRequest{
@@ -907,178 +705,4 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	}
 
 	return result, nil
-}
-
-func stateToCapital(address string) string {
-	state := strings.ToLower(strings.TrimSpace(address))
-
-	switch state {
-	case "acre":
-		return "Rio Branco, Acre"
-	case "alagoas":
-		return "Maceió, Alagoas"
-	case "amapá", "amapa":
-		return "Macapá, Amapá"
-	case "amazonas":
-		return "Manaus, Amazonas"
-	case "bahia":
-		return "Salvador, Bahia"
-	case "ceará", "ceara":
-		return "Fortaleza, Ceará"
-	case "espírito santo", "espirito santo":
-		return "Vitória, Espírito Santo"
-	case "goiás", "goias":
-		return "Goiânia, Goiás"
-	case "maranhão", "maranhao":
-		return "São Luís, Maranhão"
-	case "mato grosso":
-		return "Cuiabá, Mato Grosso"
-	case "mato grosso do sul":
-		return "Campo Grande, Mato Grosso do Sul"
-	case "minas gerais":
-		return "Belo Horizonte, Minas Gerais"
-	case "pará", "para":
-		return "Belém, Pará"
-	case "paraíba", "paraiba":
-		return "João Pessoa, Paraíba"
-	case "paraná", "parana":
-		return "Curitiba, Paraná"
-	case "pernambuco":
-		return "Recife, Pernambuco"
-	case "piauí", "piaui":
-		return "Teresina, Piauí"
-	case "rio de janeiro":
-		return "Rio de Janeiro, Rio de Janeiro"
-	case "rio grande do norte":
-		return "Natal, Rio Grande do Norte"
-	case "rio grande do sul":
-		return "Porto Alegre, Rio Grande do Sul"
-	case "rondônia", "rondonia":
-		return "Porto Velho, Rondônia"
-	case "roraima":
-		return "Boa Vista, Roraima"
-	case "santa catarina":
-		return "Florianópolis, Santa Catarina"
-	case "são paulo", "sao paulo":
-		return "São Paulo, São Paulo"
-	case "sergipe":
-		return "Aracaju, Sergipe"
-	case "tocantins":
-		return "Palmas, Tocantins"
-	case "distrito federal":
-		return "Brasília, Distrito Federal"
-	default:
-		return address
-	}
-}
-
-func parseNullStringToFloat(nullString sql.NullString) (float64, error) {
-	if nullString.Valid {
-		return strconv.ParseFloat(nullString.String, 64)
-	}
-	return 0, fmt.Errorf("valor nulo")
-}
-func parseStringToFloat(text string) (float64, error) {
-	return strconv.ParseFloat(text, 64)
-}
-
-func getStringFromNull(nullString sql.NullString) string {
-	if nullString.Valid {
-		return nullString.String
-	}
-	return ""
-}
-
-func isNearby(lat1, lng1, lat2, lng2, radius float64) bool {
-	const earthRadius = 6371
-
-	dLat := (lat2 - lat1) * (math.Pi / 180)
-	dLng := (lng2 - lng1) * (math.Pi / 180)
-
-	lat1Rad := lat1 * (math.Pi / 180)
-	lat2Rad := lat2 * (math.Pi / 180)
-
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
-		math.Sin(dLng/2)*math.Sin(dLng/2)*math.Cos(lat1Rad)*math.Cos(lat2Rad)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	distance := earthRadius * c
-	return distance <= radius
-}
-
-func priceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {
-	var calculation float64
-	switch os := vehicle; os {
-	case "motorcycle":
-		calculation = price / 2
-		return calculation, nil
-	case "auto":
-		if int(axes)%2 != 0 {
-			price = price / 2
-		}
-		calculation = price * axes
-		return calculation, nil
-	case "bus":
-		if int(axes)%2 != 0 {
-			price = price / 2
-		}
-		calculation = price * axes
-		return calculation, nil
-	case "truck":
-		if int(axes)%2 != 0 {
-			price = price / 2
-		}
-		calculation = price * axes
-		return calculation, nil
-	default:
-		fmt.Printf("incoorect value")
-	}
-
-	return calculation, nil
-}
-
-func decodePolyline(encoded string) []maps.LatLng {
-	var points []maps.LatLng
-	index, lat, lng := 0, 0, 0
-	for index < len(encoded) {
-		var result, shift uint
-		for {
-			b := encoded[index] - 63
-			index++
-			result |= uint(b&0x1F) << shift
-			shift += 5
-			if b < 0x20 {
-				break
-			}
-		}
-		dlat := int(result)
-		if dlat&1 != 0 {
-			dlat = ^(dlat >> 1)
-		} else {
-			dlat = dlat >> 1
-		}
-		lat += dlat
-		shift, result = 0, 0
-		for {
-			b := encoded[index] - 63
-			index++
-			result |= uint(b&0x1F) << shift
-			shift += 5
-			if b < 0x20 {
-				break
-			}
-		}
-		dlng := int(result)
-		if dlng&1 != 0 {
-			dlng = ^(dlng >> 1)
-		} else {
-			dlng = dlng >> 1
-		}
-		lng += dlng
-		points = append(points, maps.LatLng{
-			Lat: float64(lat) / 1e5,
-			Lng: float64(lng) / 1e5,
-		})
-	}
-	return points
 }

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"googlemaps.github.io/maps"
 	"time"
 )
@@ -151,4 +152,10 @@ type PlaceRequest struct {
 
 type PlaceResponse struct {
 	Place maps.PlacesSearchResult `json:"place"`
+}
+
+type CreateFavoriteRouteRequest struct {
+	TollsID          int64           `json:"tolls_id"`
+	Response         json.RawMessage `json:"response"`
+	UserOrganization string          `json:"user_organization"`
 }
