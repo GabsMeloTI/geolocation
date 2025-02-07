@@ -56,6 +56,11 @@ func DecodePolyline(encoded string) []maps.LatLng {
 func StateToCapital(address string) string {
 	state := strings.ToLower(strings.TrimSpace(address))
 
+	if strings.Contains(state, ",") {
+		parts := strings.Split(state, ",")
+		state = strings.TrimSpace(parts[0])
+	}
+
 	switch state {
 	case "acre":
 		return "Rio Branco, Acre"
@@ -181,10 +186,6 @@ func PriceTollsFromVehicle(vehicle string, price, axes float64) (float64, error)
 
 func RoundCoord(coord float64) float64 {
 	return math.Round(coord*1000) / 1000
-}
-
-func GetCacheKeyForPoint(lat, lng float64) string {
-	return fmt.Sprintf("%f,%f", RoundCoord(lat), RoundCoord(lng))
 }
 
 func SelectBestRoute(routes []Route, routeType string) Route {
