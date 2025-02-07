@@ -170,6 +170,32 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			currentTimeMillis,
 		)
 
+		var finalInstruction []Instructions
+		for _, instruction := range instructions {
+			instructionMinuscula := strings.ToLower(instruction)
+			var valueImg string
+			if strings.Contains(instructionMinuscula, "direita") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
+				valueImg = "curva-direita.svg"
+			} else if strings.Contains(instructionMinuscula, "esquerda") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
+				valueImg = "curva-esquerda.svg"
+			} else if strings.Contains(instructionMinuscula, "esquerda") && !strings.Contains(instructionMinuscula, "curva") {
+				valueImg = "esquerda.svg"
+			} else if strings.Contains(instructionMinuscula, "direita") && !strings.Contains(instructionMinuscula, "curva") {
+				valueImg = "direita.svg"
+			} else if strings.Contains(instructionMinuscula, "continue") || strings.Contains(instructionMinuscula, "siga") || strings.Contains(instructionMinuscula, "pegue") {
+				valueImg = "reto.svg"
+			} else if strings.Contains(instructionMinuscula, "rotatória") || strings.Contains(instructionMinuscula, "rotatoria") {
+				valueImg = "rotatoria.svg"
+			}
+
+			result := Instructions{
+				Text: instruction,
+				Img:  valueImg,
+			}
+
+			finalInstruction = append(finalInstruction, result)
+		}
+
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls: len(foundTolls) > 0,
@@ -198,7 +224,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			Balanca:      foundBalancas,
 			GasStations:  findGasStationsAlongRoute,
 			Polyline:     route.OverviewPolyline.Points,
-			Instructions: instructions,
+			Instructions: finalInstruction,
 		})
 
 		summaryRoute = SummaryRoute{
