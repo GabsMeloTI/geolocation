@@ -458,10 +458,24 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 	var consolidatedPoints []maps.LatLng
 	uniquePoints := make(map[string]bool)
 
+	// Consolida pontos usando início e fim de cada leg, além dos steps
 	for _, route := range routes {
 		for _, leg := range route.Legs {
+			// Adiciona ponto de início da leg
+			startKey := fmt.Sprintf("%.6f:%.6f", leg.StartLocation.Lat, leg.StartLocation.Lng)
+			if !uniquePoints[startKey] {
+				uniquePoints[startKey] = true
+				consolidatedPoints = append(consolidatedPoints, leg.StartLocation)
+			}
+			// Adiciona ponto de fim da leg
+			endKey := fmt.Sprintf("%.6f:%.6f", leg.EndLocation.Lat, leg.EndLocation.Lng)
+			if !uniquePoints[endKey] {
+				uniquePoints[endKey] = true
+				consolidatedPoints = append(consolidatedPoints, leg.EndLocation)
+			}
+			// Adiciona também os pontos dos steps
 			for _, step := range leg.Steps {
-				pointKey := GetCacheKeyForPoint(step.StartLocation.Lat, step.StartLocation.Lng)
+				pointKey := fmt.Sprintf("%.6f:%.6f", step.StartLocation.Lat, step.StartLocation.Lng)
 				if !uniquePoints[pointKey] {
 					uniquePoints[pointKey] = true
 					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
@@ -483,15 +497,21 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 		go func(points []maps.LatLng) {
 			defer wg.Done()
 			for _, point := range points {
-				cacheKey := fmt.Sprintf("gasStations:%s", GetCacheKeyForPoint(point.Lat, point.Lng))
-				cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+				// Usa 6 casas decimais para a chave do cache
+				cacheKey := fmt.Sprintf("gasStations:%.6f:%.6f", point.Lat, point.Lng)
+				cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 				if err == nil {
 					var cachedStations []GasStation
 					if err := json.Unmarshal([]byte(cached), &cachedStations); err == nil {
 						mu.Lock()
 						for _, gs := range cachedStations {
-							if !uniqueGasStations[gs.Address] {
-								uniqueGasStations[gs.Address] = true
+							// Usa o nome, ou se estiver vazio, o endereço, como chave de unicidade
+							stationKey := gs.Name
+							if stationKey == "" {
+								stationKey = gs.Address
+							}
+							if !uniqueGasStations[stationKey] {
+								uniqueGasStations[stationKey] = true
 								gasStations = append(gasStations, gs)
 							}
 						}
@@ -502,6 +522,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
 				}
 
+				// Tenta obter postos a partir do banco de dados
 				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
 					Column1: point.Lat,
 					Column2: point.Lng,
@@ -511,14 +532,21 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 				if err == nil && len(dbGasStations) > 0 {
 					mu.Lock()
 					for _, dbStation := range dbGasStations {
-						if !uniqueGasStations[dbStation.SpecificPoint] {
-							uniqueGasStations[dbStation.SpecificPoint] = true
+						// Usa dbStation.Name se existir, caso contrário usa dbStation.SpecificPoint
+						stationName := dbStation.Name
+						if stationName == "" {
+							stationName = dbStation.SpecificPoint
+						}
+						if !uniqueGasStations[stationName] {
+							uniqueGasStations[stationName] = true
+							lat, _ := validation.ParseStringToFloat(dbStation.Latitude)
+							lng, _ := validation.ParseStringToFloat(dbStation.Longitude)
 							gs := GasStation{
-								Name:    dbStation.SpecificPoint,
+								Name:    stationName,
 								Address: dbStation.AddressName,
 								Location: Location{
-									Latitude:  point.Lat,
-									Longitude: point.Lng,
+									Latitude:  lat,
+									Longitude: lng,
 								},
 							}
 							gasStations = append(gasStations, gs)
@@ -529,7 +557,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					if len(cachedResult) > 0 {
 						data, err := json.Marshal(cachedResult)
 						if err == nil {
-							if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+							if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
 								fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
 							}
 						}
@@ -537,6 +565,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					continue
 				}
 
+				// Se não há dados no cache nem no banco, consulta a API do Google Maps
 				placesRequest := &maps.NearbySearchRequest{
 					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
 					Radius:   10000,
@@ -548,13 +577,18 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					continue
 				}
 
+				var resultCached []GasStation
 				mu.Lock()
 				for _, result := range placesResponse.Results {
-					if !uniqueGasStations[result.Name] {
-						uniqueGasStations[result.Name] = true
-
+					// Usa result.Name; se estiver vazio, utiliza result.PlaceID como fallback
+					stationName := result.Name
+					if stationName == "" {
+						stationName = result.PlaceID
+					}
+					if !uniqueGasStations[stationName] {
+						uniqueGasStations[stationName] = true
 						gs := GasStation{
-							Name:    result.Name,
+							Name:    stationName,
 							Address: result.Vicinity,
 							Location: Location{
 								Latitude:  result.Geometry.Location.Lat,
@@ -562,10 +596,11 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 							},
 						}
 						gasStations = append(gasStations, gs)
-						cachedResult = append(cachedResult, gs)
+						resultCached = append(resultCached, gs)
 
+						// Salva no banco de dados
 						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
-							Name:          result.Name,
+							Name:          stationName,
 							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
 							Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
 							AddressName:   result.Vicinity,
@@ -578,10 +613,10 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					}
 				}
 				mu.Unlock()
-				if len(cachedResult) > 0 {
-					data, err := json.Marshal(cachedResult)
+				if len(resultCached) > 0 {
+					data, err := json.Marshal(resultCached)
 					if err == nil {
-						if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+						if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
 							fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
 						}
 					}

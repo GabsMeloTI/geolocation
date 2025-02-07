@@ -48,7 +48,7 @@ func (q *Queries) CreateGasStations(ctx context.Context, arg CreateGasStationsPa
 }
 
 const getGasStation = `-- name: GetGasStation :many
-SELECT id, latitude, longitude, address_name, municipio, specific_point
+SELECT id, latitude, longitude, address_name, municipio, specific_point, name
 FROM gas_station
 WHERE
     CAST(latitude AS FLOAT) BETWEEN CAST($1 AS FLOAT) - $3 AND CAST($1 AS FLOAT) + $3
@@ -68,6 +68,7 @@ type GetGasStationRow struct {
 	AddressName   string `json:"address_name"`
 	Municipio     string `json:"municipio"`
 	SpecificPoint string `json:"specific_point"`
+	Name          string `json:"name"`
 }
 
 func (q *Queries) GetGasStation(ctx context.Context, arg GetGasStationParams) ([]GetGasStationRow, error) {
@@ -86,6 +87,7 @@ func (q *Queries) GetGasStation(ctx context.Context, arg GetGasStationParams) ([
 			&i.AddressName,
 			&i.Municipio,
 			&i.SpecificPoint,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}

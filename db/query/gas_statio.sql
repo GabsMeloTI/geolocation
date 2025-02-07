@@ -6,7 +6,7 @@ VALUES(nextval('gas_station_id_seq'::regclass), $1, $2, $3, $4, $5, $6)
 
 
 -- name: GetGasStation :many
-SELECT id, latitude, longitude, address_name, municipio, specific_point
+SELECT id, latitude, longitude, address_name, municipio, specific_point, name
 FROM gas_station
 WHERE
     CAST(latitude AS FLOAT) BETWEEN CAST($1 AS FLOAT) - $3 AND CAST($1 AS FLOAT) + $3
