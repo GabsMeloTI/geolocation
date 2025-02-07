@@ -346,7 +346,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 				continue
 			}
 
-			if IsNearby(point.Lat, point.Lng, latitude, longitude, 1.0) {
+			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.5) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 
