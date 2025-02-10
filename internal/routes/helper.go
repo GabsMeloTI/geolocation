@@ -163,7 +163,7 @@ func PriceTollsFromVehicle(vehicle string, price, axes float64) (float64, error)
 		if int(axes)%2 != 0 {
 			price = price / 2
 		}
-		calculation = price * axes
+		calculation = price
 		return calculation, nil
 	case "bus":
 		if int(axes)%2 != 0 {
