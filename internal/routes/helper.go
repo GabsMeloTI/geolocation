@@ -109,7 +109,7 @@ func StateToCapital(address string) string {
 	case "santa catarina":
 		return "Florianópolis, Santa Catarina"
 	case "são paulo", "sao paulo":
-		return "São Paulo, São Paulo"
+		return "Praça da sé, São Paulo"
 	case "sergipe":
 		return "Aracaju, Sergipe"
 	case "tocantins":
