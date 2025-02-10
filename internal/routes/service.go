@@ -248,12 +248,14 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				Currency: "BRL",
 				Units:    "km",
 				FuelUnit: "liter",
+				Axles:    frontInfo.Axles,
 			},
 			FuelEfficiency: FuelEfficiency{
 				City:     frontInfo.ConsumptionCity,
 				Hwy:      frontInfo.ConsumptionHwy,
 				Units:    "km",
 				FuelUnit: "liter",
+				Axles:    frontInfo.Axles,
 			},
 		}
 	}
