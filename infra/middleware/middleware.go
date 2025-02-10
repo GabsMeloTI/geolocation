@@ -14,7 +14,7 @@ func CheckAuthorization(handlerFunc echo.HandlerFunc) echo.HandlerFunc {
 		bearerToken := c.Request().Header.Get("Authorization")
 		tokenStr := strings.Replace(bearerToken, "Bearer ", "", 1)
 
-		maker, err := token.NewPasetoMaker(os.Getenv("TOKEN_SIGNATURE"))
+		maker, err := token.NewPasetoMaker(os.Getenv("SIGNATURE_STRING"))
 		if err != nil {
 			return c.JSON(http.StatusBadGateway, err.Error())
 		}
