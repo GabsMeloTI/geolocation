@@ -1,6 +1,10 @@
 package routes
 
-import "context"
+import (
+	"context"
+	db "geolocation/db/sqlc"
+	"time"
+)
 
 type InterfaceService interface {
 }
@@ -14,5 +18,10 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) GetPublicToken(ctx context.Context, ip string) (Response, error) {
+	s.InterfaceService.CreateTokenHist(ctx, db.CreateTokenHistParams{
+		Ip:            ip,
+		NumberRequest: 0,
+	})
 
+	s.InterfaceService.CreateRouteHist(ctx, db.CreateTokenHistParams{})
 }
