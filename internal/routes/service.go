@@ -48,9 +48,19 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
+	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
+	if err != nil {
+		return Response{}, err
+	}
+
+	destination, err := s.getGeocodeAddress(ctx, frontInfo.Destination)
+	if err != nil {
+		return Response{}, err
+	}
+
 	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      strings.ToLower(frontInfo.Origin),
-		Destination: strings.ToLower(frontInfo.Destination),
+		Origin:      origin.FormattedAddress,
+		Destination: destination.FormattedAddress,
 		Waypoints: sql.NullString{
 			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
 			Valid:  true,
@@ -65,16 +75,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-	if err != nil {
-		return Response{}, err
-	}
-
-	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
-	if err != nil {
-		return Response{}, err
-	}
-
-	destination, err := s.getGeocodeAddress(ctx, frontInfo.Destination)
 	if err != nil {
 		return Response{}, err
 	}
@@ -274,8 +274,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 	waypoints := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
 	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
-		Origin:      strings.ToLower(frontInfo.Origin),
-		Destination: strings.ToLower(frontInfo.Destination),
+		Origin:      origin.FormattedAddress,
+		Destination: destination.FormattedAddress,
 		Waypoints: sql.NullString{
 			String: waypoints,
 			Valid:  true,

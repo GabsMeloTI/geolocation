@@ -188,37 +188,131 @@ func RoundCoord(coord float64) float64 {
 	return math.Round(coord*1000) / 1000
 }
 
+//func SelectBestRoute(routes []Route, routeType string) Route {
+//	if len(routes) == 0 {
+//		return Route{}
+//	}
+//
+//	selected := routes[0]
+//	switch strings.ToUpper(routeType) {
+//	case "RÁPIDA":
+//		for _, r := range routes {
+//			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
+//				selected = r
+//			}
+//		}
+//	case "BARATO":
+//		for _, r := range routes {
+//			if r.Costs.TagAndCash < selected.Costs.TagAndCash {
+//				selected = r
+//			}
+//		}
+//	case "EFICIENTE":
+//		for _, r := range routes {
+//			if (r.Costs.FuelInTheCity + r.Costs.TagAndCash) < (selected.Costs.FuelInTheCity + selected.Costs.TagAndCash) {
+//				selected = r
+//			}
+//		}
+//	default:
+//		for _, r := range routes {
+//			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
+//				selected = r
+//			}
+//		}
+//	}
+//	return selected
+//}
+
 func SelectBestRoute(routes []Route, routeType string) Route {
+	switch strings.ToLower(routeType) {
+	case "RÁPIDA":
+		return selectFastestRoute(routes)
+	case "BARATO":
+		return selectCheapestRoute(routes)
+	case "EFICIENTE":
+		return selectEfficientRoute(routes, 0.5)
+	default:
+		return selectEfficientRoute(routes, 0.5)
+	}
+}
+
+func selectFastestRoute(routes []Route) Route {
+	fastest := routes[0]
+	for _, r := range routes {
+		if r.Summary.Duration.Value < fastest.Summary.Duration.Value {
+			fastest = r
+		}
+	}
+	return fastest
+}
+func selectCheapestRoute(routes []Route) Route {
+	cheapest := routes[0]
+	for _, r := range routes {
+		custoTotal := r.Costs.TagAndCash + r.Costs.FuelInTheCity
+		custoCheapest := cheapest.Costs.TagAndCash + cheapest.Costs.FuelInTheCity
+		if custoTotal < custoCheapest {
+			cheapest = r
+		}
+	}
+	return cheapest
+}
+func selectEfficientRoute(routes []Route, alpha float64) Route {
+	var maxTime, minTime float64
+	var maxCost, minCost float64
+
 	if len(routes) == 0 {
 		return Route{}
 	}
+	maxTime = routes[0].Summary.Duration.Value
+	minTime = routes[0].Summary.Duration.Value
+	initialCost := routes[0].Costs.TagAndCash + routes[0].Costs.FuelInTheCity
+	maxCost = initialCost
+	minCost = initialCost
 
-	selected := routes[0]
-	switch strings.ToUpper(routeType) {
-	case "RÁPIDA":
-		for _, r := range routes {
-			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-				selected = r
-			}
+	for _, r := range routes {
+		timeVal := r.Summary.Duration.Value
+		costVal := r.Costs.TagAndCash + r.Costs.FuelInTheCity
+		if timeVal > maxTime {
+			maxTime = timeVal
 		}
-	case "BARATO":
-		for _, r := range routes {
-			if r.Costs.TagAndCash < selected.Costs.TagAndCash {
-				selected = r
-			}
+		if timeVal < minTime {
+			minTime = timeVal
 		}
-	case "EFICIENTE":
-		for _, r := range routes {
-			if (r.Costs.FuelInTheCity + r.Costs.TagAndCash) < (selected.Costs.FuelInTheCity + selected.Costs.TagAndCash) {
-				selected = r
-			}
+		if costVal > maxCost {
+			maxCost = costVal
 		}
-	default:
-		for _, r := range routes {
-			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-				selected = r
-			}
+		if costVal < minCost {
+			minCost = costVal
 		}
 	}
-	return selected
+
+	bestScore := math.MaxFloat64
+	var bestRoute Route
+
+	for _, r := range routes {
+		timeVal := r.Summary.Duration.Value
+		costVal := r.Costs.TagAndCash + r.Costs.FuelInTheCity
+
+		var normalizedTime float64
+		var normalizedCost float64
+
+		if maxTime != minTime {
+			normalizedTime = (timeVal - minTime) / (maxTime - minTime)
+		} else {
+			normalizedTime = 0
+		}
+		if maxCost != minCost {
+			normalizedCost = (costVal - minCost) / (maxCost - minCost)
+		} else {
+			normalizedCost = 0
+		}
+
+		score := alpha*normalizedTime + (1-alpha)*normalizedCost
+		if score < bestScore {
+			bestScore = score
+			bestRoute = r
+		}
+	}
+
+	return bestRoute
 }
