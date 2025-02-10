@@ -12,7 +12,7 @@ type FrontInfo struct {
 	ConsumptionCity float64  `json:"consumptionCity" validate:"required"`
 	ConsumptionHwy  float64  `json:"consumptionHwy" validate:"required"`
 	Price           float64  `json:"price" validate:"required"`
-	Axles           int      `json:"axles" validate:"required"`
+	Axles           int64    `json:"axles" validate:"required"`
 	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
@@ -50,6 +50,7 @@ type FuelEfficiency struct {
 	Hwy      float64 `json:"hwy"`
 	Units    string  `json:"units"`
 	FuelUnit string  `json:"fuel_unit"`
+	Axles    int64   `json:"axles"`
 }
 
 type FuelPrice struct {
@@ -57,6 +58,7 @@ type FuelPrice struct {
 	Currency string  `json:"hwy"`
 	Units    string  `json:"units"`
 	FuelUnit string  `json:"fuel_unit"`
+	Axles    int64   `json:"axles"`
 }
 
 type Route struct {
