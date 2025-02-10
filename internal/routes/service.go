@@ -184,7 +184,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				valueImg = "direita.svg"
 			} else if strings.Contains(instructionMinuscula, "continue") || strings.Contains(instructionMinuscula, "siga") || strings.Contains(instructionMinuscula, "pegue") {
 				valueImg = "reto.svg"
-			} else if strings.Contains(instructionMinuscula, "rotatória") || strings.Contains(instructionMinuscula, "rotatoria") {
+			} else if strings.Contains(instructionMinuscula, "rotatória") || strings.Contains(instructionMinuscula, "rotatoria") || strings.Contains(instructionMinuscula, "retorno") {
 				valueImg = "rotatoria.svg"
 			}
 
