@@ -1,0 +1,37 @@
+package get_token
+
+import (
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"time"
+)
+
+func GetPayloadToken(c echo.Context) PayloadDTO {
+	strID, _ := c.Get("token_id").(uuid.UUID)
+	strUserID, _ := c.Get("token_user_id").(string)
+	strUserNickname, _ := c.Get("token_user_nickname").(string)
+	strExpiryAt, _ := c.Get("token_expiry_at").(time.Time)
+	strAccessKey, _ := c.Get("token_access_key").(int64)
+	strAccessID, _ := c.Get("token_access_ID").(int64)
+	strTenantID, _ := c.Get("token_tenant_id").(string)
+	strUserOrgId, _ := c.Get("token_user_org_id").(int64)
+	strUserEmail, _ := c.Get("token_user_email").(string)
+	strDocument, _ := c.Get("token_document").(string)
+	strUserName, _ := c.Get("token_user_name").(string)
+
+	tenantID, _ := uuid.Parse(strTenantID)
+
+	return PayloadDTO{
+		ID:           strID,
+		UserID:       strUserID,
+		UserNickname: strUserNickname,
+		ExpiryAt:     strExpiryAt,
+		AccessKey:    strAccessKey,
+		AccessID:     strAccessID,
+		TenantID:     tenantID,
+		UserOrgId:    strUserOrgId,
+		UserEmail:    strUserEmail,
+		Document:     strDocument,
+		UserName:     strUserName,
+	}
+}

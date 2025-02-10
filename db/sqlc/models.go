@@ -43,6 +43,16 @@ type GasStation struct {
 	SpecificPoint string `json:"specific_point"`
 }
 
+type RouteHist struct {
+	ID          int64           `json:"id"`
+	IDTokenHist int64           `json:"id_token_hist"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedAt   time.Time       `json:"created_at"`
+}
+
 type SavedRoute struct {
 	ID          int32           `json:"id"`
 	Origin      string          `json:"origin"`
@@ -54,6 +64,15 @@ type SavedRoute struct {
 	UpdatedAt   sql.NullTime    `json:"updated_at"`
 	Favorite    sql.NullBool    `json:"favorite"`
 	ExpiredAt   time.Time       `json:"expired_at"`
+}
+
+type TokenHist struct {
+	ID            int64        `json:"id"`
+	Ip            string       `json:"ip"`
+	NumberRequest int64        `json:"number_request"`
+	CreatedAt     time.Time    `json:"created_at"`
+	ExpritedAt    time.Time    `json:"exprited_at"`
+	Valid         sql.NullBool `json:"valid"`
 }
 
 type Toll struct {

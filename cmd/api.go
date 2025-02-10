@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"geolocation/infra"
+	_middleware "geolocation/infra/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,7 +45,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	}))
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
-	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls, _middleware.CheckAuthorization)
+	//e.GET("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls, _middleware.CheckAuthorization)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

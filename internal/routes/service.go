@@ -198,7 +198,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
-				HasTolls: len(foundTolls) > 0,
+				HasTolls:  len(foundTolls) > 0,
+				RouteType: "",
 				Distance: Distance{
 					Text:  fmt.Sprintf("%d km", totalDistance/1000),
 					Value: totalDistance,
@@ -214,7 +215,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				TagAndCash:      totalTollCost,
 				FuelInTheCity:   fuelCostCity,
 				FuelInTheHwy:    fuelCostHwy,
-				Tag:             totalTollCost,
+				Tag:             totalTollCost - (totalTollCost * 0.05),
 				Cash:            totalTollCost,
 				PrepaidCard:     totalTollCost,
 				MaximumTollCost: maxTollCost,
@@ -258,10 +259,24 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		}
 	}
 
-	selectedRoute := SelectBestRoute(allRoutes, frontInfo.TypeRoute)
+	fastestRoute := selectFastestRoute(allRoutes)
+	cheapestRoute := selectCheapestRoute(allRoutes)
+	efficientRoute := selectEfficientRoute(allRoutes, 0.5)
+	for i, r := range allRoutes {
+		if r.Polyline == fastestRoute.Polyline {
+			allRoutes[i].Summary.RouteType = "fastest"
+		}
+		if r.Polyline == cheapestRoute.Polyline {
+			allRoutes[i].Summary.RouteType = "cheapest"
+		}
+		if r.Polyline == efficientRoute.Polyline {
+			allRoutes[i].Summary.RouteType = "efficient"
+		}
+	}
+
 	response := Response{
 		SummaryRoute: summaryRoute,
-		Routes:       []Route{selectedRoute},
+		Routes:       allRoutes,
 	}
 
 	responseJSON, _ := json.Marshal(response)

@@ -188,54 +188,6 @@ func RoundCoord(coord float64) float64 {
 	return math.Round(coord*1000) / 1000
 }
 
-//func SelectBestRoute(routes []Route, routeType string) Route {
-//	if len(routes) == 0 {
-//		return Route{}
-//	}
-//
-//	selected := routes[0]
-//	switch strings.ToUpper(routeType) {
-//	case "RÁPIDA":
-//		for _, r := range routes {
-//			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-//				selected = r
-//			}
-//		}
-//	case "BARATO":
-//		for _, r := range routes {
-//			if r.Costs.TagAndCash < selected.Costs.TagAndCash {
-//				selected = r
-//			}
-//		}
-//	case "EFICIENTE":
-//		for _, r := range routes {
-//			if (r.Costs.FuelInTheCity + r.Costs.TagAndCash) < (selected.Costs.FuelInTheCity + selected.Costs.TagAndCash) {
-//				selected = r
-//			}
-//		}
-//	default:
-//		for _, r := range routes {
-//			if r.Summary.Duration.Value < selected.Summary.Duration.Value {
-//				selected = r
-//			}
-//		}
-//	}
-//	return selected
-//}
-
-func SelectBestRoute(routes []Route, routeType string) Route {
-	switch strings.ToLower(routeType) {
-	case "RÁPIDA":
-		return selectFastestRoute(routes)
-	case "BARATO":
-		return selectCheapestRoute(routes)
-	case "EFICIENTE":
-		return selectEfficientRoute(routes, 0.5)
-	default:
-		return selectEfficientRoute(routes, 0.5)
-	}
-}
-
 func selectFastestRoute(routes []Route) Route {
 	fastest := routes[0]
 	for _, r := range routes {

@@ -76,4 +76,28 @@ CREATE TABLE public.balanca (
 );
 
 
+CREATE TABLE public.token_hist (
+                                   id bigserial NOT NULL,
+                                   ip varchar(30) NOT NULL,
+                                   number_request bigint NOT NULL,
+                                   created_at timestamp default now() NOT NULL,
+                                   exprited_at timestamp NOT NULL,
+                                   valid bool DEFAULT true NULL
+);
+
+CREATE TABLE public.route_hist (
+                                   id bigserial PRIMARY KEY,
+                                   id_token_hist bigint not null,
+                                   origin TEXT NOT NULL,
+                                   destination TEXT NOT NULL,
+                                   waypoints TEXT NULL,
+                                   response JSONB NOT NULL,
+                                   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE route_hist
+    ADD CONSTRAINT "fk_token_hist"
+    FOREIGN KEY ("id_token_hist")
+    REFERENCES token_hist ("id");
+
 

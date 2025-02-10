@@ -19,8 +19,12 @@ type FrontInfo struct {
 }
 
 type Response struct {
-	SummaryRoute SummaryRoute `json:"summary"`
-	Routes       []Route      `json:"routes"`
+	SummaryRoute   SummaryRoute `json:"summary"`
+	Routes         []Route      `json:"routes"`
+	FastestRoute   string       `json:"fastest_route"`
+	CheapestRoute  string       `json:"cheapest_route"`
+	EfficientRoute string       `json:"efficient_route"`
+	SelectedRoute  string       `json:"selected_route"`
 }
 
 type SummaryRoute struct {
@@ -83,11 +87,12 @@ type Balanca struct {
 }
 
 type Summary struct {
-	HasTolls bool     `json:"hasTolls"`
-	Distance Distance `json:"distance"`
-	Duration Duration `json:"duration"`
-	URL      string   `json:"url"`
-	URLWaze  string   `json:"url_waze"`
+	RouteType string   `json:"route_type"`
+	HasTolls  bool     `json:"hasTolls"`
+	Distance  Distance `json:"distance"`
+	Duration  Duration `json:"duration"`
+	URL       string   `json:"url"`
+	URLWaze   string   `json:"url_waze"`
 }
 
 type GeocodeResult struct {
