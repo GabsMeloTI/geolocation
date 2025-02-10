@@ -1,4 +1,4 @@
-package routes
+package hist
 
 type Response struct {
 	ID int64  `json:"id"`

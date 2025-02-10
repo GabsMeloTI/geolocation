@@ -50,7 +50,6 @@ type FuelEfficiency struct {
 	Hwy      float64 `json:"hwy"`
 	Units    string  `json:"units"`
 	FuelUnit string  `json:"fuel_unit"`
-	Axles    int64   `json:"axles"`
 }
 
 type FuelPrice struct {
@@ -58,7 +57,6 @@ type FuelPrice struct {
 	Currency string  `json:"hwy"`
 	Units    string  `json:"units"`
 	FuelUnit string  `json:"fuel_unit"`
-	Axles    int64   `json:"axles"`
 }
 
 type Route struct {
@@ -127,6 +125,7 @@ type Costs struct {
 	PrepaidCard     float64 `json:"prepaidCard"`
 	MaximumTollCost float64 `json:"maximumTollCost"`
 	MinimumTollCost float64 `json:"minimumTollCost"`
+	Axles           int64   `json:"axles"`
 }
 
 type Toll struct {

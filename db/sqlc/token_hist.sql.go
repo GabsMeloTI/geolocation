@@ -36,3 +36,19 @@ func (q *Queries) CreateTokenHist(ctx context.Context, arg CreateTokenHistParams
 	)
 	return i, err
 }
+
+const updateNumberOfRequest = `-- name: UpdateNumberOfRequest :exec
+UPDATE public.token_hist
+SET number_request = $1
+WHERE id = $2
+`
+
+type UpdateNumberOfRequestParams struct {
+	NumberRequest int64 `json:"number_request"`
+	ID            int64 `json:"id"`
+}
+
+func (q *Queries) UpdateNumberOfRequest(ctx context.Context, arg UpdateNumberOfRequestParams) error {
+	_, err := q.db.ExecContext(ctx, updateNumberOfRequest, arg.NumberRequest, arg.ID)
+	return err
+}
