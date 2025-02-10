@@ -53,8 +53,8 @@ type FuelEfficiency struct {
 }
 
 type FuelPrice struct {
-	Value    float64 `json:"city"`
-	Currency string  `json:"hwy"`
+	Value    float64 `json:"price"`
+	Currency string  `json:"currency"`
 	Units    string  `json:"units"`
 	FuelUnit string  `json:"fuel_unit"`
 }
@@ -98,6 +98,7 @@ type Summary struct {
 type GeocodeResult struct {
 	FormattedAddress string
 	PlaceID          string
+	Location         Location
 }
 
 type GasStation struct {

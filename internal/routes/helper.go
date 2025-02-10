@@ -148,6 +148,11 @@ func RecalculateCosts(response Response, frontInfo FrontInfo) Response {
 
 		route.Costs.FuelInTheCity = fuelCostCity
 		route.Costs.FuelInTheHwy = fuelCostHwy
+		route.Costs.Axles = frontInfo.Axles
+
+		response.SummaryRoute.FuelEfficiency.Hwy = frontInfo.ConsumptionHwy
+		response.SummaryRoute.FuelEfficiency.City = frontInfo.ConsumptionCity
+		response.SummaryRoute.FuelPrice.Value = frontInfo.Price
 	}
 
 	return response

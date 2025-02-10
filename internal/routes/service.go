@@ -58,21 +58,21 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		return Response{}, err
 	}
 
-	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      origin.FormattedAddress,
-		Destination: destination.FormattedAddress,
-		Waypoints: sql.NullString{
-			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-			Valid:  true,
-		},
-	})
-	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
-		var dbResponse Response
-		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
-			return RecalculateCosts(dbResponse, frontInfo), nil
-		}
-	}
+	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+	//	Origin:      origin.FormattedAddress,
+	//	Destination: destination.FormattedAddress,
+	//	Waypoints: sql.NullString{
+	//		String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	//		Valid:  true,
+	//	},
+	//})
+	//if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
+	//	var dbResponse Response
+	//	if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
+	//		cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+	//		return RecalculateCosts(dbResponse, frontInfo), nil
+	//	}
+	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -164,11 +164,16 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 		currentTimeMillis := (time.Now().UnixNano() + lastLeg.Duration.Nanoseconds()) / int64(time.Millisecond)
 		wazeURL := fmt.Sprintf(
-			"https://www.waze.com/pt-BR/live-map/directions/br/mt/cuiaba?to=place.%s&from=place.%s&time=%d&reverse=yes",
+			"https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
 			destination.PlaceID,
 			origin.PlaceID,
 			currentTimeMillis,
 		)
+		if len(frontInfo.Waypoints) > 0 {
+			wazeURL += "&via=place." + neturl.QueryEscape(frontInfo.Waypoints[0])
+		}
+		fmt.Println(len(frontInfo.Waypoints))
+		fmt.Println(wazeURL)
 
 		var finalInstruction []Instructions
 		for _, instruction := range instructions {
