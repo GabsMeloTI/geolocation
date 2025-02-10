@@ -2,6 +2,7 @@ package hist
 
 import (
 	"errors"
+	"geolocation/internal/routes"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -20,8 +21,8 @@ func (h *Handler) GetPublicToken(e echo.Context) error {
 		return e.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	re
-	result, err := h.InterfaceService.GetPublicToken(e.Request().Context(), ip)
+	data := routes.FrontInfo{}
+	result, err := h.InterfaceService.GetPublicToken(e.Request().Context(), ip, data)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {

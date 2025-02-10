@@ -2,14 +2,11 @@ package hist
 
 import (
 	"context"
-	"database/sql"
 	db "geolocation/db/sqlc"
-	"geolocation/internal/routes"
-	"strings"
 )
 
 type InterfaceService interface {
-	GetPublicToken(ctx context.Context, ip string, info routes.FrontInfo) (Response, error)
+	GetPublicToken(ctx context.Context, ip string) (Response, error)
 	UpdateNumberOfRequest(ctx context.Context, id int64) error
 }
 
@@ -21,26 +18,13 @@ func NewRoutesService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (s *Service) GetPublicToken(ctx context.Context, ip string, info routes.FrontInfo) (Response, error) {
+func (s *Service) GetPublicToken(ctx context.Context, ip string) (Response, error) {
 	resultToken, errToken := s.InterfaceService.CreateTokenHist(ctx, db.CreateTokenHistParams{
 		Ip:            ip,
 		NumberRequest: 0,
 	})
 	if errToken != nil {
 		return Response{}, errToken
-	}
-
-	_, errRoute := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
-		IDTokenHist: resultToken.ID,
-		Origin:      info.Origin,
-		Destination: info.Destination,
-		Waypoints: sql.NullString{
-			String: strings.ToLower(strings.Join(info.Waypoints, ",")),
-			Valid:  true,
-		},
-	})
-	if errRoute != nil {
-		return Response{}, errRoute
 	}
 
 	response := Response{

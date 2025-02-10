@@ -180,17 +180,19 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			instructionMinuscula := strings.ToLower(instruction)
 			var valueImg string
 			if strings.Contains(instructionMinuscula, "direita") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
-				valueImg = "curva-direita.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-direita.svg"
 			} else if strings.Contains(instructionMinuscula, "esquerda") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
-				valueImg = "curva-esquerda.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-esquerda.svg"
 			} else if strings.Contains(instructionMinuscula, "esquerda") && !strings.Contains(instructionMinuscula, "curva") {
-				valueImg = "esquerda.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.svg"
 			} else if strings.Contains(instructionMinuscula, "direita") && !strings.Contains(instructionMinuscula, "curva") {
-				valueImg = "direita.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/direita.svg"
 			} else if strings.Contains(instructionMinuscula, "continue") || strings.Contains(instructionMinuscula, "siga") || strings.Contains(instructionMinuscula, "pegue") {
-				valueImg = "reto.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/reto.svg"
 			} else if strings.Contains(instructionMinuscula, "rotatória") || strings.Contains(instructionMinuscula, "rotatoria") || strings.Contains(instructionMinuscula, "retorno") {
-				valueImg = "rotatoria.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/rotatoria.svg"
+			} else if strings.Contains(instructionMinuscula, "voltar") || strings.Contains(instructionMinuscula, "volta") {
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/voltar.svg"
 			}
 
 			result := Instructions{
