@@ -191,19 +191,19 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 			var valueImg string
 			switch {
 			case strings.Contains(instructionLower, "direita") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-direita.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-direita.png"
 			case strings.Contains(instructionLower, "esquerda") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-esquerda.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-esquerda.png"
 			case strings.Contains(instructionLower, "esquerda") && !strings.Contains(instructionLower, "curva"):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.png"
 			case strings.Contains(instructionLower, "direita") && !strings.Contains(instructionLower, "curva"):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/direita.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/direita.png"
 			case strings.Contains(instructionLower, "continue"), strings.Contains(instructionLower, "siga"), strings.Contains(instructionLower, "pegue"):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/reto.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png"
 			case strings.Contains(instructionLower, "rotatória"), strings.Contains(instructionLower, "rotatoria"), strings.Contains(instructionLower, "retorno"):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/rotatoria.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/rotatoria.png"
 			case strings.Contains(instructionLower, "voltar"), strings.Contains(instructionLower, "volta"):
-				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/voltar.svg"
+				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/voltar.png"
 			}
 			finalInstruction = append(finalInstruction, Instructions{
 				Text: instruction,
