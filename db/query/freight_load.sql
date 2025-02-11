@@ -1,0 +1,1 @@
+-- name GetFreightLoadAll :many

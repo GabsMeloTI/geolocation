@@ -101,3 +101,15 @@ ALTER TABLE route_hist
     REFERENCES token_hist ("id");
 
 
+CREATE TABLE public.freight_load (
+                                     type_of_load varchar(50) NULL,
+                                     two_axes varchar(50) NULL,
+                                     three_axes varchar(50) NULL,
+                                     four_axes varchar(50) NULL,
+                                     five_axes varchar(50) NULL,
+                                     six_axes varchar(50) NULL,
+                                     seven_axes varchar(50) NULL,
+                                     nine_axes varchar(50) NULL,
+                                     "name" varchar(50) NULL,
+                                     description varchar(128) NULL
+);
