@@ -21,14 +21,14 @@ func NewHistService(InterfaceService InterfaceRepository, SignatureString string
 	return &Service{InterfaceService, SignatureString}
 }
 
-func (s *Service) GetPublicToken(ctx context.Context, ip string, data Request) (Response, error) {
+func (s *Service) GetPublicToken(ctx context.Context, ip string, data Request) (string, error) {
 	resultToken, errToken := s.InterfaceService.CreateTokenHist(ctx, db.CreateTokenHistParams{
 		Ip:            ip,
 		NumberRequest: 0,
 		ExpritedAt:    time.Now().Add(24 * time.Hour).UTC(),
 	})
 	if errToken != nil {
-		return Response{}, errToken
+		return "", errToken
 	}
 
 	arg := Request{
@@ -40,16 +40,10 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string, data Request) (
 	}
 	strToken, errT := s.createToken(arg)
 	if errT != nil {
-		return Response{}, errT
+		return "", errT
 	}
 
-	response := Response{
-		ID:    resultToken.ID,
-		IP:    resultToken.Ip,
-		Token: strToken,
-	}
-
-	return response, nil
+	return strToken, nil
 }
 
 func (s *Service) createToken(data Request) (string, error) {
