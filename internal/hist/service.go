@@ -9,7 +9,7 @@ import (
 )
 
 type InterfaceService interface {
-	GetPublicToken(ctx context.Context, ip string, data Request) (Response, error)
+	GetPublicToken(ctx context.Context, ip string) (string, error)
 }
 
 type Service struct {
@@ -21,7 +21,7 @@ func NewHistService(InterfaceService InterfaceRepository, SignatureString string
 	return &Service{InterfaceService, SignatureString}
 }
 
-func (s *Service) GetPublicToken(ctx context.Context, ip string, data Request) (string, error) {
+func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error) {
 	resultToken, errToken := s.InterfaceService.CreateTokenHist(ctx, db.CreateTokenHistParams{
 		Ip:            ip,
 		NumberRequest: 0,

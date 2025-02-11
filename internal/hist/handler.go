@@ -2,7 +2,6 @@ package hist
 
 import (
 	"errors"
-	"geolocation/internal/get_token"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -21,15 +20,7 @@ func (h *Handler) GetPublicToken(e echo.Context) error {
 		return e.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetPublicPayloadToken(e)
-	data := Request{
-		ID:             payload.ID,
-		IP:             payload.IP,
-		NumberRequests: payload.NumberRequests,
-		Valid:          payload.Valid,
-		ExpiredAt:      payload.ExpiredAt,
-	}
-	result, err := h.InterfaceService.GetPublicToken(e.Request().Context(), ip, data)
+	result, err := h.InterfaceService.GetPublicToken(e.Request().Context(), ip)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {
