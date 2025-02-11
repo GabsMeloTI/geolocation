@@ -18,3 +18,11 @@ type PayloadDTO struct {
 	Document     string    `json:"document"`
 	UserName     string    `json:"user_name"`
 }
+
+type PublicPayloadDTO struct {
+	ID             int64     `json:"id"`
+	IP             string    `json:"ip"`
+	NumberRequests int64     `json:"number_requests"`
+	Valid          bool      `json:"valid"`
+	ExpiredAt      time.Time `json:"expired_at"`
+}

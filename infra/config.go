@@ -21,6 +21,7 @@ type Config struct {
 	AwsSecretAccessKey string
 	AwsRegion          string
 	GoogleMapsKey      string
+	SignatureTokenSimp string
 }
 
 func NewConfig() Config {
@@ -42,6 +43,7 @@ func NewConfig() Config {
 		DBSSLMode:          os.Getenv("DB_SSL_MODE"),
 		DBDriver:           os.Getenv("DB_DRIVER"),
 		SignatureToken:     os.Getenv("SIGNATURE_STRING"),
+		SignatureTokenSimp: os.Getenv("SIGNATURE_STRING_SIMP"),
 		AwsAccessKeyID:     os.Getenv("AWS_ACCESS_KEY"),
 		AwsSecretAccessKey: os.Getenv("AWS_SECRET_KEY"),
 		AwsRegion:          os.Getenv("AWS_REGION"),

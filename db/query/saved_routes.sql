@@ -9,7 +9,8 @@ SELECT *
 FROM public.saved_routes
 WHERE origin = $1 AND
       destination = $2 AND
-      waypoints = $3 ;
+      waypoints = $3 AND
+      request = $4;
 
 -- name: GetSavedRouteById :one
 SELECT *

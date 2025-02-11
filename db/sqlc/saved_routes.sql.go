@@ -82,17 +82,24 @@ SELECT id, origin, destination, waypoints, request, response, created_at, update
 FROM public.saved_routes
 WHERE origin = $1 AND
       destination = $2 AND
-      waypoints = $3
+      waypoints = $3 AND
+      request = $4
 `
 
 type GetSavedRoutesParams struct {
-	Origin      string         `json:"origin"`
-	Destination string         `json:"destination"`
-	Waypoints   sql.NullString `json:"waypoints"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Request     json.RawMessage `json:"request"`
 }
 
 func (q *Queries) GetSavedRoutes(ctx context.Context, arg GetSavedRoutesParams) (SavedRoute, error) {
-	row := q.db.QueryRowContext(ctx, getSavedRoutes, arg.Origin, arg.Destination, arg.Waypoints)
+	row := q.db.QueryRowContext(ctx, getSavedRoutes,
+		arg.Origin,
+		arg.Destination,
+		arg.Waypoints,
+		arg.Request,
+	)
 	var i SavedRoute
 	err := row.Scan(
 		&i.ID,

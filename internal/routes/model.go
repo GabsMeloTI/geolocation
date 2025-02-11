@@ -16,6 +16,7 @@ type FrontInfo struct {
 	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
+	PublicOrPrivate string   `json:"public_or_private" validate:"oneof=public private"`
 }
 
 type Response struct {

@@ -8,6 +8,7 @@ import (
 
 var ErrExpiredToken = errors.New("token has expired")
 var ErrInvalidToken = errors.New("token is invalid")
+var ErrLimitRequests = errors.New("you have reached the limit of requests per day")
 
 type Payload struct {
 	ID             int64     `json:"id"`
@@ -38,14 +39,24 @@ func (payload *PayloadSimp) valid() error {
 	}
 	return nil
 }
+func (payload *Payload) validPublic() error {
+	if time.Now().After(payload.ExpiredAt) {
+		return ErrExpiredToken
+	} else if payload.NumberRequests >= 5 {
+		return ErrLimitRequests
+	} else if !payload.Valid {
+		return ErrInvalidToken
+	}
+	return nil
+}
 
-func NewPayload(tokenHistID int64, ip string, numberRequests int64, valid bool, expiredAt time.Duration) (*Payload, error) {
+func NewPayload(tokenHistID int64, ip string, numberRequests int64, valid bool, expiredAt time.Time) (*Payload, error) {
 	payload := &Payload{
 		ID:             tokenHistID,
 		IP:             ip,
 		NumberRequests: numberRequests,
 		Valid:          valid,
-		ExpiredAt:      time.Now().Add(expiredAt),
+		ExpiredAt:      expiredAt,
 	}
 
 	return payload, nil

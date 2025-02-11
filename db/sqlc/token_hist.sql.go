@@ -37,6 +37,26 @@ func (q *Queries) CreateTokenHist(ctx context.Context, arg CreateTokenHistParams
 	return i, err
 }
 
+const getTokenHist = `-- name: GetTokenHist :one
+SELECT id, ip, number_request, created_at, exprited_at, valid
+FROM public.token_hist
+WHERE id=$1
+`
+
+func (q *Queries) GetTokenHist(ctx context.Context, id int64) (TokenHist, error) {
+	row := q.db.QueryRowContext(ctx, getTokenHist, id)
+	var i TokenHist
+	err := row.Scan(
+		&i.ID,
+		&i.Ip,
+		&i.NumberRequest,
+		&i.CreatedAt,
+		&i.ExpritedAt,
+		&i.Valid,
+	)
+	return i, err
+}
+
 const updateNumberOfRequest = `-- name: UpdateNumberOfRequest :exec
 UPDATE public.token_hist
 SET number_request = $1

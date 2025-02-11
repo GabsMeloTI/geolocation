@@ -4,15 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	_ "encoding/json"
 	"errors"
 	"fmt"
-	db "geolocation/db/sqlc"
-	cache "geolocation/pkg"
-	"geolocation/validation"
-	"github.com/go-redis/redis/v8"
-	"github.com/labstack/echo/v4"
-	"googlemaps.github.io/maps"
 	"html"
 	"math"
 	neturl "net/url"
@@ -20,10 +13,18 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	db "geolocation/db/sqlc"
+	cache "geolocation/pkg"
+	"geolocation/validation"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/labstack/echo/v4"
+	"googlemaps.github.io/maps"
 )
 
 type InterfaceService interface {
-	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error)
+	CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id int64) (Response, error)
 }
 
 type Service struct {
@@ -31,12 +32,25 @@ type Service struct {
 	GoogleMapsAPIKey string
 }
 
-func NewRoutesService(InterfaceService InterfaceRepository, GoogleMapsAPIKey string) *Service {
-	return &Service{InterfaceService, GoogleMapsAPIKey}
+func NewRoutesService(interfaceService InterfaceRepository, googleMapsAPIKey string) *Service {
+	return &Service{
+		InterfaceService: interfaceService,
+		GoogleMapsAPIKey: googleMapsAPIKey,
+	}
 }
 
-func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Response, error) {
-	cacheKey := fmt.Sprintf("route:%s:%s:%s", strings.ToLower(frontInfo.Origin), strings.ToLower(frontInfo.Destination), strings.ToLower(strings.Join(frontInfo.Waypoints, ",")))
+func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id int64) (Response, error) {
+	if frontInfo.PublicOrPrivate == "public" {
+		if err := s.updateNumberOfRequest(ctx, id); err != nil {
+			return Response{}, err
+		}
+	}
+
+	cacheKey := fmt.Sprintf("route:%s:%s:%s",
+		strings.ToLower(frontInfo.Origin),
+		strings.ToLower(frontInfo.Destination),
+		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	)
 
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
@@ -52,29 +66,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	if err != nil {
 		return Response{}, err
 	}
-
 	destination, err := s.getGeocodeAddress(ctx, frontInfo.Destination)
-	if err != nil {
-		return Response{}, err
-	}
-
-	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-	//	Origin:      origin.FormattedAddress,
-	//	Destination: destination.FormattedAddress,
-	//	Waypoints: sql.NullString{
-	//		String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-	//		Valid:  true,
-	//	},
-	//})
-	//if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
-	//	var dbResponse Response
-	//	if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-	//		cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
-	//		return RecalculateCosts(dbResponse, frontInfo), nil
-	//	}
-	//}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return Response{}, err
 	}
@@ -88,6 +80,29 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		Region:       "br",
 		Language:     "pt-BR",
 	}
+	requestJSON, _ := json.Marshal(routeRequest)
+
+	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+		Origin:      origin.FormattedAddress,
+		Destination: destination.FormattedAddress,
+		Waypoints: sql.NullString{
+			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+			Valid:  true,
+		},
+		Request: requestJSON,
+	})
+	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
+		var dbResponse Response
+		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
+			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+			return RecalculateCosts(dbResponse, frontInfo), nil
+		}
+	}
+
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return Response{}, err
+	}
 
 	routes, _, err := client.Directions(ctx, routeRequest)
 	if err != nil {
@@ -100,12 +115,12 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	var allRoutes []Route
 	var summaryRoute SummaryRoute
 	var maxTollCost float64
-	var minTollCost = math.MaxFloat64
+	minTollCost := math.MaxFloat64
 
 	for _, route := range routes {
 		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
 		foundBalancas, _ := s.findBalancaInRoute(ctx, []maps.Route{route})
-		findGasStationsAlongRoute, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
+		foundGasStations, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
 
 		var totalDistance int
 		var totalDuration time.Duration
@@ -123,7 +138,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 				},
 				Address: leg.StartAddress,
 			})
-
 			for _, step := range leg.Steps {
 				instr := validation.RemoveHTMLTags(step.HTMLInstructions)
 				instr = html.UnescapeString(instr)
@@ -151,17 +165,15 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		if totalTollCost < minTollCost {
 			minTollCost = totalTollCost
 		}
-
 		fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * (float64(totalDistance) / 1000))
 		fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * (float64(totalDistance) / 1000))
 
-		url := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-			neturl.QueryEscape(origin.FormattedAddress), neturl.QueryEscape(destination.FormattedAddress),
-		)
+		googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+			neturl.QueryEscape(origin.FormattedAddress),
+			neturl.QueryEscape(destination.FormattedAddress))
 		if len(frontInfo.Waypoints) > 0 {
-			url += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
+			googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 		}
-
 		currentTimeMillis := (time.Now().UnixNano() + lastLeg.Duration.Nanoseconds()) / int64(time.Millisecond)
 		wazeURL := fmt.Sprintf(
 			"https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
@@ -172,35 +184,31 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 		if len(frontInfo.Waypoints) > 0 {
 			wazeURL += "&via=place." + neturl.QueryEscape(frontInfo.Waypoints[0])
 		}
-		fmt.Println(len(frontInfo.Waypoints))
-		fmt.Println(wazeURL)
 
 		var finalInstruction []Instructions
 		for _, instruction := range instructions {
-			instructionMinuscula := strings.ToLower(instruction)
+			instructionLower := strings.ToLower(instruction)
 			var valueImg string
-			if strings.Contains(instructionMinuscula, "direita") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
+			switch {
+			case strings.Contains(instructionLower, "direita") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-direita.svg"
-			} else if strings.Contains(instructionMinuscula, "esquerda") && (strings.Contains(instructionMinuscula, "curva") || strings.Contains(instructionMinuscula, "mantenha-se")) {
+			case strings.Contains(instructionLower, "esquerda") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-esquerda.svg"
-			} else if strings.Contains(instructionMinuscula, "esquerda") && !strings.Contains(instructionMinuscula, "curva") {
+			case strings.Contains(instructionLower, "esquerda") && !strings.Contains(instructionLower, "curva"):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.svg"
-			} else if strings.Contains(instructionMinuscula, "direita") && !strings.Contains(instructionMinuscula, "curva") {
+			case strings.Contains(instructionLower, "direita") && !strings.Contains(instructionLower, "curva"):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/direita.svg"
-			} else if strings.Contains(instructionMinuscula, "continue") || strings.Contains(instructionMinuscula, "siga") || strings.Contains(instructionMinuscula, "pegue") {
+			case strings.Contains(instructionLower, "continue"), strings.Contains(instructionLower, "siga"), strings.Contains(instructionLower, "pegue"):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/reto.svg"
-			} else if strings.Contains(instructionMinuscula, "rotatória") || strings.Contains(instructionMinuscula, "rotatoria") || strings.Contains(instructionMinuscula, "retorno") {
+			case strings.Contains(instructionLower, "rotatória"), strings.Contains(instructionLower, "rotatoria"), strings.Contains(instructionLower, "retorno"):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/rotatoria.svg"
-			} else if strings.Contains(instructionMinuscula, "voltar") || strings.Contains(instructionMinuscula, "volta") {
+			case strings.Contains(instructionLower, "voltar"), strings.Contains(instructionLower, "volta"):
 				valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/voltar.svg"
 			}
-
-			result := Instructions{
+			finalInstruction = append(finalInstruction, Instructions{
 				Text: instruction,
 				Img:  valueImg,
-			}
-
-			finalInstruction = append(finalInstruction, result)
+			})
 		}
 
 		allRoutes = append(allRoutes, Route{
@@ -215,7 +223,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 					Text:  totalDuration.String(),
 					Value: totalDuration.Seconds(),
 				},
-				URL:     url,
+				URL:     googleURL,
 				URLWaze: wazeURL,
 			},
 			Costs: Costs{
@@ -231,7 +239,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 			},
 			Tolls:        foundTolls,
 			Balanca:      foundBalancas,
-			GasStations:  findGasStationsAlongRoute,
+			GasStations:  foundGasStations,
 			Polyline:     route.OverviewPolyline.Points,
 			Instructions: finalInstruction,
 		})
@@ -288,11 +296,15 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 	}
 
 	responseJSON, _ := json.Marshal(response)
-	requestJSON, _ := json.Marshal(routeRequest)
-
 	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
 		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
 		return Response{}, errors.New("Erro ao salvar cache do Redis")
+	}
+
+	if frontInfo.PublicOrPrivate == "public" {
+		if err := s.createRouteHist(ctx, id, frontInfo, responseJSON); err != nil {
+			return Response{}, err
+		}
 	}
 
 	waypoints := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
@@ -313,11 +325,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo) (Res
 
 func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origin, destination string) (Arrival, error) {
 	cacheKey := fmt.Sprintf("timeWithClient:%s|%s", origin, destination)
-
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var arrival Arrival
-		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
+		if json.Unmarshal([]byte(cached), &arrival) == nil {
 			return arrival, nil
 		}
 	} else if err != redis.Nil {
@@ -331,7 +342,6 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 		Mode:         maps.TravelModeDriving,
 		Region:       "br",
 	}
-
 	routes, _, err := client.Directions(ctx, routeRequest)
 	if err != nil {
 		return Arrival{}, err
@@ -345,15 +355,112 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 		Distance: leg.Distance.HumanReadable,
 		Time:     leg.Duration,
 	}
-
 	data, err := json.Marshal(arrival)
 	if err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
 			fmt.Printf("Erro ao salvar cache no Redis (timeWithClient): %v\n", err)
 		}
 	}
-
 	return arrival, nil
+}
+
+func (s *Service) calculateTimeToToll(ctx context.Context, origin, destination string) (Arrival, error) {
+	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var arrival Arrival
+		if json.Unmarshal([]byte(cached), &arrival) == nil {
+			return arrival, nil
+		}
+	} else if err != redis.Nil {
+		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
+	}
+
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return Arrival{}, err
+	}
+	routeRequest := &maps.DirectionsRequest{
+		Origin:       origin,
+		Destination:  destination,
+		Alternatives: false,
+		Mode:         maps.TravelModeDriving,
+		Region:       "br",
+	}
+	routes, _, err := client.Directions(ctx, routeRequest)
+	if err != nil {
+		return Arrival{}, err
+	}
+	if len(routes) == 0 || len(routes[0].Legs) == 0 {
+		return Arrival{}, echo.ErrNotFound
+	}
+
+	leg := routes[0].Legs[0]
+	arrival := Arrival{
+		Distance: leg.Distance.HumanReadable,
+		Time:     leg.Duration,
+	}
+	data, err := json.Marshal(arrival)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
+		}
+	}
+	return s.timeWithClient(ctx, client, origin, destination)
+}
+
+func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
+	address = StateToCapital(strings.ToLower(address))
+	cacheKey := fmt.Sprintf("geocode:%s", address)
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var result GeocodeResult
+		if json.Unmarshal([]byte(cached), &result) == nil {
+			return result, nil
+		}
+	} else if err != redis.Nil {
+		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
+	}
+
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+	}
+
+	autoCompleteReq := &maps.PlaceAutocompleteRequest{
+		Input:    address,
+		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+		Radius:   1000000,
+		Language: "pt-BR",
+		Types:    "geocode",
+	}
+	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+		address = autoCompleteResp.Predictions[0].Description
+	} else if autoCompleteErr != nil {
+		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
+	}
+
+	req := &maps.GeocodingRequest{
+		Address: address,
+		Region:  "br",
+	}
+	results, err := client.Geocode(ctx, req)
+	if err != nil || len(results) == 0 {
+		return GeocodeResult{}, fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo).", address, address)
+	}
+
+	result := GeocodeResult{
+		FormattedAddress: results[0].FormattedAddress,
+		PlaceID:          results[0].PlaceID,
+	}
+	data, err := json.Marshal(result)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
+		}
+	}
+	return result, nil
 }
 
 func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
@@ -390,11 +497,9 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 			if latErr != nil || lonErr != nil {
 				continue
 			}
-
 			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.5) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
-
 					dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
 					arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
 					if err != nil {
@@ -402,7 +507,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 						continue
 					}
 					formattedTime := arrivalTimes.Time.Round(time.Second).String()
-
 					concession := validation.GetStringFromNull(dbToll.Concessionaria)
 					var tags []string
 					for _, tagRecord := range resultTags {
@@ -414,14 +518,14 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 							}
 						}
 					}
-
 					tarifaFloat, err := strconv.ParseFloat(dbToll.Tarifa, 64)
-
+					if err != nil {
+						continue
+					}
 					totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
 					if err != nil {
 						return nil, err
 					}
-
 					foundTolls = append(foundTolls, Toll{
 						ID:              int(dbToll.ID),
 						Latitude:        latitude,
@@ -478,11 +582,9 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 			if latErr != nil || lonErr != nil {
 				continue
 			}
-
 			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.5) {
 				if !uniqueBalanca[dbBalanca.ID] {
 					uniqueBalanca[dbBalanca.ID] = true
-
 					foundBalancas = append(foundBalancas, Balanca{
 						ID:             int(dbBalanca.ID),
 						Concessionaria: dbBalanca.Concessionaria,
@@ -507,22 +609,18 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 	var consolidatedPoints []maps.LatLng
 	uniquePoints := make(map[string]bool)
 
-	// Consolida pontos usando início e fim de cada leg, além dos steps
 	for _, route := range routes {
 		for _, leg := range route.Legs {
-			// Adiciona ponto de início da leg
 			startKey := fmt.Sprintf("%.6f:%.6f", leg.StartLocation.Lat, leg.StartLocation.Lng)
 			if !uniquePoints[startKey] {
 				uniquePoints[startKey] = true
 				consolidatedPoints = append(consolidatedPoints, leg.StartLocation)
 			}
-			// Adiciona ponto de fim da leg
 			endKey := fmt.Sprintf("%.6f:%.6f", leg.EndLocation.Lat, leg.EndLocation.Lng)
 			if !uniquePoints[endKey] {
 				uniquePoints[endKey] = true
 				consolidatedPoints = append(consolidatedPoints, leg.EndLocation)
 			}
-			// Adiciona também os pontos dos steps
 			for _, step := range leg.Steps {
 				pointKey := fmt.Sprintf("%.6f:%.6f", step.StartLocation.Lat, step.StartLocation.Lng)
 				if !uniquePoints[pointKey] {
@@ -546,15 +644,13 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 		go func(points []maps.LatLng) {
 			defer wg.Done()
 			for _, point := range points {
-				// Usa 6 casas decimais para a chave do cache
 				cacheKey := fmt.Sprintf("gasStations:%.6f:%.6f", point.Lat, point.Lng)
 				cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 				if err == nil {
 					var cachedStations []GasStation
-					if err := json.Unmarshal([]byte(cached), &cachedStations); err == nil {
+					if json.Unmarshal([]byte(cached), &cachedStations) == nil {
 						mu.Lock()
 						for _, gs := range cachedStations {
-							// Usa o nome, ou se estiver vazio, o endereço, como chave de unicidade
 							stationKey := gs.Name
 							if stationKey == "" {
 								stationKey = gs.Address
@@ -571,7 +667,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
 				}
 
-				// Tenta obter postos a partir do banco de dados
 				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
 					Column1: point.Lat,
 					Column2: point.Lng,
@@ -581,7 +676,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 				if err == nil && len(dbGasStations) > 0 {
 					mu.Lock()
 					for _, dbStation := range dbGasStations {
-						// Usa dbStation.Name se existir, caso contrário usa dbStation.SpecificPoint
 						stationName := dbStation.Name
 						if stationName == "" {
 							stationName = dbStation.SpecificPoint
@@ -614,7 +708,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					continue
 				}
 
-				// Se não há dados no cache nem no banco, consulta a API do Google Maps
 				placesRequest := &maps.NearbySearchRequest{
 					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
 					Radius:   10000,
@@ -629,7 +722,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 				var resultCached []GasStation
 				mu.Lock()
 				for _, result := range placesResponse.Results {
-					// Usa result.Name; se estiver vazio, utiliza result.PlaceID como fallback
 					stationName := result.Name
 					if stationName == "" {
 						stationName = result.PlaceID
@@ -646,8 +738,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 						}
 						gasStations = append(gasStations, gs)
 						resultCached = append(resultCached, gs)
-
-						// Salva no banco de dados
 						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
 							Name:          stationName,
 							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
@@ -673,116 +763,43 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 			}
 		}(consolidatedPoints[i:end])
 	}
-
 	wg.Wait()
 	return gasStations, nil
 }
 
-func (s *Service) calculateTimeToToll(ctx context.Context, origin, destination string) (Arrival, error) {
-	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
-
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	if err == nil {
-		var arrival Arrival
-		if err := json.Unmarshal([]byte(cached), &arrival); err == nil {
-			return arrival, nil
-		}
-	} else if err != redis.Nil {
-		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
-	}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
+	result, err := s.InterfaceService.GetTokenHist(ctx, id)
 	if err != nil {
-		return Arrival{}, err
+		return err
 	}
-
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: false,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
+	number := result.NumberRequest + 1
+	if number > 5 {
+		return errors.New("you have reached the limit of requests per day")
 	}
-	routes, _, err := client.Directions(ctx, routeRequest)
+	err = s.InterfaceService.UpdateNumberOfRequest(ctx, db.UpdateNumberOfRequestParams{
+		NumberRequest: number,
+		ID:            id,
+	})
 	if err != nil {
-		return Arrival{}, err
+		return err
 	}
-	if len(routes) == 0 || len(routes[0].Legs) == 0 {
-		return Arrival{}, echo.ErrNotFound
-	}
-
-	leg := routes[0].Legs[0]
-	arrival := Arrival{
-		Distance: leg.Distance.HumanReadable,
-		Time:     leg.Duration,
-	}
-
-	data, err := json.Marshal(arrival)
-	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
-		}
-	}
-
-	return s.timeWithClient(ctx, client, origin, destination)
+	return nil
 }
 
-func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	address = StateToCapital(strings.ToLower(address))
-
-	cacheKey := fmt.Sprintf("geocode:%s", address)
-
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	if err == nil {
-		var result GeocodeResult
-		if err := json.Unmarshal([]byte(cached), &result); err == nil {
-			return result, nil
-		}
-	} else if err != redis.Nil {
-		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
-	}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info FrontInfo, response json.RawMessage) error {
+	waypoints := strings.ToLower(strings.Join(info.Waypoints, ","))
+	_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+		IDTokenHist: idTokenHist,
+		Origin:      info.Origin,
+		Destination: info.Destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		Response: response,
+	})
 	if err != nil {
-		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+		return err
 	}
-
-	autoCompleteReq := &maps.PlaceAutocompleteRequest{
-		Input:    address,
-		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-		Radius:   1000000,
-		Language: "pt-BR",
-		Types:    "geocode",
-	}
-
-	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-		address = autoCompleteResp.Predictions[0].Description
-	} else if autoCompleteErr != nil {
-		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
-	}
-
-	req := &maps.GeocodingRequest{
-		Address: address,
-		Region:  "br",
-	}
-
-	results, err := client.Geocode(ctx, req)
-	if err != nil || len(results) == 0 {
-		return GeocodeResult{}, fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo).", address, address)
-	}
-
-	result := GeocodeResult{
-		FormattedAddress: results[0].FormattedAddress,
-		PlaceID:          results[0].PlaceID,
-	}
-
-	data, err := json.Marshal(result)
-	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
-		}
-	}
-
-	return result, nil
+	return nil
 }

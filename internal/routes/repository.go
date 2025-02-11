@@ -17,6 +17,9 @@ type InterfaceRepository interface {
 	GetSavedRouteById(ctx context.Context, arg int32) (db.SavedRoute, error)
 	GetBalanca(ctx context.Context) ([]db.Balanca, error)
 	CreateFavoriteRoute(ctx context.Context, arg db.CreateFavoriteRouteParams) (db.FavoriteRoute, error)
+	GetTokenHist(ctx context.Context, arg int64) (db.TokenHist, error)
+	UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
+	CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error)
 }
 
 type Repository struct {
@@ -65,4 +68,13 @@ func (r *Repository) GetBalanca(ctx context.Context) ([]db.Balanca, error) {
 }
 func (r *Repository) CreateFavoriteRoute(ctx context.Context, arg db.CreateFavoriteRouteParams) (db.FavoriteRoute, error) {
 	return r.Queries.CreateFavoriteRoute(ctx, arg)
+}
+func (r *Repository) GetTokenHist(ctx context.Context, arg int64) (db.TokenHist, error) {
+	return r.Queries.GetTokenHist(ctx, arg)
+}
+func (r *Repository) UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error {
+	return r.Queries.UpdateNumberOfRequest(ctx, arg)
+}
+func (r *Repository) CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error) {
+	return r.Queries.CreateRouteHist(ctx, arg)
 }

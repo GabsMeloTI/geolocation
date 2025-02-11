@@ -35,3 +35,19 @@ func GetPayloadToken(c echo.Context) PayloadDTO {
 		UserName:     strUserName,
 	}
 }
+
+func GetPublicPayloadToken(c echo.Context) PublicPayloadDTO {
+	strID, _ := c.Get("token_id_hist").(int64)
+	strIP, _ := c.Get("token_ip").(string)
+	strNumberRequests, _ := c.Get("token_number_requests").(int64)
+	strValid, _ := c.Get("token_valid").(bool)
+	strExpiredAt, _ := c.Get("token_expired_at").(time.Time)
+
+	return PublicPayloadDTO{
+		ID:             strID,
+		IP:             strIP,
+		NumberRequests: strNumberRequests,
+		Valid:          strValid,
+		ExpiredAt:      strExpiredAt,
+	}
+}

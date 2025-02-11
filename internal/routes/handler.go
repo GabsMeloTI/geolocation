@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -26,7 +27,8 @@ func (h *Handler) CheckRouteTolls(e echo.Context) error {
 		return e.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := h.InterfaceService.CheckRouteTolls(e.Request().Context(), frontInfo)
+	payload := get_token.GetPublicPayloadToken(e)
+	result, err := h.InterfaceService.CheckRouteTolls(e.Request().Context(), frontInfo, payload.ID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {

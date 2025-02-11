@@ -41,7 +41,23 @@ func (maker *PasetoMaker) VerifyToken(token string) (*PayloadSimp, error) {
 	return payload, nil
 }
 
-func (maker *PasetoMaker) CreateToken(tokenHistID int64, ip string, numberRequests int64, valid bool, expiredAt time.Duration) (string, error) {
+func (maker *PasetoMaker) VerifyPublicToken(token string) (*Payload, error) {
+	payload := &Payload{}
+
+	err := maker.paseto.Decrypt(token, maker.symetricKey, payload, nil)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	err = payload.validPublic()
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+func (maker *PasetoMaker) CreateToken(tokenHistID int64, ip string, numberRequests int64, valid bool, expiredAt time.Time) (string, error) {
 	payload, err := NewPayload(tokenHistID, ip, numberRequests, valid, expiredAt)
 	if err != nil {
 		return "", err

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
+	"geolocation/internal/hist"
 	"geolocation/internal/routes"
 )
 
@@ -13,6 +14,9 @@ type ContainerDI struct {
 	HandlerRoutes    *routes.Handler
 	ServiceRoutes    *routes.Service
 	RepositoryRoutes *routes.Repository
+	HandlerHist      *hist.Handler
+	ServiceHist      *hist.Service
+	RepositoryHist   *hist.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -40,12 +44,15 @@ func (c *ContainerDI) db() {
 
 func (c *ContainerDI) buildRepository() {
 	c.RepositoryRoutes = routes.NewTollsRepository(c.ConnDB)
+	c.RepositoryHist = hist.NewHistRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
 	c.ServiceRoutes = routes.NewRoutesService(c.RepositoryRoutes, c.Config.GoogleMapsKey)
+	c.ServiceHist = hist.NewHistService(c.RepositoryHist, c.Config.SignatureToken)
 }
 
 func (c *ContainerDI) buildHandler() {
 	c.HandlerRoutes = routes.NewRoutesHandler(c.ServiceRoutes)
+	c.HandlerHist = hist.NewHistHandler(c.ServiceHist)
 }

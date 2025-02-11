@@ -2,47 +2,73 @@ package hist
 
 import (
 	"context"
+	"errors"
 	db "geolocation/db/sqlc"
+	"geolocation/infra/token"
+	"time"
 )
 
 type InterfaceService interface {
-	GetPublicToken(ctx context.Context, ip string) (Response, error)
-	UpdateNumberOfRequest(ctx context.Context, id int64) error
+	GetPublicToken(ctx context.Context, ip string, data Request) (Response, error)
 }
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	SignatureString  string
 }
 
-func NewRoutesService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewHistService(InterfaceService InterfaceRepository, SignatureString string) *Service {
+	return &Service{InterfaceService, SignatureString}
 }
 
-func (s *Service) GetPublicToken(ctx context.Context, ip string) (Response, error) {
+func (s *Service) GetPublicToken(ctx context.Context, ip string, data Request) (Response, error) {
 	resultToken, errToken := s.InterfaceService.CreateTokenHist(ctx, db.CreateTokenHistParams{
 		Ip:            ip,
 		NumberRequest: 0,
+		ExpritedAt:    time.Now().Add(24 * time.Hour).UTC(),
 	})
 	if errToken != nil {
 		return Response{}, errToken
 	}
 
+	arg := Request{
+		ID:             resultToken.ID,
+		IP:             resultToken.Ip,
+		NumberRequests: resultToken.NumberRequest,
+		Valid:          resultToken.Valid.Bool,
+		ExpiredAt:      resultToken.ExpritedAt,
+	}
+	strToken, errT := s.createToken(arg)
+	if errT != nil {
+		return Response{}, errT
+	}
+
 	response := Response{
-		ID: resultToken.ID,
-		IP: resultToken.Ip,
+		ID:    resultToken.ID,
+		IP:    resultToken.Ip,
+		Token: strToken,
 	}
 
 	return response, nil
 }
 
-func (s *Service) UpdateNumberOfRequest(ctx context.Context, id int64) error {
-	err := s.InterfaceService.UpdateNumberOfRequest(ctx, db.UpdateNumberOfRequestParams{
-		NumberRequest: +1,
-		ID:            id,
-	})
+func (s *Service) createToken(data Request) (string, error) {
+	maker, err := token.NewPasetoMaker(s.SignatureString)
 	if err != nil {
-		return err
+		return "", errors.New("failed")
 	}
 
-	return nil
+	strToken, err := maker.CreateToken(
+		data.ID,
+		data.IP,
+		data.NumberRequests,
+		data.Valid,
+		data.ExpiredAt,
+	)
+
+	if err != nil {
+		return "", errors.New("failed")
+	}
+
+	return strToken, nil
 }

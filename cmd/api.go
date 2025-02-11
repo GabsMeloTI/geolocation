@@ -3,26 +3,17 @@ package cmd
 import (
 	"context"
 	"geolocation/infra"
+	_midlleware "geolocation/infra/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"time"
 )
 
-// @title GO-auth-service
-// @description Document API
-// @version 1.0
-// @schemes https http
-// @contact.name API Support
-// @contact.url https://simpplify.com.br/contact
-// @contact.email support@swagger.io
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
-
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
 
+	// Graceful Shutdown
 	go func() {
 		for {
 			select {
@@ -39,13 +30,15 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods: middleware.DefaultCORSConfig.AllowMethods,
 	}))
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+
 	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-	//e.GET("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls, _middleware.CheckAuthorization)
+	e.POST("/check-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.GET("/public/:ip", container.HandlerHist.GetPublicToken)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
