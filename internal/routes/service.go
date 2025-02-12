@@ -71,11 +71,20 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		return Response{}, err
 	}
 
+	var waypoints []string
+	for _, waypoint := range frontInfo.Waypoints {
+		result, err := s.getGeocodeAddress(ctx, waypoint)
+		if err != nil {
+			return Response{}, err
+		}
+		waypoints = append(waypoints, result.FormattedAddress)
+	}
+
 	routeRequest := &maps.DirectionsRequest{
 		Origin:       origin.FormattedAddress,
 		Destination:  destination.FormattedAddress,
 		Mode:         maps.TravelModeDriving,
-		Waypoints:    frontInfo.Waypoints,
+		Waypoints:    waypoints,
 		Alternatives: true,
 		Region:       "br",
 		Language:     "pt-BR",
@@ -314,12 +323,12 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	waypoints := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+	waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
 	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
 		Origin:      origin.FormattedAddress,
 		Destination: destination.FormattedAddress,
 		Waypoints: sql.NullString{
-			String: waypoints,
+			String: waypointsStr,
 			Valid:  true,
 		},
 		Request:   requestJSON,
@@ -846,6 +855,8 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 			case 6:
 				rateStr = fl.SixAxes
 			case 7:
+				rateStr = fl.SevenAxes
+			case 8:
 				rateStr = fl.SevenAxes
 			case 9:
 				rateStr = fl.NineAxes
