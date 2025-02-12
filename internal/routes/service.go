@@ -817,13 +817,11 @@ type FreightItem struct {
 }
 
 func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float64) (map[string]interface{}, error) {
-	// Obtém os registros da tabela de frete
 	results, err := s.InterfaceService.GetFreightLoadAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Agrupa os registros por tabela (por exemplo, "Tabela A", "Tabela B", etc.)
 	grouped := make(map[string][]FreightLoad)
 	for _, result := range results {
 		var fl FreightLoad
@@ -831,12 +829,10 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 		grouped[fl.Name] = append(grouped[fl.Name], fl)
 	}
 
-	// Para cada grupo, monta a resposta simplificada
 	finalResult := make(map[string]interface{})
 	for tableName, loads := range grouped {
 		simplifiedLoads := make([]map[string]interface{}, 0)
 		for _, fl := range loads {
-			// Seleciona o valor do frete de acordo com a quantidade de eixos (axles)
 			var rateStr string
 			switch axles {
 			case 2:
@@ -854,20 +850,15 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 			case 9:
 				rateStr = fl.NineAxes
 			default:
-				// Se não houver correspondência, pode-se definir um padrão (aqui usamos o de 2 eixos)
 				rateStr = fl.TwoAxes
 			}
 
-			// Converte o valor da tabela (string) para float64
-			// Substitui a vírgula pelo ponto, se necessário
 			rateStr = strings.Replace(rateStr, ",", ".", -1)
 			rate, err := strconv.ParseFloat(rateStr, 64)
 			if err != nil {
-				// Se houver erro na conversão, define o valor como zero
 				rate = 0
 			}
 
-			// Calcula o valor total: valor dos km * valor da tabela
 			totalValue := kmValue * rate
 
 			simplifiedLoad := map[string]interface{}{
@@ -878,7 +869,6 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 			}
 			simplifiedLoads = append(simplifiedLoads, simplifiedLoad)
 		}
-		// Adiciona o grupo no resultado final com o nome da tabela como chave
 		finalResult[tableName] = simplifiedLoads
 	}
 	return finalResult, nil
