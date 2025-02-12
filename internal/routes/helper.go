@@ -273,3 +273,26 @@ func selectEfficientRoute(routes []Route, alpha float64) Route {
 
 	return bestRoute
 }
+
+func CalcFreight(axles string, km, price float64) float64 {
+	switch axles {
+	case "two_axes":
+		return km * price
+	case "three_axes":
+		return km * price
+	case "four_axes":
+		return km * price
+	case "five_axes":
+		return km * price
+	case "six_axes":
+		return km * price
+	case "seven_axes":
+		return km * price
+	case "eight_axes":
+		return km * price
+	case "nine_axes":
+		return km * price
+	default:
+		return 0.00
+	}
+}

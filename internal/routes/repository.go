@@ -20,6 +20,7 @@ type InterfaceRepository interface {
 	GetTokenHist(ctx context.Context, arg int64) (db.TokenHist, error)
 	UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
 	CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error)
+	GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error)
 }
 
 type Repository struct {
@@ -77,4 +78,7 @@ func (r *Repository) UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNum
 }
 func (r *Repository) CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error) {
 	return r.Queries.CreateRouteHist(ctx, arg)
+}
+func (r *Repository) GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error) {
+	return r.Queries.GetFreightLoadAll(ctx)
 }

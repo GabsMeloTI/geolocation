@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	db "geolocation/db/sqlc"
 	"googlemaps.github.io/maps"
 	"time"
 )
@@ -20,12 +21,8 @@ type FrontInfo struct {
 }
 
 type Response struct {
-	SummaryRoute   SummaryRoute `json:"summary"`
-	Routes         []Route      `json:"routes"`
-	FastestRoute   string       `json:"fastest_route"`
-	CheapestRoute  string       `json:"cheapest_route"`
-	EfficientRoute string       `json:"efficient_route"`
-	SelectedRoute  string       `json:"selected_route"`
+	SummaryRoute SummaryRoute `json:"summary"`
+	Routes       []Route      `json:"routes"`
 }
 
 type SummaryRoute struct {
@@ -61,13 +58,14 @@ type FuelPrice struct {
 }
 
 type Route struct {
-	Summary      Summary        `json:"summary"`
-	Costs        Costs          `json:"costs"`
-	Tolls        []Toll         `json:"tolls"`
-	Balanca      []Balanca      `json:"balances"`
-	GasStations  []GasStation   `json:"gas_stations"`
-	Polyline     string         `json:"polyline"`
-	Instructions []Instructions `json:"instructions"`
+	Summary      Summary                `json:"summary"`
+	Costs        Costs                  `json:"costs"`
+	Tolls        []Toll                 `json:"tolls"`
+	Balanca      []Balanca              `json:"balances"`
+	GasStations  []GasStation           `json:"gas_stations"`
+	Polyline     string                 `json:"polyline"`
+	Instructions []Instructions         `json:"instructions"`
+	FreightLoad  map[string]interface{} `json:"freight_load"`
 }
 
 type Instructions struct {
@@ -170,4 +168,31 @@ type CreateFavoriteRouteRequest struct {
 	TollsID          int64           `json:"tolls_id"`
 	Response         json.RawMessage `json:"response"`
 	UserOrganization string          `json:"user_organization"`
+}
+
+type FreightLoad struct {
+	TypeOfLoad  string `json:"type_of_load"`
+	TwoAxes     string `json:"two_axes"`
+	ThreeAxes   string `json:"three_axes"`
+	FourAxes    string `json:"four_axes"`
+	FiveAxes    string `json:"five_axes"`
+	SixAxes     string `json:"six_axes"`
+	SevenAxes   string `json:"seven_axes"`
+	NineAxes    string `json:"nine_axes"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func (p *FreightLoad) ParseFromNcmObject(result db.FreightLoad) {
+	p.TypeOfLoad = result.TypeOfLoad.String
+	p.TwoAxes = result.TwoAxes.String
+	p.ThreeAxes = result.ThreeAxes.String
+	p.FourAxes = result.FourAxes.String
+	p.FiveAxes = result.FiveAxes.String
+	p.SixAxes = result.SixAxes.String
+	p.SevenAxes = result.SevenAxes.String
+	p.NineAxes = result.NineAxes.String
+	p.ThreeAxes = result.ThreeAxes.String
+	p.Name = result.Name.String
+	p.Description = result.Description.String
 }

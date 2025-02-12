@@ -33,6 +33,19 @@ type FavoriteRoute struct {
 	UpdatedAt        sql.NullTime    `json:"updated_at"`
 }
 
+type FreightLoad struct {
+	TypeOfLoad  sql.NullString `json:"type_of_load"`
+	TwoAxes     sql.NullString `json:"two_axes"`
+	ThreeAxes   sql.NullString `json:"three_axes"`
+	FourAxes    sql.NullString `json:"four_axes"`
+	FiveAxes    sql.NullString `json:"five_axes"`
+	SixAxes     sql.NullString `json:"six_axes"`
+	SevenAxes   sql.NullString `json:"seven_axes"`
+	NineAxes    sql.NullString `json:"nine_axes"`
+	Name        sql.NullString `json:"name"`
+	Description sql.NullString `json:"description"`
+}
+
 type GasStation struct {
 	ID            int64  `json:"id"`
 	Name          string `json:"name"`

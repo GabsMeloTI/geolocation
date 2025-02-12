@@ -211,6 +211,12 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 			})
 		}
 
+		kms := totalDistance / 1000
+		resultFreight, err := s.getAllFreight(ctx, frontInfo.Axles, float64(kms))
+		if err != nil {
+			return Response{}, err
+		}
+
 		allRoutes = append(allRoutes, Route{
 			Summary: Summary{
 				HasTolls:  len(foundTolls) > 0,
@@ -242,6 +248,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 			GasStations:  foundGasStations,
 			Polyline:     route.OverviewPolyline.Points,
 			Instructions: finalInstruction,
+			FreightLoad:  resultFreight,
 		})
 
 		summaryRoute = SummaryRoute{
@@ -802,4 +809,77 @@ func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info F
 		return err
 	}
 	return nil
+}
+
+type FreightItem struct {
+	Carga int64   `json:"carga"`
+	Valor float64 `json:"valor"`
+}
+
+func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float64) (map[string]interface{}, error) {
+	// Obtém os registros da tabela de frete
+	results, err := s.InterfaceService.GetFreightLoadAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Agrupa os registros por tabela (por exemplo, "Tabela A", "Tabela B", etc.)
+	grouped := make(map[string][]FreightLoad)
+	for _, result := range results {
+		var fl FreightLoad
+		fl.ParseFromNcmObject(result)
+		grouped[fl.Name] = append(grouped[fl.Name], fl)
+	}
+
+	// Para cada grupo, monta a resposta simplificada
+	finalResult := make(map[string]interface{})
+	for tableName, loads := range grouped {
+		simplifiedLoads := make([]map[string]interface{}, 0)
+		for _, fl := range loads {
+			// Seleciona o valor do frete de acordo com a quantidade de eixos (axles)
+			var rateStr string
+			switch axles {
+			case 2:
+				rateStr = fl.TwoAxes
+			case 3:
+				rateStr = fl.ThreeAxes
+			case 4:
+				rateStr = fl.FourAxes
+			case 5:
+				rateStr = fl.FiveAxes
+			case 6:
+				rateStr = fl.SixAxes
+			case 7:
+				rateStr = fl.SevenAxes
+			case 9:
+				rateStr = fl.NineAxes
+			default:
+				// Se não houver correspondência, pode-se definir um padrão (aqui usamos o de 2 eixos)
+				rateStr = fl.TwoAxes
+			}
+
+			// Converte o valor da tabela (string) para float64
+			// Substitui a vírgula pelo ponto, se necessário
+			rateStr = strings.Replace(rateStr, ",", ".", -1)
+			rate, err := strconv.ParseFloat(rateStr, 64)
+			if err != nil {
+				// Se houver erro na conversão, define o valor como zero
+				rate = 0
+			}
+
+			// Calcula o valor total: valor dos km * valor da tabela
+			totalValue := kmValue * rate
+
+			simplifiedLoad := map[string]interface{}{
+				"description":  fl.Description,
+				"type_of_load": fl.TypeOfLoad,
+				"qtd_axle":     axles,
+				"total_value":  totalValue,
+			}
+			simplifiedLoads = append(simplifiedLoads, simplifiedLoad)
+		}
+		// Adiciona o grupo no resultado final com o nome da tabela como chave
+		finalResult[tableName] = simplifiedLoads
+	}
+	return finalResult, nil
 }
