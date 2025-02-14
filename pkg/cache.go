@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
 	"github.com/go-redis/redis/v8"
@@ -16,7 +16,7 @@ var (
 func InitRedis() {
 	redisAddr := os.Getenv("REDIS_URL")
 	if redisAddr == "" {
-		errors.New("REDIS_URL not found")
+		panic("REDIS_URL não foi definido corretamente. Verifique as variáveis de ambiente.")
 	}
 
 	Rdb = redis.NewClient(&redis.Options{
@@ -27,4 +27,6 @@ func InitRedis() {
 	if err != nil {
 		panic("Não foi possível conectar ao Redis: " + err.Error())
 	}
+
+	fmt.Println("Conectado ao Redis em:", redisAddr)
 }
