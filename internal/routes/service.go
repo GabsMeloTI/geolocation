@@ -130,6 +130,15 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		foundTolls, _ := s.findTollsInRoute(ctx, []maps.Route{route}, origin.FormattedAddress, frontInfo.Type, float64(frontInfo.Axles))
 		foundBalancas, _ := s.findBalancaInRoute(ctx, []maps.Route{route})
 		foundGasStations, _ := s.findGasStationsAlongAllRoutes(ctx, client, []maps.Route{route})
+		foundTolls = sortByProximity(origin.Location, foundTolls, func(toll Toll) Location {
+			return Location{Latitude: toll.Latitude, Longitude: toll.Longitude}
+		})
+		foundBalancas = sortByProximity(origin.Location, foundBalancas, func(balanca Balanca) Location {
+			return Location{Latitude: balanca.Lat, Longitude: balanca.Lng}
+		})
+		foundGasStations = sortByProximity(origin.Location, foundGasStations, func(gas GasStation) Location {
+			return Location{Latitude: gas.Location.Latitude, Longitude: gas.Location.Longitude}
+		})
 
 		var totalDistance int
 		var totalDuration time.Duration

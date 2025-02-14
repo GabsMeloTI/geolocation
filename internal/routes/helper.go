@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"googlemaps.github.io/maps"
 	"math"
+	"sort"
 	"strings"
 )
 
@@ -295,4 +296,27 @@ func CalcFreight(axles string, km, price float64) float64 {
 	default:
 		return 0.00
 	}
+}
+
+func sortByProximity[T any](origin Location, points []T, getLocation func(T) Location) []T {
+	sort.Slice(points, func(i, j int) bool {
+		locI := getLocation(points[i])
+		locJ := getLocation(points[j])
+		distI := haversineDistance(origin, locI)
+		distJ := haversineDistance(origin, locJ)
+		return distI < distJ
+	})
+	return points
+}
+
+func haversineDistance(loc1, loc2 Location) float64 {
+	const R = 6371
+	deltaLat := (loc2.Latitude - loc1.Latitude) * (math.Pi / 180)
+	deltaLon := (loc2.Longitude - loc1.Longitude) * (math.Pi / 180)
+	lat1 := loc1.Latitude * (math.Pi / 180)
+	lat2 := loc2.Latitude * (math.Pi / 180)
+	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
+		math.Sin(deltaLon/2)*math.Sin(deltaLon/2)*math.Cos(lat1)*math.Cos(lat2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return R * c
 }
