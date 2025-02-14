@@ -10,10 +10,10 @@ import (
 type FrontInfo struct {
 	Origin          string   `json:"origin" validate:"required"`
 	Destination     string   `json:"destination" validate:"required"`
-	ConsumptionCity float64  `json:"consumptionCity" validate:"required"`
-	ConsumptionHwy  float64  `json:"consumptionHwy" validate:"required"`
-	Price           float64  `json:"price" validate:"required"`
-	Axles           int64    `json:"axles" validate:"required"`
+	ConsumptionCity float64  `json:"consumptionCity"`
+	ConsumptionHwy  float64  `json:"consumptionHwy"`
+	Price           float64  `json:"price"`
+	Axles           int64    `json:"axles"`
 	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
