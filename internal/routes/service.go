@@ -89,8 +89,8 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		Region:       "br",
 		Language:     "pt-BR",
 	}
-	requestJSON, _ := json.Marshal(routeRequest)
 
+	requestJSON, _ := json.Marshal(routeRequest)
 	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
 		Origin:      origin.FormattedAddress,
 		Destination: destination.FormattedAddress,
@@ -487,6 +487,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	if err != nil {
 		return foundTolls, nil
 	}
+	fmt.Println(len(tolls))
 
 	resultTags, err := s.InterfaceService.GetTollTags(ctx)
 	if err != nil {

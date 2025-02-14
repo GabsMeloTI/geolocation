@@ -90,7 +90,6 @@ type TokenHist struct {
 
 type Toll struct {
 	ID               int64          `json:"id"`
-	CodigoAntt       sql.NullString `json:"codigo_antt"`
 	Concessionaria   sql.NullString `json:"concessionaria"`
 	PracaDePedagio   sql.NullString `json:"praca_de_pedagio"`
 	AnoDoPnvSnv      sql.NullInt32  `json:"ano_do_pnv_snv"`

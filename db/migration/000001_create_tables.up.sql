@@ -1,6 +1,5 @@
 CREATE TABLE public.tolls (
                               id bigserial NOT NULL,
-                              codigo_antt varchar(255),
                               concessionaria varchar(50) NULL,
                               praca_de_pedagio varchar(50) NULL,
                               ano_do_pnv_snv int4 null default 2025,

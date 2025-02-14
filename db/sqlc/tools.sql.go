@@ -7,52 +7,10 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
-const createTolls = `-- name: CreateTolls :exec
-INSERT INTO public.tolls
-(concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude)
-VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-`
-
-type CreateTollsParams struct {
-	Concessionaria   sql.NullString `json:"concessionaria"`
-	PracaDePedagio   sql.NullString `json:"praca_de_pedagio"`
-	AnoDoPnvSnv      sql.NullInt32  `json:"ano_do_pnv_snv"`
-	Rodovia          sql.NullString `json:"rodovia"`
-	Uf               sql.NullString `json:"uf"`
-	KmM              sql.NullString `json:"km_m"`
-	Municipio        sql.NullString `json:"municipio"`
-	TipoPista        sql.NullString `json:"tipo_pista"`
-	Sentido          sql.NullString `json:"sentido"`
-	Situacao         sql.NullString `json:"situacao"`
-	DataDaInativacao sql.NullString `json:"data_da_inativacao"`
-	Latitude         sql.NullString `json:"latitude"`
-	Longitude        sql.NullString `json:"longitude"`
-}
-
-func (q *Queries) CreateTolls(ctx context.Context, arg CreateTollsParams) error {
-	_, err := q.db.ExecContext(ctx, createTolls,
-		arg.Concessionaria,
-		arg.PracaDePedagio,
-		arg.AnoDoPnvSnv,
-		arg.Rodovia,
-		arg.Uf,
-		arg.KmM,
-		arg.Municipio,
-		arg.TipoPista,
-		arg.Sentido,
-		arg.Situacao,
-		arg.DataDaInativacao,
-		arg.Latitude,
-		arg.Longitude,
-	)
-	return err
-}
-
 const getTollsByLonAndLat = `-- name: GetTollsByLonAndLat :many
-SELECT id, codigo_antt, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa, free_flow
+SELECT id, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa, free_flow
 FROM public.tolls
 `
 
@@ -67,7 +25,6 @@ func (q *Queries) GetTollsByLonAndLat(ctx context.Context) ([]Toll, error) {
 		var i Toll
 		if err := rows.Scan(
 			&i.ID,
-			&i.CodigoAntt,
 			&i.Concessionaria,
 			&i.PracaDePedagio,
 			&i.AnoDoPnvSnv,
