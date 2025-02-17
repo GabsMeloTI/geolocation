@@ -9,6 +9,7 @@ import (
 	"html"
 	"math"
 	neturl "net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -576,6 +577,11 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 			}
 		}
 	}
+
+	sort.Slice(foundTolls, func(i, j int) bool {
+		return foundTolls[i].ArrivalResponse.Distance < foundTolls[j].ArrivalResponse.Distance
+	})
+
 	return foundTolls, nil
 }
 
