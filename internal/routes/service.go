@@ -655,7 +655,7 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 			if latErr != nil || lonErr != nil {
 				continue
 			}
-			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.5) {
+			if IsNearby(point.Lat, point.Lng, latitude, longitude, 1.0) {
 				if !uniqueBalanca[dbBalanca.ID] {
 					uniqueBalanca[dbBalanca.ID] = true
 					foundBalancas = append(foundBalancas, Balanca{
