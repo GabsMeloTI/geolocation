@@ -47,21 +47,21 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s",
-		strings.ToLower(frontInfo.Origin),
-		strings.ToLower(frontInfo.Destination),
-		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-	)
+	//cacheKey := fmt.Sprintf("route:%s:%s:%s",
+	//	strings.ToLower(frontInfo.Origin),
+	//	strings.ToLower(frontInfo.Destination),
+	//	strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	//)
 
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var cachedResponse Response
-		if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
-			return RecalculateCosts(cachedResponse, frontInfo), nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		return Response{}, err
-	}
+	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	//if err == nil {
+	//	var cachedResponse Response
+	//	if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
+	//		return RecalculateCosts(cachedResponse, frontInfo), nil
+	//	}
+	//} else if !errors.Is(err, redis.Nil) {
+	//	return Response{}, err
+	//}
 
 	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
 	if err != nil {
@@ -91,23 +91,23 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		Language:     "pt-BR",
 	}
 
-	requestJSON, _ := json.Marshal(routeRequest)
-	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      origin.FormattedAddress,
-		Destination: destination.FormattedAddress,
-		Waypoints: sql.NullString{
-			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-			Valid:  true,
-		},
-		Request: requestJSON,
-	})
-	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
-		var dbResponse Response
-		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
-			return RecalculateCosts(dbResponse, frontInfo), nil
-		}
-	}
+	//requestJSON, _ := json.Marshal(routeRequest)
+	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+	//	Origin:      origin.FormattedAddress,
+	//	Destination: destination.FormattedAddress,
+	//	Waypoints: sql.NullString{
+	//		String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	//		Valid:  true,
+	//	},
+	//	Request: requestJSON,
+	//})
+	//if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
+	//	var dbResponse Response
+	//	if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
+	//		cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+	//		return RecalculateCosts(dbResponse, frontInfo), nil
+	//	}
+	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -301,18 +301,59 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	fastestRoute := selectFastestRoute(allRoutes)
-	cheapestRoute := selectCheapestRoute(allRoutes)
-	efficientRoute := selectEfficientRoute(allRoutes, 0.5)
+	var fastestRoute, cheapestRoute, efficientRoute Route
+	if len(allRoutes) >= 3 {
+		sortedByTime := make([]Route, len(allRoutes))
+		copy(sortedByTime, allRoutes)
+		sort.Slice(sortedByTime, func(i, j int) bool {
+			return sortedByTime[i].Summary.Duration.Value < sortedByTime[j].Summary.Duration.Value
+		})
+		fastestRoute = sortedByTime[0]
+
+		sortedByCost := make([]Route, len(allRoutes))
+		copy(sortedByCost, allRoutes)
+		sort.Slice(sortedByCost, func(i, j int) bool {
+			costI := sortedByCost[i].Costs.TagAndCash + sortedByCost[i].Costs.FuelInTheCity
+			costJ := sortedByCost[j].Costs.TagAndCash + sortedByCost[j].Costs.FuelInTheCity
+			return costI < costJ
+		})
+		cheapestRoute = sortedByCost[0]
+		if cheapestRoute.Polyline == fastestRoute.Polyline {
+			for _, candidate := range sortedByCost[1:] {
+				if candidate.Polyline != fastestRoute.Polyline {
+					cheapestRoute = candidate
+					break
+				}
+			}
+		}
+
+		var candidateRoutes []Route
+		for _, r := range allRoutes {
+			if r.Polyline != fastestRoute.Polyline && r.Polyline != cheapestRoute.Polyline {
+				candidateRoutes = append(candidateRoutes, r)
+			}
+		}
+		if len(candidateRoutes) > 0 {
+			efficientRoute = selectEfficientRoute(candidateRoutes, 0.5)
+		} else {
+			efficientRoute = selectEfficientRoute(allRoutes, 0.5)
+		}
+	} else {
+		fastestRoute = selectFastestRoute(allRoutes)
+		cheapestRoute = selectCheapestRoute(allRoutes)
+		efficientRoute = selectEfficientRoute(allRoutes, 0.5)
+	}
+
 	for i, r := range allRoutes {
-		if r.Polyline == fastestRoute.Polyline {
+		switch {
+		case r.Polyline == fastestRoute.Polyline:
 			allRoutes[i].Summary.RouteType = "fastest"
-		}
-		if r.Polyline == cheapestRoute.Polyline {
+		case r.Polyline == cheapestRoute.Polyline:
 			allRoutes[i].Summary.RouteType = "cheapest"
-		}
-		if r.Polyline == efficientRoute.Polyline {
+		case r.Polyline == efficientRoute.Polyline:
 			allRoutes[i].Summary.RouteType = "efficient"
+		default:
+			allRoutes[i].Summary.RouteType = ""
 		}
 	}
 
@@ -322,10 +363,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	}
 
 	responseJSON, _ := json.Marshal(response)
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
-		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
-		return Response{}, errors.New("Erro ao salvar cache do Redis")
-	}
+	//if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
+	//	fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
+	//	return Response{}, errors.New("Erro ao salvar cache do Redis")
+	//}
 
 	if frontInfo.PublicOrPrivate == "public" {
 		if err := s.createRouteHist(ctx, id, frontInfo, responseJSON); err != nil {
@@ -333,18 +374,18 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
-	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
-		Origin:      origin.FormattedAddress,
-		Destination: destination.FormattedAddress,
-		Waypoints: sql.NullString{
-			String: waypointsStr,
-			Valid:  true,
-		},
-		Request:   requestJSON,
-		Response:  responseJSON,
-		ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
-	})
+	//waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+	//_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+	//	Origin:      origin.FormattedAddress,
+	//	Destination: destination.FormattedAddress,
+	//	Waypoints: sql.NullString{
+	//		String: waypointsStr,
+	//		Valid:  true,
+	//	},
+	//	Request:   requestJSON,
+	//	Response:  responseJSON,
+	//	ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
+	//})
 
 	return response, nil
 }
