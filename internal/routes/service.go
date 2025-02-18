@@ -47,21 +47,21 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s",
-		strings.ToLower(frontInfo.Origin),
-		strings.ToLower(frontInfo.Destination),
-		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-	)
-
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var cachedResponse Response
-		if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
-			return RecalculateCosts(cachedResponse, frontInfo), nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		return Response{}, err
-	}
+	//cacheKey := fmt.Sprintf("route:%s:%s:%s",
+	//	strings.ToLower(frontInfo.Origin),
+	//	strings.ToLower(frontInfo.Destination),
+	//	strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	//)
+	//
+	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	//if err == nil {
+	//	var cachedResponse Response
+	//	if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
+	//		return RecalculateCosts(cachedResponse, frontInfo), nil
+	//	}
+	//} else if !errors.Is(err, redis.Nil) {
+	//	return Response{}, err
+	//}
 
 	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
 	if err != nil {
@@ -92,22 +92,22 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	}
 
 	requestJSON, _ := json.Marshal(routeRequest)
-	savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
-		Origin:      origin.FormattedAddress,
-		Destination: destination.FormattedAddress,
-		Waypoints: sql.NullString{
-			String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-			Valid:  true,
-		},
-		Request: requestJSON,
-	})
-	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
-		var dbResponse Response
-		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
-			return RecalculateCosts(dbResponse, frontInfo), nil
-		}
-	}
+	//savedRoute, err := s.InterfaceService.GetSavedRoutes(ctx, db.GetSavedRoutesParams{
+	//	Origin:      origin.FormattedAddress,
+	//	Destination: destination.FormattedAddress,
+	//	Waypoints: sql.NullString{
+	//		String: strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	//		Valid:  true,
+	//	},
+	//	Request: requestJSON,
+	//})
+	//if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
+	//	var dbResponse Response
+	//	if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
+	//		cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+	//		return RecalculateCosts(dbResponse, frontInfo), nil
+	//	}
+	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -363,10 +363,10 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	}
 
 	responseJSON, _ := json.Marshal(response)
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
-		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
-		return Response{}, errors.New("Erro ao salvar cache do Redis")
-	}
+	//if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
+	//	fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
+	//	return Response{}, errors.New("Erro ao salvar cache do Redis")
+	//}
 
 	if frontInfo.PublicOrPrivate == "public" {
 		if err := s.createRouteHist(ctx, id, frontInfo, responseJSON); err != nil {
@@ -538,7 +538,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	if err != nil {
 		return foundTolls, nil
 	}
-	fmt.Println(len(tolls))
 
 	resultTags, err := s.InterfaceService.GetTollTags(ctx)
 	if err != nil {
@@ -565,7 +564,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 			if latErr != nil || lonErr != nil {
 				continue
 			}
-			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.5) {
+			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.1) {
 				if !uniqueTolls[dbToll.ID] {
 					uniqueTolls[dbToll.ID] = true
 					dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
@@ -586,6 +585,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 							}
 						}
 					}
+
 					tarifaFloat, err := strconv.ParseFloat(dbToll.Tarifa, 64)
 					if err != nil {
 						continue
