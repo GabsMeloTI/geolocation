@@ -613,6 +613,7 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 							Time:     formattedTime,
 						},
 						TagPrimary: tags,
+						FreeFlow:   dbToll.FreeFlow.Bool,
 					})
 				}
 			}

@@ -144,6 +144,7 @@ type Toll struct {
 	PrepaidCardCost float64         `json:"prepaidCardCost"`
 	ArrivalResponse ArrivalResponse `json:"arrival"`
 	TagPrimary      []string        `json:"tagPrimary"`
+	FreeFlow        bool            `json:"free_flow"`
 }
 
 type Arrival struct {
