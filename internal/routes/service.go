@@ -619,8 +619,9 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 							Distance: arrivalTimes.Distance,
 							Time:     formattedTime,
 						},
-						TagPrimary: tags,
-						FreeFlow:   dbToll.FreeFlow.Bool,
+						TagPrimary:  tags,
+						FreeFlow:    dbToll.FreeFlow.Bool,
+						PayFreeFlow: dbToll.PayFreeFlow.String,
 					})
 				}
 			}

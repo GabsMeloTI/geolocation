@@ -14,9 +14,9 @@ CREATE TABLE public.tolls (
                               latitude varchar(50) NULL,
                               longitude varchar(50) NULL,
                               tarifa numeric NULL,
-                              free_flow bool DEFAULT false NULL
+                              free_flow bool DEFAULT false NULL,
+                              pay_free_flow varchar(100) DEFAULT ''::character varying NULL
 );
-
 
 CREATE TABLE gas_station (
         id BIGSERIAL NOT NULL,

@@ -145,6 +145,7 @@ type Toll struct {
 	ArrivalResponse ArrivalResponse `json:"arrival"`
 	TagPrimary      []string        `json:"tagPrimary"`
 	FreeFlow        bool            `json:"free_flow"`
+	PayFreeFlow     string          `json:"pay_free_flow"`
 }
 
 type Arrival struct {

@@ -10,7 +10,7 @@ import (
 )
 
 const getTollsByLonAndLat = `-- name: GetTollsByLonAndLat :many
-SELECT id, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa, free_flow
+SELECT id, concessionaria, praca_de_pedagio, ano_do_pnv_snv, rodovia, uf, km_m, municipio, tipo_pista, sentido, situacao, data_da_inativacao, latitude, longitude, tarifa, free_flow, pay_free_flow
 FROM public.tolls
 `
 
@@ -40,6 +40,7 @@ func (q *Queries) GetTollsByLonAndLat(ctx context.Context) ([]Toll, error) {
 			&i.Longitude,
 			&i.Tarifa,
 			&i.FreeFlow,
+			&i.PayFreeFlow,
 		); err != nil {
 			return nil, err
 		}
