@@ -777,6 +777,9 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 	sort.Slice(foundTolls, func(i, j int) bool {
 		d1Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[i].ArrivalResponse.Distance, "km"))
 		d2Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[j].ArrivalResponse.Distance, "km"))
+		d1Str = strings.ReplaceAll(d1Str, ",", "")
+		d2Str = strings.ReplaceAll(d2Str, ",", "")
+
 		d1, err1 := strconv.ParseFloat(d1Str, 64)
 		d2, err2 := strconv.ParseFloat(d2Str, 64)
 
@@ -786,7 +789,6 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 
 		return d1 < d2
 	})
-	fmt.Println(foundTolls)
 
 	return foundTolls, nil
 }
@@ -951,7 +953,11 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					Radius:   10000,
 					Type:     "gas_station",
 				}
-				placesResponse, err := client.NearbySearch(ctx, placesRequest)
+
+				ctxNearby, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+
+				placesResponse, err := client.NearbySearch(ctxNearby, placesRequest)
 				if err != nil {
 					fmt.Printf("Erro na NearbySearch: %v\n", err)
 					continue
