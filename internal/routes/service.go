@@ -586,7 +586,14 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 						}
 					}
 
-					tarifaFloat, err := strconv.ParseFloat(dbToll.Tarifa, 64)
+					tarifaFloat := 0.0
+					if dbToll.Tarifa.Valid {
+						var err error
+						tarifaFloat, err = strconv.ParseFloat(dbToll.Tarifa.String, 64)
+						if err != nil {
+							continue
+						}
+					}
 					if err != nil {
 						continue
 					}

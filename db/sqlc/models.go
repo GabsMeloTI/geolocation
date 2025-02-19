@@ -103,7 +103,7 @@ type Toll struct {
 	DataDaInativacao sql.NullString `json:"data_da_inativacao"`
 	Latitude         sql.NullString `json:"latitude"`
 	Longitude        sql.NullString `json:"longitude"`
-	Tarifa           string         `json:"tarifa"`
+	Tarifa           sql.NullString `json:"tarifa"`
 	FreeFlow         sql.NullBool   `json:"free_flow"`
 }
 
