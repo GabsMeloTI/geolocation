@@ -530,7 +530,127 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	return result, nil
 }
 
-func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin, vehicle string, axes float64) ([]Toll, error) {
+//func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string, vehicle string, axes float64) ([]Toll, error) {
+//	var foundTolls []Toll
+//	uniqueTolls := make(map[int64]bool)
+//
+//	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+//	if err != nil {
+//		return foundTolls, nil
+//	}
+//
+//	resultTags, err := s.InterfaceService.GetTollTags(ctx)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	uniquePoints := make(map[string]maps.LatLng)
+//	for _, route := range routes {
+//		for _, leg := range route.Legs {
+//			for _, step := range leg.Steps {
+//				polyPoints := DecodePolyline(step.Polyline.Points)
+//				for _, point := range polyPoints {
+//					key := fmt.Sprintf("%f,%f", RoundCoord(point.Lat), RoundCoord(point.Lng))
+//					uniquePoints[key] = point
+//				}
+//			}
+//		}
+//	}
+//
+//	var routeIsCrescente bool
+//	if len(routes) > 0 && len(routes[0].Legs) > 0 {
+//		startLat := routes[0].Legs[0].StartLocation.Lat
+//		endLat := routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat
+//		routeIsCrescente = startLat < endLat
+//	}
+//
+//	for _, point := range uniquePoints {
+//		for _, dbToll := range tolls {
+//			latitude, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
+//			longitude, lonErr := validation.ParseNullStringToFloat(dbToll.Longitude)
+//			if latErr != nil || lonErr != nil {
+//				continue
+//			}
+//
+//			if !IsNearby(point.Lat, point.Lng, latitude, longitude, 0.08) {
+//				continue
+//			}
+//
+//			if dbToll.Sentido.String != "" {
+//				if dbToll.Sentido.String == "crescente" && !routeIsCrescente {
+//					continue
+//				}
+//				if dbToll.Sentido.String == "decrescente" && routeIsCrescente {
+//					continue
+//				}
+//			}
+//
+//			if !uniqueTolls[dbToll.ID] {
+//				uniqueTolls[dbToll.ID] = true
+//				dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
+//				arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
+//				if err != nil {
+//					fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
+//					continue
+//				}
+//				formattedTime := arrivalTimes.Time.Round(time.Second).String()
+//				concession := validation.GetStringFromNull(dbToll.Concessionaria)
+//				var tags []string
+//				for _, tagRecord := range resultTags {
+//					acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+//					for _, accepted := range acceptedList {
+//						if strings.TrimSpace(accepted) == concession {
+//							tags = append(tags, tagRecord.Name)
+//							break
+//						}
+//					}
+//				}
+//
+//				tarifaFloat := 0.0
+//				if dbToll.Tarifa.Valid {
+//					tarifaFloat, err = strconv.ParseFloat(dbToll.Tarifa.String, 64)
+//					if err != nil {
+//						continue
+//					}
+//				}
+//				totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
+//				if err != nil {
+//					return nil, err
+//				}
+//				foundTolls = append(foundTolls, Toll{
+//					ID:              int(dbToll.ID),
+//					Latitude:        latitude,
+//					Longitude:       longitude,
+//					Name:            validation.GetStringFromNull(dbToll.PracaDePedagio),
+//					Concession:      dbToll.Concessionaria.String,
+//					Road:            validation.GetStringFromNull(dbToll.Rodovia),
+//					State:           validation.GetStringFromNull(dbToll.Uf),
+//					Country:         "Brasil",
+//					Type:            "Pedágio",
+//					TagCost:         math.Round(totalToll - (totalToll * 0.05)),
+//					CashCost:        totalToll,
+//					Currency:        "BRL",
+//					PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
+//					ArrivalResponse: ArrivalResponse{
+//						Distance: arrivalTimes.Distance,
+//						Time:     formattedTime,
+//					},
+//					TagPrimary:  tags,
+//					FreeFlow:    dbToll.FreeFlow.Bool,
+//					PayFreeFlow: dbToll.PayFreeFlow.String,
+//				})
+//			}
+//		}
+//	}
+//
+//	sort.Slice(foundTolls, func(i, j int) bool {
+//		return foundTolls[i].ArrivalResponse.Distance < foundTolls[j].ArrivalResponse.Distance
+//	})
+//
+//	return foundTolls, nil
+//}
+
+func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string, vehicle string, axes float64) ([]Toll, error) {
 	var foundTolls []Toll
 	uniqueTolls := make(map[int64]bool)
 
@@ -544,93 +664,129 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 		return nil, err
 	}
 
-	uniquePoints := make(map[string]maps.LatLng)
+	var routeIsCrescente bool
+	if len(routes) > 0 && len(routes[0].Legs) > 0 {
+		startLat := routes[0].Legs[0].StartLocation.Lat
+		endLat := routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat
+		routeIsCrescente = startLat < endLat
+	}
+
 	for _, route := range routes {
 		for _, leg := range route.Legs {
 			for _, step := range leg.Steps {
-				polyPoints := DecodePolyline(step.Polyline.Points)
-				for _, point := range polyPoints {
-					key := fmt.Sprintf("%f,%f", RoundCoord(point.Lat), RoundCoord(point.Lng))
-					uniquePoints[key] = point
-				}
-			}
-		}
-	}
 
-	for _, point := range uniquePoints {
-		for _, dbToll := range tolls {
-			latitude, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
-			longitude, lonErr := validation.ParseNullStringToFloat(dbToll.Longitude)
-			if latErr != nil || lonErr != nil {
-				continue
-			}
-			if IsNearby(point.Lat, point.Lng, latitude, longitude, 0.1) {
-				if !uniqueTolls[dbToll.ID] {
-					uniqueTolls[dbToll.ID] = true
-					dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
-					arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
-					if err != nil {
-						fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
+				polyPoints := DecodePolyline(step.Polyline.Points)
+				if len(polyPoints) < 2 {
+					continue
+				}
+
+				for _, dbToll := range tolls {
+					latitude, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
+					longitude, lonErr := validation.ParseNullStringToFloat(dbToll.Longitude)
+					if latErr != nil || lonErr != nil {
 						continue
 					}
-					formattedTime := arrivalTimes.Time.Round(time.Second).String()
-					concession := validation.GetStringFromNull(dbToll.Concessionaria)
-					var tags []string
-					for _, tagRecord := range resultTags {
-						acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
-						for _, accepted := range acceptedList {
-							if strings.TrimSpace(accepted) == concession {
-								tags = append(tags, tagRecord.Name)
-								break
-							}
+
+					tollPos := maps.LatLng{Lat: latitude, Lng: longitude}
+					minDistance := math.MaxFloat64
+
+					for i := 0; i < len(polyPoints)-1; i++ {
+						d := distancePointToSegment(tollPos, polyPoints[i], polyPoints[i+1])
+						if d < minDistance {
+							minDistance = d
 						}
 					}
 
-					tarifaFloat := 0.0
-					if dbToll.Tarifa.Valid {
-						var err error
-						tarifaFloat, err = strconv.ParseFloat(dbToll.Tarifa.String, 64)
-						if err != nil {
+					if minDistance > 50 {
+						continue
+					}
+
+					if dbToll.Sentido.String != "" {
+						if dbToll.Sentido.String == "Crescente" && !routeIsCrescente {
+							continue
+						}
+						if dbToll.Sentido.String == "Decrescente" && routeIsCrescente {
 							continue
 						}
 					}
-					if err != nil {
-						continue
+
+					if !uniqueTolls[dbToll.ID] {
+						uniqueTolls[dbToll.ID] = true
+
+						dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
+						arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
+						if err != nil {
+							fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
+							continue
+						}
+
+						formattedTime := arrivalTimes.Time.Round(time.Second).String()
+						concession := validation.GetStringFromNull(dbToll.Concessionaria)
+
+						var tags []string
+						for _, tagRecord := range resultTags {
+							acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+							for _, accepted := range acceptedList {
+								if strings.TrimSpace(accepted) == concession {
+									tags = append(tags, tagRecord.Name)
+									break
+								}
+							}
+						}
+
+						tarifaFloat := 0.0
+						if dbToll.Tarifa.Valid {
+							tarifaFloat, err = strconv.ParseFloat(dbToll.Tarifa.String, 64)
+							if err != nil {
+								continue
+							}
+						}
+						totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
+						if err != nil {
+							return nil, err
+						}
+
+						foundTolls = append(foundTolls, Toll{
+							ID:              int(dbToll.ID),
+							Latitude:        latitude,
+							Longitude:       longitude,
+							Name:            validation.GetStringFromNull(dbToll.PracaDePedagio),
+							Concession:      dbToll.Concessionaria.String,
+							Road:            validation.GetStringFromNull(dbToll.Rodovia),
+							State:           validation.GetStringFromNull(dbToll.Uf),
+							Country:         "Brasil",
+							Type:            "Pedágio",
+							TagCost:         math.Round(totalToll - (totalToll * 0.05)),
+							CashCost:        totalToll,
+							Currency:        "BRL",
+							PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
+							ArrivalResponse: ArrivalResponse{
+								Distance: arrivalTimes.Distance,
+								Time:     formattedTime,
+							},
+							TagPrimary:  tags,
+							FreeFlow:    dbToll.FreeFlow.Bool,
+							PayFreeFlow: dbToll.PayFreeFlow.String,
+						})
 					}
-					totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
-					if err != nil {
-						return nil, err
-					}
-					foundTolls = append(foundTolls, Toll{
-						ID:              int(dbToll.ID),
-						Latitude:        latitude,
-						Longitude:       longitude,
-						Name:            validation.GetStringFromNull(dbToll.PracaDePedagio),
-						Concession:      dbToll.Concessionaria.String,
-						Road:            validation.GetStringFromNull(dbToll.Rodovia),
-						State:           validation.GetStringFromNull(dbToll.Uf),
-						Country:         "Brasil",
-						Type:            "Pedágio",
-						TagCost:         math.Round(totalToll - (totalToll * 0.05)),
-						CashCost:        totalToll,
-						Currency:        "BRL",
-						PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
-						ArrivalResponse: ArrivalResponse{
-							Distance: arrivalTimes.Distance,
-							Time:     formattedTime,
-						},
-						TagPrimary:  tags,
-						FreeFlow:    dbToll.FreeFlow.Bool,
-						PayFreeFlow: dbToll.PayFreeFlow.String,
-					})
 				}
 			}
 		}
 	}
 
 	sort.Slice(foundTolls, func(i, j int) bool {
-		return foundTolls[i].ArrivalResponse.Distance < foundTolls[j].ArrivalResponse.Distance
+		d1Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[i].ArrivalResponse.Distance, "km"))
+		d2Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[j].ArrivalResponse.Distance, "km"))
+		d1, err1 := strconv.ParseFloat(d1Str, 64)
+		d2, err2 := strconv.ParseFloat(d2Str, 64)
+
+		if err1 != nil || err2 != nil {
+			return foundTolls[i].ArrivalResponse.Distance < foundTolls[j].ArrivalResponse.Distance
+		}
+
+		return d1 < d2
 	})
+	fmt.Println(foundTolls)
 
 	return foundTolls, nil
 }
@@ -949,4 +1105,65 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 		finalResult[tableName] = simplifiedLoads
 	}
 	return finalResult, nil
+}
+
+const EarthRadius = 6371000
+
+func distanceInMeters(a, b maps.LatLng) float64 {
+	lat1 := a.Lat * math.Pi / 180
+	lng1 := a.Lng * math.Pi / 180
+	lat2 := b.Lat * math.Pi / 180
+	lng2 := b.Lng * math.Pi / 180
+
+	dLat := lat2 - lat1
+	dLng := lng2 - lng1
+
+	h := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(lat1)*math.Cos(lat2)*math.Sin(dLng/2)*math.Sin(dLng/2)
+
+	c := 2 * math.Atan2(math.Sqrt(h), math.Sqrt(1-h))
+	return EarthRadius * c
+}
+
+func distancePointToSegment(p, A, B maps.LatLng) float64 {
+	distAB := distanceInMeters(A, B)
+	if distAB == 0 {
+		return distanceInMeters(p, A)
+	}
+
+	Ax, Ay := project(A)
+	Bx, By := project(B)
+	Px, Py := project(p)
+
+	vx := Bx - Ax
+	vy := By - Ay
+
+	wx := Px - Ax
+	wy := Py - Ay
+
+	c1 := (wx*vx + wy*vy) / (vx*vx + vy*vy)
+
+	if c1 < 0 {
+		return distanceInMeters(p, A)
+	} else if c1 > 1 {
+		return distanceInMeters(p, B)
+	}
+
+	projx := Ax + c1*vx
+	projy := Ay + c1*vy
+
+	dx := Px - projx
+	dy := Py - projy
+	distProj := math.Sqrt(dx*dx + dy*dy)
+
+	return distProj
+}
+
+func project(ll maps.LatLng) (float64, float64) {
+	latRad := ll.Lat * math.Pi / 180
+	lngRad := ll.Lng * math.Pi / 180
+
+	x := EarthRadius * lngRad * math.Cos(latRad)
+	y := EarthRadius * latRad
+	return x, y
 }
