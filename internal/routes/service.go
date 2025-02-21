@@ -1257,167 +1257,167 @@ func project(ll maps.LatLng) (float64, float64) {
 func getConcessionImage(concession string) string {
 	switch concession {
 	case "VIAPAULISTA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viapaulista.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viapaulista.png"
 	case "ROTA 116":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_116.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_116.png"
 	case "EPR VIAS DO CAFÉ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_vias_do_cafÃ©.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_vias_do_cafe.png"
 	case "VIARONDON":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viarondon.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viarondon.png"
 	case "ROTA DO OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_oeste.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_oeste.png"
 	case "VIA ARAUCÁRIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_araucaria.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_araucaria.png"
 	case "VIA BRASIL MT-163":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_163.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_163.png"
 	case "MUNICIPAL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/municipal.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/municipal.png"
 	case "ROTA DE SANTA MARIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.png"
 	case "RODOANEL OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodoanel_oeste.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodoanel_oeste.png"
 	case "CSG":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
 	case "ROTA DAS BANDEIRAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_das_bandeiras.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_das_bandeiras.png"
 	case "CONCEF":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concef.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concef.png"
 	case "TRIUNFO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.png"
 	case "ECO 050":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_050.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_050.png"
 	case "AB NASCENTES DAS GERAIS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.png"
 	case "FLUMINENSE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fluminense.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fluminense.png"
 	case "Associação Gleba Barreiro":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/associacao_gleba_barreiro.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/associacao_gleba_barreiro.png"
 	case "RODOVIA DO AÇO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_do_aco.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_do_aco.png"
 	case "ECO RIOMINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_riominas.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_riominas.png"
 	case "CSG - Free Flow":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
 	case "RODOVIAS DO TIETÊ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovias_do_tietÃª.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovias_do_tietÃª.png"
 	case "ECO RODOVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.png"
 	case "EPR TRIANGULO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_triangulo.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_triangulo.png"
 	case "VIA RIO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.png"
 	case "WAY - 306":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way___306.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_306.png"
 	case "EPR SUL DE MINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_sul_de_minas.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_sul_de_minas.png"
 	case "ECO101":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco101.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco101.png"
 	case "ECO SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_sul.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_sul.png"
 	case "ROTA DO ATLÂNTICO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_atlÃ¢ntico.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_atlÃ¢ntico.png"
 	case "VIA BRASIL - MT-100":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil___mt_100.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil___mt_100.png"
 	case "ROTA DOS GRÃOS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_graos.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_graos.png"
 	case "TRANSBRASILIANA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/transbrasiliana.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/transbrasiliana.png"
 	case "APASI":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/apasi.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/apasi.png"
 	case "RODOVIA DA MUDANÇA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_da_mudanca.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_da_mudanca.png"
 	case "ENTREVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/entrevias.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/entrevias.png"
 	case "AB COLINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_colinas.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_colinas.png"
 	case "CCR ViaLagos":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_vialagos.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_vialagos.png"
 	case "ROTA DOS COQUEIROS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_coqueiros.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_coqueiros.png"
 	case "CRP CONCESSIONARIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/crp_concessionaria.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/crp_concessionaria.png"
 	case "WAY - 112":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way___112.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_112.png"
 	case "EPR LITORAL PIONEIRO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_litoral_pioneiro.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_litoral_pioneiro.png"
 	case "PLANALTO SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/planalto_sul.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/planalto_sul.png"
 	case "CCR VIA COSTEIRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_via_costeira.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_via_costeira.png"
 	case "LITORAL SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/litoral_sul.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/litoral_sul.png"
 	case "SPVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spvias.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spvias.png"
 	case "AUTOBAN":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/autoban.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/autoban.png"
 	case "ECOVIAS DO CERRADO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.png"
 	case "EPR VIA MINEIRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_via_mineira.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_via_mineira.png"
 	case "SPMAR":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.png"
 	case "JOTEC":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/jotec.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/jotec.png"
 	case "VIA NORTE SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_norte_sul.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_norte_sul.png"
 	case "CONCER":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concer.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concer.png"
 	case "ECONOROESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/econoroeste.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/econoroeste.png"
 	case "ECOPONTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecoponte.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecoponte.png"
 	case "ECO 135":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_135.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_135.png"
 	case "VIA BRASIL MT-246":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_246.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_246.png"
 	case "ECOVIAS DO ARAGUAIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_araguaia.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_araguaia.png"
 	case "VIABAHIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viabahia.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viabahia.png"
 	case "GUARUJÁ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.png"
 	case "CONCEBRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concebra.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concebra.png"
 	case "DER":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.png"
 	case "EGR":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/egr.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/egr.png"
 	case "PREFEITURA DE ITIRAPINA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/prefeitura_de_itirapina.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/prefeitura_de_itirapina.png"
 	case "VIA PAULISTA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_paulista.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_paulista.png"
 	case "CCR VIASUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_viasul.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_viasul.png"
 	case "INTERVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/intervias.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/intervias.png"
 	case "CCR MSVia":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_msvia.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_msvia.png"
 	case "EIXO SP":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eixo_sp.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eixo_sp.png"
 	case "RÉGIS BITTENCOURT":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rÃ©gis_bittencourt.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/regis_bittencourt.png"
 	case "FERNÃO DIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fernao_dias.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fernao_dias.png"
 	case "CART":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.png"
 	case "CCR RioSP":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_riosp.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_riosp.png"
 	case "VIAOESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.png"
 	case "MORRO DA MESA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/morro_da_mesa.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/morro_da_mesa.png"
 	case "TOMOIOS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tomoios.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tomoios.png"
 	case "EPG Sul de Minas":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epg_sul_de_minas.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epg_sul_de_minas.png"
 	case "ECOPISTAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecopistas.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecopistas.png"
 	case "LAMSA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/lamsa.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/lamsa.png"
 	case "TEBE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tebe.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tebe.png"
 	case "BAHIA NORTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.jpg"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.png"
 	default:
 		return ""
 	}
