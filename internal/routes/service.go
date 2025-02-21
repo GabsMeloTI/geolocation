@@ -591,21 +591,23 @@ func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, ori
 						}
 					}
 
+					imgConcession := getConcessionImage(dbToll.Concessionaria.String)
 					if !uniqueTolls[dbToll.ID] {
 						uniqueTolls[dbToll.ID] = true
 
 						candidateTolls = append(candidateTolls, Toll{
-							ID:          int(dbToll.ID),
-							Latitude:    lat,
-							Longitude:   lng,
-							Name:        validation.GetStringFromNull(dbToll.PracaDePedagio),
-							Concession:  dbToll.Concessionaria.String,
-							Road:        validation.GetStringFromNull(dbToll.Rodovia),
-							State:       validation.GetStringFromNull(dbToll.Uf),
-							Country:     "Brasil",
-							Type:        "Pedágio",
-							FreeFlow:    dbToll.FreeFlow.Bool,
-							PayFreeFlow: dbToll.PayFreeFlow.String,
+							ID:            int(dbToll.ID),
+							Latitude:      lat,
+							Longitude:     lng,
+							Name:          validation.GetStringFromNull(dbToll.PracaDePedagio),
+							Concession:    dbToll.Concessionaria.String,
+							ConcessionImg: imgConcession,
+							Road:          validation.GetStringFromNull(dbToll.Rodovia),
+							State:         validation.GetStringFromNull(dbToll.Uf),
+							Country:       "Brasil",
+							Type:          "Pedágio",
+							FreeFlow:      dbToll.FreeFlow.Bool,
+							PayFreeFlow:   dbToll.PayFreeFlow.String,
 						})
 					}
 				}
@@ -842,12 +844,142 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 	return foundBalancas, nil
 }
 
-func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
+//func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
+//
+//	var gasStations []GasStation
+//	uniqueGasStations := make(map[string]bool)
+//
+//	var points []maps.LatLng
+//	uniquePoints := make(map[string]bool)
+//
+//	for _, route := range routes {
+//		for _, leg := range route.Legs {
+//			startKey := fmt.Sprintf("%.6f:%.6f", leg.StartLocation.Lat, leg.StartLocation.Lng)
+//			if !uniquePoints[startKey] {
+//				uniquePoints[startKey] = true
+//				points = append(points, leg.StartLocation)
+//			}
+//			endKey := fmt.Sprintf("%.6f:%.6f", leg.EndLocation.Lat, leg.EndLocation.Lng)
+//			if !uniquePoints[endKey] {
+//				uniquePoints[endKey] = true
+//				points = append(points, leg.EndLocation)
+//			}
+//		}
+//	}
+//
+//	chunkSize := len(points)
+//	if chunkSize == 0 {
+//		return nil, nil
+//	}
+//
+//	var wg sync.WaitGroup
+//	var mu sync.Mutex
+//
+//	for i := 0; i < len(points); i += chunkSize {
+//		end := i + chunkSize
+//		if end > len(points) {
+//			end = len(points)
+//		}
+//		chunk := points[i:end]
+//
+//		wg.Add(1)
+//		go func(chunkPoints []maps.LatLng) {
+//			defer wg.Done()
+//
+//			var sumLat, sumLng float64
+//			for _, pt := range chunkPoints {
+//				sumLat += pt.Lat
+//				sumLng += pt.Lng
+//			}
+//			avgLat := sumLat / float64(len(chunkPoints))
+//			avgLng := sumLng / float64(len(chunkPoints))
+//
+//			cacheKey := fmt.Sprintf("gasStationsMid:%.6f:%.6f", avgLat, avgLng)
+//			cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+//			if err == nil {
+//				var cachedStations []GasStation
+//				if json.Unmarshal([]byte(cached), &cachedStations) == nil {
+//					mu.Lock()
+//					for _, gs := range cachedStations {
+//						stationKey := gs.Name
+//						if stationKey == "" {
+//							stationKey = gs.Address
+//						}
+//						if !uniqueGasStations[stationKey] {
+//							uniqueGasStations[stationKey] = true
+//							gasStations = append(gasStations, gs)
+//						}
+//					}
+//					mu.Unlock()
+//					return
+//				}
+//			}
+//
+//			placesRequest := &maps.NearbySearchRequest{
+//				Location: &maps.LatLng{Lat: avgLat, Lng: avgLng},
+//				Radius:   10000,
+//				Type:     "gas_station",
+//			}
+//			ctxNearby, cancel := context.WithTimeout(ctx, 10*time.Second)
+//			defer cancel()
+//
+//			placesResponse, err := client.NearbySearch(ctxNearby, placesRequest)
+//			if err != nil {
+//				fmt.Printf("Erro na NearbySearch: %v\n", err)
+//				return
+//			}
+//
+//			var resultCached []GasStation
+//			mu.Lock()
+//			for _, result := range placesResponse.Results {
+//				stationName := result.Name
+//				if stationName == "" {
+//					stationName = result.PlaceID
+//				}
+//				if !uniqueGasStations[stationName] {
+//					uniqueGasStations[stationName] = true
+//					gs := GasStation{
+//						Name:    stationName,
+//						Address: result.Vicinity,
+//						Location: Location{
+//							Latitude:  result.Geometry.Location.Lat,
+//							Longitude: result.Geometry.Location.Lng,
+//						},
+//					}
+//					gasStations = append(gasStations, gs)
+//					resultCached = append(resultCached, gs)
+//
+//					_, dbErr := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
+//						Name:          stationName,
+//						Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
+//						Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
+//						AddressName:   result.Vicinity,
+//						Municipio:     result.FormattedAddress,
+//						SpecificPoint: result.PlaceID,
+//					})
+//					if dbErr != nil {
+//						fmt.Printf("Erro ao salvar posto: %v\n", dbErr)
+//					}
+//				}
+//			}
+//			mu.Unlock()
+//
+//			if len(resultCached) > 0 {
+//				data, _ := json.Marshal(resultCached)
+//				_ = cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err()
+//			}
+//
+//		}(chunk)
+//	}
+//	wg.Wait()
+//
+//	return gasStations, nil
+//}
 
+func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
 	var gasStations []GasStation
 	uniqueGasStations := make(map[string]bool)
-
-	var points []maps.LatLng
+	var consolidatedPoints []maps.LatLng
 	uniquePoints := make(map[string]bool)
 
 	for _, route := range routes {
@@ -855,122 +987,107 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 			startKey := fmt.Sprintf("%.6f:%.6f", leg.StartLocation.Lat, leg.StartLocation.Lng)
 			if !uniquePoints[startKey] {
 				uniquePoints[startKey] = true
-				points = append(points, leg.StartLocation)
+				consolidatedPoints = append(consolidatedPoints, leg.StartLocation)
 			}
 			endKey := fmt.Sprintf("%.6f:%.6f", leg.EndLocation.Lat, leg.EndLocation.Lng)
 			if !uniquePoints[endKey] {
 				uniquePoints[endKey] = true
-				points = append(points, leg.EndLocation)
+				consolidatedPoints = append(consolidatedPoints, leg.EndLocation)
+			}
+			for _, step := range leg.Steps {
+				pointKey := fmt.Sprintf("%.6f:%.6f", step.StartLocation.Lat, step.StartLocation.Lng)
+				if !uniquePoints[pointKey] {
+					uniquePoints[pointKey] = true
+					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
+				}
 			}
 		}
-	}
-
-	chunkSize := len(points)
-	if chunkSize == 0 {
-		return nil, nil
 	}
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	chunkSize := 5
 
-	for i := 0; i < len(points); i += chunkSize {
+	for i := 0; i < len(consolidatedPoints); i += chunkSize {
 		end := i + chunkSize
-		if end > len(points) {
-			end = len(points)
+		if end > len(consolidatedPoints) {
+			end = len(consolidatedPoints)
 		}
-		chunk := points[i:end]
-
 		wg.Add(1)
-		go func(chunkPoints []maps.LatLng) {
+		go func(points []maps.LatLng) {
 			defer wg.Done()
-
-			var sumLat, sumLng float64
-			for _, pt := range chunkPoints {
-				sumLat += pt.Lat
-				sumLng += pt.Lng
-			}
-			avgLat := sumLat / float64(len(chunkPoints))
-			avgLng := sumLng / float64(len(chunkPoints))
-
-			cacheKey := fmt.Sprintf("gasStationsMid:%.6f:%.6f", avgLat, avgLng)
-			cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-			if err == nil {
-				var cachedStations []GasStation
-				if json.Unmarshal([]byte(cached), &cachedStations) == nil {
-					mu.Lock()
-					for _, gs := range cachedStations {
-						stationKey := gs.Name
-						if stationKey == "" {
-							stationKey = gs.Address
+			for _, point := range points {
+				cacheKey := fmt.Sprintf("gasStations:%.6f:%.6f", point.Lat, point.Lng)
+				cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+				if err == nil {
+					var cachedStations []GasStation
+					if json.Unmarshal([]byte(cached), &cachedStations) == nil {
+						mu.Lock()
+						for _, gs := range cachedStations {
+							stationKey := gs.Name
+							if stationKey == "" {
+								stationKey = gs.Address
+							}
+							if !uniqueGasStations[stationKey] {
+								uniqueGasStations[stationKey] = true
+								gasStations = append(gasStations, gs)
+							}
 						}
-						if !uniqueGasStations[stationKey] {
-							uniqueGasStations[stationKey] = true
+						mu.Unlock()
+						continue
+					}
+				} else if err != redis.Nil {
+					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
+				}
+
+				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
+					Column1: point.Lat,
+					Column2: point.Lng,
+					Column3: 0.05,
+				})
+				if err != nil {
+					fmt.Printf("Erro ao consultar o banco de dados: %v\n", err)
+					continue
+				}
+
+				var cachedResult []GasStation
+				if len(dbGasStations) > 0 {
+					mu.Lock()
+					for _, dbStation := range dbGasStations {
+						stationName := dbStation.Name
+						if stationName == "" {
+							stationName = dbStation.SpecificPoint
+						}
+						if !uniqueGasStations[stationName] {
+							uniqueGasStations[stationName] = true
+							lat, _ := validation.ParseStringToFloat(dbStation.Latitude)
+							lng, _ := validation.ParseStringToFloat(dbStation.Longitude)
+							gs := GasStation{
+								Name:    stationName,
+								Address: dbStation.AddressName,
+								Location: Location{
+									Latitude:  lat,
+									Longitude: lng,
+								},
+							}
 							gasStations = append(gasStations, gs)
+							cachedResult = append(cachedResult, gs)
 						}
 					}
 					mu.Unlock()
-					return
-				}
-			}
-
-			placesRequest := &maps.NearbySearchRequest{
-				Location: &maps.LatLng{Lat: avgLat, Lng: avgLng},
-				Radius:   10000,
-				Type:     "gas_station",
-			}
-			ctxNearby, cancel := context.WithTimeout(ctx, 10*time.Second)
-			defer cancel()
-
-			placesResponse, err := client.NearbySearch(ctxNearby, placesRequest)
-			if err != nil {
-				fmt.Printf("Erro na NearbySearch: %v\n", err)
-				return
-			}
-
-			var resultCached []GasStation
-			mu.Lock()
-			for _, result := range placesResponse.Results {
-				stationName := result.Name
-				if stationName == "" {
-					stationName = result.PlaceID
-				}
-				if !uniqueGasStations[stationName] {
-					uniqueGasStations[stationName] = true
-					gs := GasStation{
-						Name:    stationName,
-						Address: result.Vicinity,
-						Location: Location{
-							Latitude:  result.Geometry.Location.Lat,
-							Longitude: result.Geometry.Location.Lng,
-						},
-					}
-					gasStations = append(gasStations, gs)
-					resultCached = append(resultCached, gs)
-
-					_, dbErr := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
-						Name:          stationName,
-						Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
-						Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
-						AddressName:   result.Vicinity,
-						Municipio:     result.FormattedAddress,
-						SpecificPoint: result.PlaceID,
-					})
-					if dbErr != nil {
-						fmt.Printf("Erro ao salvar posto: %v\n", dbErr)
+					if len(cachedResult) > 0 {
+						data, err := json.Marshal(cachedResult)
+						if err == nil {
+							if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+								fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
+							}
+						}
 					}
 				}
 			}
-			mu.Unlock()
-
-			if len(resultCached) > 0 {
-				data, _ := json.Marshal(resultCached)
-				_ = cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err()
-			}
-
-		}(chunk)
+		}(consolidatedPoints[i:end])
 	}
 	wg.Wait()
-
 	return gasStations, nil
 }
 
@@ -1135,4 +1252,173 @@ func project(ll maps.LatLng) (float64, float64) {
 	x := EarthRadius * lngRad * math.Cos(latRad)
 	y := EarthRadius * latRad
 	return x, y
+}
+
+func getConcessionImage(concession string) string {
+	switch concession {
+	case "VIAPAULISTA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viapaulista.jpg"
+	case "ROTA 116":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_116.jpg"
+	case "EPR VIAS DO CAFÉ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_vias_do_cafÃ©.jpg"
+	case "VIARONDON":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viarondon.jpg"
+	case "ROTA DO OESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_oeste.jpg"
+	case "VIA ARAUCÁRIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_araucaria.jpg"
+	case "VIA BRASIL MT-163":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_163.jpg"
+	case "MUNICIPAL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/municipal.jpg"
+	case "ROTA DE SANTA MARIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.jpg"
+	case "RODOANEL OESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodoanel_oeste.jpg"
+	case "CSG":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.jpg"
+	case "ROTA DAS BANDEIRAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_das_bandeiras.jpg"
+	case "CONCEF":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concef.jpg"
+	case "TRIUNFO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.jpg"
+	case "ECO 050":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_050.jpg"
+	case "AB NASCENTES DAS GERAIS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.jpg"
+	case "FLUMINENSE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fluminense.jpg"
+	case "Associação Gleba Barreiro":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/associacao_gleba_barreiro.jpg"
+	case "RODOVIA DO AÇO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_do_aco.jpg"
+	case "ECO RIOMINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_riominas.jpg"
+	case "CSG - Free Flow":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.jpg"
+	case "RODOVIAS DO TIETÊ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovias_do_tietÃª.jpg"
+	case "ECO RODOVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.jpg"
+	case "EPR TRIANGULO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_triangulo.jpg"
+	case "VIA RIO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.jpg"
+	case "WAY - 306":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way___306.jpg"
+	case "EPR SUL DE MINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_sul_de_minas.jpg"
+	case "ECO101":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco101.jpg"
+	case "ECO SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_sul.jpg"
+	case "ROTA DO ATLÂNTICO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_atlÃ¢ntico.jpg"
+	case "VIA BRASIL - MT-100":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil___mt_100.jpg"
+	case "ROTA DOS GRÃOS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_graos.jpg"
+	case "TRANSBRASILIANA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/transbrasiliana.jpg"
+	case "APASI":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/apasi.jpg"
+	case "RODOVIA DA MUDANÇA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_da_mudanca.jpg"
+	case "ENTREVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/entrevias.jpg"
+	case "AB COLINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_colinas.jpg"
+	case "CCR ViaLagos":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_vialagos.jpg"
+	case "ROTA DOS COQUEIROS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_coqueiros.jpg"
+	case "CRP CONCESSIONARIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/crp_concessionaria.jpg"
+	case "WAY - 112":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way___112.jpg"
+	case "EPR LITORAL PIONEIRO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_litoral_pioneiro.jpg"
+	case "PLANALTO SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/planalto_sul.jpg"
+	case "CCR VIA COSTEIRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_via_costeira.jpg"
+	case "LITORAL SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/litoral_sul.jpg"
+	case "SPVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spvias.jpg"
+	case "AUTOBAN":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/autoban.jpg"
+	case "ECOVIAS DO CERRADO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.jpg"
+	case "EPR VIA MINEIRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_via_mineira.jpg"
+	case "SPMAR":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.jpg"
+	case "JOTEC":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/jotec.jpg"
+	case "VIA NORTE SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_norte_sul.jpg"
+	case "CONCER":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concer.jpg"
+	case "ECONOROESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/econoroeste.jpg"
+	case "ECOPONTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecoponte.jpg"
+	case "ECO 135":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_135.jpg"
+	case "VIA BRASIL MT-246":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_246.jpg"
+	case "ECOVIAS DO ARAGUAIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_araguaia.jpg"
+	case "VIABAHIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viabahia.jpg"
+	case "GUARUJÁ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.jpg"
+	case "CONCEBRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concebra.jpg"
+	case "DER":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.jpg"
+	case "EGR":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/egr.jpg"
+	case "PREFEITURA DE ITIRAPINA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/prefeitura_de_itirapina.jpg"
+	case "VIA PAULISTA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_paulista.jpg"
+	case "CCR VIASUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_viasul.jpg"
+	case "INTERVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/intervias.jpg"
+	case "CCR MSVia":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_msvia.jpg"
+	case "EIXO SP":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eixo_sp.jpg"
+	case "RÉGIS BITTENCOURT":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rÃ©gis_bittencourt.jpg"
+	case "FERNÃO DIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fernao_dias.jpg"
+	case "CART":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.jpg"
+	case "CCR RioSP":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_riosp.jpg"
+	case "VIAOESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.jpg"
+	case "MORRO DA MESA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/morro_da_mesa.jpg"
+	case "TOMOIOS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tomoios.jpg"
+	case "EPG Sul de Minas":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epg_sul_de_minas.jpg"
+	case "ECOPISTAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecopistas.jpg"
+	case "LAMSA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/lamsa.jpg"
+	case "TEBE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tebe.jpg"
+	case "BAHIA NORTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.jpg"
+	default:
+		return ""
+	}
 }
