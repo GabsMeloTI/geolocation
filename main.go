@@ -19,3 +19,5 @@ func main() {
 	pkg.InitRedis()
 	cmd.StartAPI(ctx, container)
 }
+
+//testing
