@@ -6,7 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
+	db "geolocation/db/sqlc"
+	cache "geolocation/pkg"
+	"geolocation/validation"
+	"github.com/go-redis/redis/v8"
+	"github.com/labstack/echo/v4"
+	"golang.org/x/net/html"
+	"googlemaps.github.io/maps"
 	"math"
 	neturl "net/url"
 	"sort"
@@ -14,14 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	db "geolocation/db/sqlc"
-	cache "geolocation/pkg"
-	"geolocation/validation"
-
-	"github.com/go-redis/redis/v8"
-	"github.com/labstack/echo/v4"
-	"googlemaps.github.io/maps"
 )
 
 type InterfaceService interface {
@@ -72,13 +70,18 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		return Response{}, err
 	}
 
+	uniqueWaypoints := make(map[string]bool)
 	var waypoints []string
 	for _, waypoint := range frontInfo.Waypoints {
-		result, err := s.getGeocodeAddress(ctx, waypoint)
-		if err != nil {
-			return Response{}, err
+		normalized := strings.ToLower(strings.TrimSpace(waypoint))
+		if !uniqueWaypoints[normalized] {
+			uniqueWaypoints[normalized] = true
+			result, err := s.getGeocodeAddress(ctx, waypoint)
+			if err != nil {
+				return Response{}, err
+			}
+			waypoints = append(waypoints, result.FormattedAddress)
 		}
-		waypoints = append(waypoints, result.FormattedAddress)
 	}
 
 	routeRequest := &maps.DirectionsRequest{
@@ -365,7 +368,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	responseJSON, _ := json.Marshal(response)
 	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
 		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
-		return Response{}, errors.New("Erro ao salvar cache do Redis")
+		return Response{}, errors.New("erro ao salvar cache do Redis")
 	}
 
 	if frontInfo.PublicOrPrivate == "public" {
@@ -398,7 +401,7 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 		if json.Unmarshal([]byte(cached), &arrival) == nil {
 			return arrival, nil
 		}
-	} else if err != redis.Nil {
+	} else if !errors.Is(err, redis.Nil) {
 		return Arrival{}, err
 	}
 
@@ -431,51 +434,6 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 	return arrival, nil
 }
 
-func (s *Service) calculateTimeToToll(ctx context.Context, origin, destination string) (Arrival, error) {
-	cacheKey := fmt.Sprintf("time:%s|%s", origin, destination)
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	if err == nil {
-		var arrival Arrival
-		if json.Unmarshal([]byte(cached), &arrival) == nil {
-			return arrival, nil
-		}
-	} else if err != redis.Nil {
-		fmt.Printf("Erro ao recuperar cache do Redis: %v\n", err)
-	}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-	if err != nil {
-		return Arrival{}, err
-	}
-	routeRequest := &maps.DirectionsRequest{
-		Origin:       origin,
-		Destination:  destination,
-		Alternatives: false,
-		Mode:         maps.TravelModeDriving,
-		Region:       "br",
-	}
-	routes, _, err := client.Directions(ctx, routeRequest)
-	if err != nil {
-		return Arrival{}, err
-	}
-	if len(routes) == 0 || len(routes[0].Legs) == 0 {
-		return Arrival{}, echo.ErrNotFound
-	}
-
-	leg := routes[0].Legs[0]
-	arrival := Arrival{
-		Distance: leg.Distance.HumanReadable,
-		Time:     leg.Duration,
-	}
-	data, err := json.Marshal(arrival)
-	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache no Redis: %v\n", err)
-		}
-	}
-	return s.timeWithClient(ctx, client, origin, destination)
-}
-
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
 	address = StateToCapital(strings.ToLower(address))
 	cacheKey := fmt.Sprintf("geocode:%s", address)
@@ -485,7 +443,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		if json.Unmarshal([]byte(cached), &result) == nil {
 			return result, nil
 		}
-	} else if err != redis.Nil {
+	} else if !errors.Is(err, redis.Nil) {
 		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
 	}
 
@@ -514,13 +472,21 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	}
 	results, err := client.Geocode(ctx, req)
 	if err != nil || len(results) == 0 {
-		return GeocodeResult{}, fmt.Errorf("Endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo).", address, address)
+		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo)", address, address)
 	}
 
 	result := GeocodeResult{
 		FormattedAddress: results[0].FormattedAddress,
 		PlaceID:          results[0].PlaceID,
+		Location: Location{
+			Latitude:  results[0].Geometry.Location.Lat,
+			Longitude: results[0].Geometry.Location.Lng,
+		},
 	}
+	fmt.Println(result)
+	fmt.Println(results[0].Geometry.Location.Lat)
+	fmt.Println(results[0].Geometry.Location.Lng)
+
 	data, err := json.Marshal(result)
 	if err == nil {
 		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
@@ -528,6 +494,182 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		}
 	}
 	return result, nil
+}
+
+func (s *Service) calculateTollsArrivalTimes(ctx context.Context, origin string, tolls []Toll) (map[int64]Arrival, error) {
+	var destinations []string
+	for _, toll := range tolls {
+		dest := fmt.Sprintf("%.6f,%.6f", toll.Latitude, toll.Longitude)
+		destinations = append(destinations, dest)
+	}
+
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return nil, err
+	}
+	matrixReq := &maps.DistanceMatrixRequest{
+		Origins:      []string{origin},
+		Destinations: destinations,
+		Mode:         maps.TravelModeDriving,
+	}
+
+	matrixResp, err := client.DistanceMatrix(ctx, matrixReq)
+	if err != nil {
+		return nil, err
+	}
+
+	arrivalMap := make(map[int64]Arrival)
+	if len(matrixResp.Rows) > 0 {
+		row := matrixResp.Rows[0]
+		for i, elem := range row.Elements {
+			tollID := tolls[i].ID
+			arrivalMap[int64(tollID)] = Arrival{
+				Distance: elem.Distance.HumanReadable,
+				Time:     elem.Duration,
+			}
+		}
+	}
+
+	return arrivalMap, nil
+}
+
+func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string, vehicle string, axes float64) ([]Toll, error) {
+	tollsDB, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resultTags, err := s.InterfaceService.GetTollTags(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var routeIsCrescente bool
+	if len(routes) > 0 && len(routes[0].Legs) > 0 {
+		startLat := routes[0].Legs[0].StartLocation.Lat
+		endLat := routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat
+		routeIsCrescente = startLat < endLat
+	}
+
+	uniqueTolls := make(map[int64]bool)
+	var candidateTolls []Toll
+
+	for _, route := range routes {
+		for _, leg := range route.Legs {
+			for _, step := range leg.Steps {
+				polyPoints := DecodePolyline(step.Polyline.Points)
+				if len(polyPoints) < 2 {
+					continue
+				}
+
+				for _, dbToll := range tollsDB {
+					lat, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
+					lng, lngErr := validation.ParseNullStringToFloat(dbToll.Longitude)
+					if latErr != nil || lngErr != nil {
+						continue
+					}
+
+					tollPos := maps.LatLng{Lat: lat, Lng: lng}
+					minDistance := math.MaxFloat64
+					for i := 0; i < len(polyPoints)-1; i++ {
+						d := distancePointToSegment(tollPos, polyPoints[i], polyPoints[i+1])
+						if d < minDistance {
+							minDistance = d
+						}
+					}
+
+					if minDistance > 50 {
+						continue
+					}
+
+					if dbToll.Sentido.String != "" {
+						if dbToll.Sentido.String == "Crescente" && !routeIsCrescente {
+							continue
+						}
+						if dbToll.Sentido.String == "Decrescente" && routeIsCrescente {
+							continue
+						}
+					}
+
+					if !uniqueTolls[dbToll.ID] {
+						uniqueTolls[dbToll.ID] = true
+
+						candidateTolls = append(candidateTolls, Toll{
+							ID:          int(dbToll.ID),
+							Latitude:    lat,
+							Longitude:   lng,
+							Name:        validation.GetStringFromNull(dbToll.PracaDePedagio),
+							Concession:  dbToll.Concessionaria.String,
+							Road:        validation.GetStringFromNull(dbToll.Rodovia),
+							State:       validation.GetStringFromNull(dbToll.Uf),
+							Country:     "Brasil",
+							Type:        "Pedágio",
+							FreeFlow:    dbToll.FreeFlow.Bool,
+							PayFreeFlow: dbToll.PayFreeFlow.String,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	arrivalMap, err := s.calculateTollsArrivalTimes(ctx, origin, candidateTolls)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, cToll := range candidateTolls {
+		arr := arrivalMap[int64(cToll.ID)]
+		formattedTime := arr.Time.Round(time.Second).String()
+
+		tarifaFloat := 0.0
+		if tollsDB[i].Tarifa.Valid {
+			tf, _ := strconv.ParseFloat(tollsDB[i].Tarifa.String, 64)
+			tarifaFloat = tf
+		}
+		totalToll, errPrice := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
+		if errPrice != nil {
+			continue
+		}
+
+		var tags []string
+		concession := validation.GetStringFromNull(tollsDB[i].Concessionaria)
+		for _, tagRecord := range resultTags {
+			acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
+			for _, accepted := range acceptedList {
+				if strings.TrimSpace(accepted) == concession {
+					tags = append(tags, tagRecord.Name)
+					break
+				}
+			}
+		}
+
+		candidateTolls[i].ArrivalResponse = ArrivalResponse{
+			Distance: arr.Distance,
+			Time:     formattedTime,
+		}
+		candidateTolls[i].TagCost = math.Round(totalToll - (totalToll * 0.05))
+		candidateTolls[i].CashCost = totalToll
+		candidateTolls[i].Currency = "BRL"
+		candidateTolls[i].PrepaidCardCost = math.Round(totalToll - (totalToll * 0.05))
+		candidateTolls[i].TagPrimary = tags
+	}
+
+	sort.Slice(candidateTolls, func(i, j int) bool {
+		d1Str := strings.TrimSuffix(candidateTolls[i].ArrivalResponse.Distance, " km")
+		d2Str := strings.TrimSuffix(candidateTolls[j].ArrivalResponse.Distance, " km")
+		d1Str = strings.ReplaceAll(d1Str, ",", "")
+		d2Str = strings.ReplaceAll(d2Str, ",", "")
+
+		d1, err1 := strconv.ParseFloat(d1Str, 64)
+		d2, err2 := strconv.ParseFloat(d2Str, 64)
+		if err1 != nil || err2 != nil {
+			return candidateTolls[i].ArrivalResponse.Distance < candidateTolls[j].ArrivalResponse.Distance
+		}
+		return d1 < d2
+	})
+
+	return candidateTolls, nil
 }
 
 //func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string, vehicle string, axes float64) ([]Toll, error) {
@@ -650,149 +792,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 //	return foundTolls, nil
 //}
 
-func (s *Service) findTollsInRoute(ctx context.Context, routes []maps.Route, origin string, vehicle string, axes float64) ([]Toll, error) {
-	var foundTolls []Toll
-	uniqueTolls := make(map[int64]bool)
-
-	tolls, err := s.InterfaceService.GetTollsByLonAndLat(ctx)
-	if err != nil {
-		return foundTolls, nil
-	}
-
-	resultTags, err := s.InterfaceService.GetTollTags(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var routeIsCrescente bool
-	if len(routes) > 0 && len(routes[0].Legs) > 0 {
-		startLat := routes[0].Legs[0].StartLocation.Lat
-		endLat := routes[0].Legs[len(routes[0].Legs)-1].EndLocation.Lat
-		routeIsCrescente = startLat < endLat
-	}
-
-	for _, route := range routes {
-		for _, leg := range route.Legs {
-			for _, step := range leg.Steps {
-
-				polyPoints := DecodePolyline(step.Polyline.Points)
-				if len(polyPoints) < 2 {
-					continue
-				}
-
-				for _, dbToll := range tolls {
-					latitude, latErr := validation.ParseNullStringToFloat(dbToll.Latitude)
-					longitude, lonErr := validation.ParseNullStringToFloat(dbToll.Longitude)
-					if latErr != nil || lonErr != nil {
-						continue
-					}
-
-					tollPos := maps.LatLng{Lat: latitude, Lng: longitude}
-					minDistance := math.MaxFloat64
-
-					for i := 0; i < len(polyPoints)-1; i++ {
-						d := distancePointToSegment(tollPos, polyPoints[i], polyPoints[i+1])
-						if d < minDistance {
-							minDistance = d
-						}
-					}
-
-					if minDistance > 50 {
-						continue
-					}
-
-					if dbToll.Sentido.String != "" {
-						if dbToll.Sentido.String == "Crescente" && !routeIsCrescente {
-							continue
-						}
-						if dbToll.Sentido.String == "Decrescente" && routeIsCrescente {
-							continue
-						}
-					}
-
-					if !uniqueTolls[dbToll.ID] {
-						uniqueTolls[dbToll.ID] = true
-
-						dest := fmt.Sprintf("%.6f,%.6f", latitude, longitude)
-						arrivalTimes, err := s.calculateTimeToToll(ctx, origin, dest)
-						if err != nil {
-							fmt.Printf("Erro ao obter tempo para origem %s e destino %s: %v\n", origin, dest, err)
-							continue
-						}
-
-						formattedTime := arrivalTimes.Time.Round(time.Second).String()
-						concession := validation.GetStringFromNull(dbToll.Concessionaria)
-
-						var tags []string
-						for _, tagRecord := range resultTags {
-							acceptedList := strings.Split(tagRecord.DealershipAccepts, ",")
-							for _, accepted := range acceptedList {
-								if strings.TrimSpace(accepted) == concession {
-									tags = append(tags, tagRecord.Name)
-									break
-								}
-							}
-						}
-
-						tarifaFloat := 0.0
-						if dbToll.Tarifa.Valid {
-							tarifaFloat, err = strconv.ParseFloat(dbToll.Tarifa.String, 64)
-							if err != nil {
-								continue
-							}
-						}
-						totalToll, err := PriceTollsFromVehicle(strings.ToLower(vehicle), tarifaFloat, axes)
-						if err != nil {
-							return nil, err
-						}
-
-						foundTolls = append(foundTolls, Toll{
-							ID:              int(dbToll.ID),
-							Latitude:        latitude,
-							Longitude:       longitude,
-							Name:            validation.GetStringFromNull(dbToll.PracaDePedagio),
-							Concession:      dbToll.Concessionaria.String,
-							Road:            validation.GetStringFromNull(dbToll.Rodovia),
-							State:           validation.GetStringFromNull(dbToll.Uf),
-							Country:         "Brasil",
-							Type:            "Pedágio",
-							TagCost:         math.Round(totalToll - (totalToll * 0.05)),
-							CashCost:        totalToll,
-							Currency:        "BRL",
-							PrepaidCardCost: math.Round(totalToll - (totalToll * 0.05)),
-							ArrivalResponse: ArrivalResponse{
-								Distance: arrivalTimes.Distance,
-								Time:     formattedTime,
-							},
-							TagPrimary:  tags,
-							FreeFlow:    dbToll.FreeFlow.Bool,
-							PayFreeFlow: dbToll.PayFreeFlow.String,
-						})
-					}
-				}
-			}
-		}
-	}
-
-	sort.Slice(foundTolls, func(i, j int) bool {
-		d1Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[i].ArrivalResponse.Distance, "km"))
-		d2Str := strings.TrimSpace(strings.TrimSuffix(foundTolls[j].ArrivalResponse.Distance, "km"))
-		d1Str = strings.ReplaceAll(d1Str, ",", "")
-		d2Str = strings.ReplaceAll(d2Str, ",", "")
-
-		d1, err1 := strconv.ParseFloat(d1Str, 64)
-		d2, err2 := strconv.ParseFloat(d2Str, 64)
-
-		if err1 != nil || err2 != nil {
-			return foundTolls[i].ArrivalResponse.Distance < foundTolls[j].ArrivalResponse.Distance
-		}
-
-		return d1 < d2
-	})
-
-	return foundTolls, nil
-}
-
 func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) ([]Balanca, error) {
 	var foundBalancas []Balanca
 	uniqueBalanca := make(map[int64]bool)
@@ -844,9 +843,11 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 }
 
 func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *maps.Client, routes []maps.Route) ([]GasStation, error) {
+
 	var gasStations []GasStation
 	uniqueGasStations := make(map[string]bool)
-	var consolidatedPoints []maps.LatLng
+
+	var points []maps.LatLng
 	uniquePoints := make(map[string]bool)
 
 	for _, route := range routes {
@@ -854,160 +855,122 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 			startKey := fmt.Sprintf("%.6f:%.6f", leg.StartLocation.Lat, leg.StartLocation.Lng)
 			if !uniquePoints[startKey] {
 				uniquePoints[startKey] = true
-				consolidatedPoints = append(consolidatedPoints, leg.StartLocation)
+				points = append(points, leg.StartLocation)
 			}
 			endKey := fmt.Sprintf("%.6f:%.6f", leg.EndLocation.Lat, leg.EndLocation.Lng)
 			if !uniquePoints[endKey] {
 				uniquePoints[endKey] = true
-				consolidatedPoints = append(consolidatedPoints, leg.EndLocation)
-			}
-			for _, step := range leg.Steps {
-				pointKey := fmt.Sprintf("%.6f:%.6f", step.StartLocation.Lat, step.StartLocation.Lng)
-				if !uniquePoints[pointKey] {
-					uniquePoints[pointKey] = true
-					consolidatedPoints = append(consolidatedPoints, step.StartLocation)
-				}
+				points = append(points, leg.EndLocation)
 			}
 		}
+	}
+
+	chunkSize := len(points)
+	if chunkSize == 0 {
+		return nil, nil
 	}
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	chunkSize := 5
 
-	for i := 0; i < len(consolidatedPoints); i += chunkSize {
+	for i := 0; i < len(points); i += chunkSize {
 		end := i + chunkSize
-		if end > len(consolidatedPoints) {
-			end = len(consolidatedPoints)
+		if end > len(points) {
+			end = len(points)
 		}
-		wg.Add(1)
-		go func(points []maps.LatLng) {
-			defer wg.Done()
-			for _, point := range points {
-				cacheKey := fmt.Sprintf("gasStations:%.6f:%.6f", point.Lat, point.Lng)
-				cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-				if err == nil {
-					var cachedStations []GasStation
-					if json.Unmarshal([]byte(cached), &cachedStations) == nil {
-						mu.Lock()
-						for _, gs := range cachedStations {
-							stationKey := gs.Name
-							if stationKey == "" {
-								stationKey = gs.Address
-							}
-							if !uniqueGasStations[stationKey] {
-								uniqueGasStations[stationKey] = true
-								gasStations = append(gasStations, gs)
-							}
-						}
-						mu.Unlock()
-						continue
-					}
-				} else if err != redis.Nil {
-					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
-				}
+		chunk := points[i:end]
 
-				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
-					Column1: point.Lat,
-					Column2: point.Lng,
-					Column3: 0.05,
-				})
-				var cachedResult []GasStation
-				if err == nil && len(dbGasStations) > 0 {
+		wg.Add(1)
+		go func(chunkPoints []maps.LatLng) {
+			defer wg.Done()
+
+			var sumLat, sumLng float64
+			for _, pt := range chunkPoints {
+				sumLat += pt.Lat
+				sumLng += pt.Lng
+			}
+			avgLat := sumLat / float64(len(chunkPoints))
+			avgLng := sumLng / float64(len(chunkPoints))
+
+			cacheKey := fmt.Sprintf("gasStationsMid:%.6f:%.6f", avgLat, avgLng)
+			cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+			if err == nil {
+				var cachedStations []GasStation
+				if json.Unmarshal([]byte(cached), &cachedStations) == nil {
 					mu.Lock()
-					for _, dbStation := range dbGasStations {
-						stationName := dbStation.Name
-						if stationName == "" {
-							stationName = dbStation.SpecificPoint
+					for _, gs := range cachedStations {
+						stationKey := gs.Name
+						if stationKey == "" {
+							stationKey = gs.Address
 						}
-						if !uniqueGasStations[stationName] {
-							uniqueGasStations[stationName] = true
-							lat, _ := validation.ParseStringToFloat(dbStation.Latitude)
-							lng, _ := validation.ParseStringToFloat(dbStation.Longitude)
-							gs := GasStation{
-								Name:    stationName,
-								Address: dbStation.AddressName,
-								Location: Location{
-									Latitude:  lat,
-									Longitude: lng,
-								},
-							}
+						if !uniqueGasStations[stationKey] {
+							uniqueGasStations[stationKey] = true
 							gasStations = append(gasStations, gs)
-							cachedResult = append(cachedResult, gs)
 						}
 					}
 					mu.Unlock()
-					if len(cachedResult) > 0 {
-						data, err := json.Marshal(cachedResult)
-						if err == nil {
-							if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-								fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
-							}
-						}
+					return
+				}
+			}
+
+			placesRequest := &maps.NearbySearchRequest{
+				Location: &maps.LatLng{Lat: avgLat, Lng: avgLng},
+				Radius:   10000,
+				Type:     "gas_station",
+			}
+			ctxNearby, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			placesResponse, err := client.NearbySearch(ctxNearby, placesRequest)
+			if err != nil {
+				fmt.Printf("Erro na NearbySearch: %v\n", err)
+				return
+			}
+
+			var resultCached []GasStation
+			mu.Lock()
+			for _, result := range placesResponse.Results {
+				stationName := result.Name
+				if stationName == "" {
+					stationName = result.PlaceID
+				}
+				if !uniqueGasStations[stationName] {
+					uniqueGasStations[stationName] = true
+					gs := GasStation{
+						Name:    stationName,
+						Address: result.Vicinity,
+						Location: Location{
+							Latitude:  result.Geometry.Location.Lat,
+							Longitude: result.Geometry.Location.Lng,
+						},
 					}
-					continue
-				}
+					gasStations = append(gasStations, gs)
+					resultCached = append(resultCached, gs)
 
-				placesRequest := &maps.NearbySearchRequest{
-					Location: &maps.LatLng{Lat: point.Lat, Lng: point.Lng},
-					Radius:   10000,
-					Type:     "gas_station",
-				}
-
-				ctxNearby, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer cancel()
-
-				placesResponse, err := client.NearbySearch(ctxNearby, placesRequest)
-				if err != nil {
-					fmt.Printf("Erro na NearbySearch: %v\n", err)
-					continue
-				}
-
-				var resultCached []GasStation
-				mu.Lock()
-				for _, result := range placesResponse.Results {
-					stationName := result.Name
-					if stationName == "" {
-						stationName = result.PlaceID
-					}
-					if !uniqueGasStations[stationName] {
-						uniqueGasStations[stationName] = true
-						gs := GasStation{
-							Name:    stationName,
-							Address: result.Vicinity,
-							Location: Location{
-								Latitude:  result.Geometry.Location.Lat,
-								Longitude: result.Geometry.Location.Lng,
-							},
-						}
-						gasStations = append(gasStations, gs)
-						resultCached = append(resultCached, gs)
-						_, err := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
-							Name:          stationName,
-							Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
-							Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
-							AddressName:   result.Vicinity,
-							Municipio:     result.FormattedAddress,
-							SpecificPoint: result.PlaceID,
-						})
-						if err != nil {
-							fmt.Printf("Erro ao salvar posto: %v\n", err)
-						}
-					}
-				}
-				mu.Unlock()
-				if len(resultCached) > 0 {
-					data, err := json.Marshal(resultCached)
-					if err == nil {
-						if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-							fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
-						}
+					_, dbErr := s.InterfaceService.CreateGasStations(ctx, db.CreateGasStationsParams{
+						Name:          stationName,
+						Latitude:      fmt.Sprintf("%f", result.Geometry.Location.Lat),
+						Longitude:     fmt.Sprintf("%f", result.Geometry.Location.Lng),
+						AddressName:   result.Vicinity,
+						Municipio:     result.FormattedAddress,
+						SpecificPoint: result.PlaceID,
+					})
+					if dbErr != nil {
+						fmt.Printf("Erro ao salvar posto: %v\n", dbErr)
 					}
 				}
 			}
-		}(consolidatedPoints[i:end])
+			mu.Unlock()
+
+			if len(resultCached) > 0 {
+				data, _ := json.Marshal(resultCached)
+				_ = cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err()
+			}
+
+		}(chunk)
 	}
 	wg.Wait()
+
 	return gasStations, nil
 }
 
