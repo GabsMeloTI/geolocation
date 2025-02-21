@@ -1285,7 +1285,7 @@ func getConcessionImage(concession string) string {
 	case "TRIUNFO":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.png"
 	case "ECO 050":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_050.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco50.png"
 	case "AB NASCENTES DAS GERAIS":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.png"
 	case "FLUMINENSE":
@@ -1303,7 +1303,7 @@ func getConcessionImage(concession string) string {
 	case "ECO RODOVIAS":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.png"
 	case "EPR TRIANGULO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_triangulo.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-triangulo.png"
 	case "VIA RIO":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.png"
 	case "WAY - 306":
@@ -1353,7 +1353,7 @@ func getConcessionImage(concession string) string {
 	case "ECOVIAS DO CERRADO":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.png"
 	case "EPR VIA MINEIRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_via_mineira.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-via-mineira.png"
 	case "SPMAR":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.png"
 	case "JOTEC":
@@ -1401,7 +1401,7 @@ func getConcessionImage(concession string) string {
 	case "CART":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.png"
 	case "CCR RioSP":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_riosp.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr-riosp.png"
 	case "VIAOESTE":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.png"
 	case "MORRO DA MESA":
