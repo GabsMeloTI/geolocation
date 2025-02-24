@@ -1275,7 +1275,7 @@ func getConcessionImage(concession string) string {
 	case "ROTA DE SANTA MARIA":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.png"
 	case "RODOANEL OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodoanel_oeste.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_rodoanel.png"
 	case "CSG":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
 	case "ROTA DAS BANDEIRAS":
@@ -1377,7 +1377,7 @@ func getConcessionImage(concession string) string {
 	case "GUARUJÁ":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.png"
 	case "CONCEBRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concebra.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/truinfo_concebra.png"
 	case "DER":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.png"
 	case "EGR":
