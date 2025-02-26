@@ -101,3 +101,63 @@ func (q *Queries) GetGasStation(ctx context.Context, arg GetGasStationParams) ([
 	}
 	return items, nil
 }
+
+const getGasStationsByBoundingBox = `-- name: GetGasStationsByBoundingBox :many
+SELECT id, latitude, longitude, address_name, municipio, specific_point, name
+FROM gas_station
+WHERE CAST(latitude AS FLOAT) BETWEEN CAST($1 AS FLOAT) AND CAST($2 AS FLOAT)
+  AND CAST(longitude AS FLOAT) BETWEEN CAST($3 AS FLOAT) AND CAST($4 AS FLOAT)
+`
+
+type GetGasStationsByBoundingBoxParams struct {
+	Column1 float64 `json:"column_1"`
+	Column2 float64 `json:"column_2"`
+	Column3 float64 `json:"column_3"`
+	Column4 float64 `json:"column_4"`
+}
+
+type GetGasStationsByBoundingBoxRow struct {
+	ID            int64  `json:"id"`
+	Latitude      string `json:"latitude"`
+	Longitude     string `json:"longitude"`
+	AddressName   string `json:"address_name"`
+	Municipio     string `json:"municipio"`
+	SpecificPoint string `json:"specific_point"`
+	Name          string `json:"name"`
+}
+
+func (q *Queries) GetGasStationsByBoundingBox(ctx context.Context, arg GetGasStationsByBoundingBoxParams) ([]GetGasStationsByBoundingBoxRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGasStationsByBoundingBox,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGasStationsByBoundingBoxRow
+	for rows.Next() {
+		var i GetGasStationsByBoundingBoxRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Latitude,
+			&i.Longitude,
+			&i.AddressName,
+			&i.Municipio,
+			&i.SpecificPoint,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

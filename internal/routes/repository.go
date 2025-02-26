@@ -20,6 +20,7 @@ type InterfaceRepository interface {
 	UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
 	CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error)
 	GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error)
+	GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error)
 }
 
 type Repository struct {
@@ -77,4 +78,7 @@ func (r *Repository) CreateRouteHist(ctx context.Context, arg db.CreateRouteHist
 }
 func (r *Repository) GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error) {
 	return r.Queries.GetFreightLoadAll(ctx)
+}
+func (r *Repository) GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error) {
+	return r.Queries.GetGasStationsByBoundingBox(ctx, arg)
 }
