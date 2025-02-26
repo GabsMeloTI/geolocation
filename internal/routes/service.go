@@ -483,9 +483,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 			Longitude: results[0].Geometry.Location.Lng,
 		},
 	}
-	fmt.Println(result)
-	fmt.Println(results[0].Geometry.Location.Lat)
-	fmt.Println(results[0].Geometry.Location.Lng)
 
 	data, err := json.Marshal(result)
 	if err == nil {
@@ -1142,7 +1139,7 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 	grouped := make(map[string][]FreightLoad)
 	for _, result := range results {
 		var fl FreightLoad
-		fl.ParseFromNcmObject(result)
+		fl.ParseFromFreightObject(result)
 		grouped[fl.Name] = append(grouped[fl.Name], fl)
 	}
 
@@ -1275,7 +1272,7 @@ func getConcessionImage(concession string) string {
 	case "ROTA DE SANTA MARIA":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.png"
 	case "RODOANEL OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodoanel_oeste.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_rodoanel.png"
 	case "CSG":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
 	case "ROTA DAS BANDEIRAS":
@@ -1377,7 +1374,7 @@ func getConcessionImage(concession string) string {
 	case "GUARUJÁ":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.png"
 	case "CONCEBRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concebra.png"
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/truinfo_concebra.png"
 	case "DER":
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.png"
 	case "EGR":

@@ -186,7 +186,7 @@ type FreightLoad struct {
 	Description string `json:"description"`
 }
 
-func (p *FreightLoad) ParseFromNcmObject(result db.FreightLoad) {
+func (p *FreightLoad) ParseFromFreightObject(result db.FreightLoad) {
 	p.TypeOfLoad = result.TypeOfLoad.String
 	p.TwoAxes = result.TwoAxes.String
 	p.ThreeAxes = result.ThreeAxes.String

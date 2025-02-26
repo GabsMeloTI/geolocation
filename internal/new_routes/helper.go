@@ -1,12 +1,13 @@
 package routes
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
 	"net/url"
+	neturl "net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ func geocodeAddress(address string) (AddressInfo, error) {
 	if err != nil {
 		return AddressInfo{}, err
 	}
-	req.Header.Set("User-Agent", "GoGeocoder/1.0 (seuemail@exemplo.com)")
+	req.Header.Set("User-Agent", "GoGeocoder/1.0")
 	client := http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -69,25 +70,48 @@ func formatDistance(meters float64) (string, float64) {
 	return fmt.Sprintf("%.0f km", km), meters
 }
 
-func selectImage(modifier string) string {
-	switch strings.ToLower(modifier) {
-	case "left":
-		return "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.png"
-	case "right":
-		return "https://plates-routes.s3.us-east-1.amazonaws.com/direita.png"
-	default:
-		return "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png"
+func selectImage(instruction string) string {
+	instructionLower := strings.ToLower(instruction)
+	var valueImg string
+	switch {
+	case strings.Contains(instructionLower, "direita") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-direita.png"
+	case strings.Contains(instructionLower, "esquerda") && (strings.Contains(instructionLower, "curva") || strings.Contains(instructionLower, "mantenha-se")):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/curva-esquerda.png"
+	case strings.Contains(instructionLower, "esquerda") && !strings.Contains(instructionLower, "curva"):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/esquerda.png"
+	case strings.Contains(instructionLower, "direita") && !strings.Contains(instructionLower, "curva"):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/direita.png"
+	case strings.Contains(instructionLower, "continue"), strings.Contains(instructionLower, "siga"), strings.Contains(instructionLower, "pegue"):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png"
+	case strings.Contains(instructionLower, "rotatória"), strings.Contains(instructionLower, "rotatoria"), strings.Contains(instructionLower, "retorno"):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/rotatoria.png"
+	case strings.Contains(instructionLower, "voltar"), strings.Contains(instructionLower, "volta"):
+		valueImg = "https://plates-routes.s3.us-east-1.amazonaws.com/voltar.png"
 	}
+	return valueImg
 }
 
-func buildGoogleURL(origin, destination string) string {
-	return "https://www.google.com/maps/dir/?api=1&origin=" +
-		url.QueryEscape(origin) + "&destination=" + url.QueryEscape(destination)
+func buildGoogleURL(origin, destination string, waypoints []string) string {
+	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+		neturl.QueryEscape(origin),
+		neturl.QueryEscape(destination))
+	if len(waypoints) > 0 {
+		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints, "|"))
+	}
+
+	return googleURL
 }
 
-func buildWazeURL(origin, destination string) string {
-	return "https://www.waze.com/ul?ll=" + url.QueryEscape(destination) +
-		"&from=" + url.QueryEscape(origin)
+func buildWazeURL(origin, destination string, lastLeg time.Duration) string {
+	currentTimeMillis := (time.Now().UnixNano() + lastLeg.Nanoseconds()) / int64(time.Millisecond)
+	wazeURL := fmt.Sprintf(
+		"https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
+		destination,
+		origin,
+		currentTimeMillis,
+	)
+	return wazeURL
 }
 
 func capitalize(s string) string {
@@ -141,6 +165,16 @@ func translateInstruction(step OSRMStep) string {
 				return fmt.Sprintf("Vire suavemente à direita na %s", street)
 			}
 			return "Vire suavemente à direita"
+		case "Rotary":
+			if street != "" {
+				return fmt.Sprintf("Rotatória %s", street)
+			}
+			return "Rotatória"
+		case "Exit":
+			if street != "" {
+				return fmt.Sprintf("Exit %s", street)
+			}
+			return "Exit"
 		default:
 			if street != "" {
 				return fmt.Sprintf("Vire na direção de %s", street)
@@ -203,154 +237,6 @@ func translateInstruction(step OSRMStep) string {
 		}
 		return capitalize(typ)
 	}
-}
-
-func getTollsDB(db *sql.DB) ([]Toll, error) {
-	rows, err := db.Query(`SELECT * FROM tolls`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tolls []Toll
-	for rows.Next() {
-		var t Toll
-		var concessionaria, praca, rodovia, uf, km_m, municipio, tipoPista, sentido, situacao, dataInativacao, lat, lon, payFreeFlow sql.NullString
-		var ano sql.NullInt64
-		var tarifa sql.NullFloat64
-		var freeFlow sql.NullBool
-
-		err := rows.Scan(
-			&t.ID,
-			&concessionaria,
-			&praca,
-			&ano,
-			&rodovia,
-			&uf,
-			&km_m,
-			&municipio,
-			&tipoPista,
-			&sentido,
-			&situacao,
-			&dataInativacao,
-			&lat,
-			&lon,
-			&tarifa,
-			&freeFlow,
-			&payFreeFlow,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if concessionaria.Valid {
-			t.Concessionaria = concessionaria.String
-		}
-		if praca.Valid {
-			t.PracaDePedagio = praca.String
-		}
-		if ano.Valid {
-			t.AnoDoPNVSNV = ano.Int64
-		}
-		if rodovia.Valid {
-			t.Rodovia = rodovia.String
-		}
-		if uf.Valid {
-			t.UF = uf.String
-		}
-		if km_m.Valid {
-			t.KmM = km_m.String
-		}
-		if municipio.Valid {
-			t.Municipio = municipio.String
-		}
-		if tipoPista.Valid {
-			t.TipoPista = tipoPista.String
-		}
-		if sentido.Valid {
-			t.Sentido = sentido.String
-		}
-		if situacao.Valid {
-			t.Situacao = situacao.String
-		}
-		if dataInativacao.Valid {
-			t.DataDaInativacao = dataInativacao.String
-		}
-		if lat.Valid {
-			t.Latitude, _ = strconv.ParseFloat(lat.String, 64)
-		}
-		if lon.Valid {
-			t.Longitude, _ = strconv.ParseFloat(lon.String, 64)
-		}
-		if tarifa.Valid {
-			t.Tarifa = tarifa.Float64
-		}
-		if freeFlow.Valid {
-			t.FreeFlow = freeFlow.Bool
-		}
-		if payFreeFlow.Valid {
-			t.PayFreeFlow = payFreeFlow.String
-		}
-
-		tolls = append(tolls, t)
-	}
-	return tolls, nil
-}
-
-func getBalancaDB(db *sql.DB) ([]Balanca, error) {
-	rows, err := db.Query(`SELECT * FROM balanca`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var balancas []Balanca
-	for rows.Next() {
-		var b Balanca
-		var concessionaria, km, lat, lng, nome, rodovia, sentido, uf sql.NullString
-
-		err := rows.Scan(
-			&b.ID,
-			&concessionaria,
-			&km,
-			&lat,
-			&lng,
-			&nome,
-			&rodovia,
-			&sentido,
-			&uf,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if concessionaria.Valid {
-			b.Concessionaria = concessionaria.String
-		}
-		if nome.Valid {
-			b.Nome = nome.String
-		}
-		if km.Valid {
-			b.Km = km.String
-		}
-		if lat.Valid {
-			b.Lat, _ = strconv.ParseFloat(lat.String, 64)
-		}
-		if lng.Valid {
-			b.Lng, _ = strconv.ParseFloat(lng.String, 64)
-		}
-		if rodovia.Valid {
-			b.Rodovia = rodovia.String
-		}
-		if sentido.Valid {
-			b.Sentido = sentido.String
-		}
-		if uf.Valid {
-			b.Uf = uf.String
-		}
-		balancas = append(balancas, b)
-	}
-	return balancas, nil
 }
 
 func decodePolyline(encoded string) ([]LatLng, error) {
@@ -432,151 +318,11 @@ func distancePointToSegment(p, v, w LatLng) float64 {
 	return math.Sqrt(distX*distX + distY*distY)
 }
 
-func findTollsOnRoute(routeGeometry string, tolls []Toll) ([]Toll, error) {
-	var foundTolls []Toll
-
-	polyPoints, err := decodePolyline(routeGeometry)
-	if err != nil {
-		return nil, err
-	}
-	if len(polyPoints) < 2 {
-		return foundTolls, nil
-	}
-
-	routeIsCrescente := polyPoints[0].Lat < polyPoints[len(polyPoints)-1].Lat
-
-	for _, toll := range tolls {
-		tollPos := LatLng{Lat: toll.Latitude, Lng: toll.Longitude}
-		minDistance := math.MaxFloat64
-
-		for i := 0; i < len(polyPoints)-1; i++ {
-			d := distancePointToSegment(tollPos, polyPoints[i], polyPoints[i+1])
-			if d < minDistance {
-				minDistance = d
-			}
-		}
-
-		if minDistance > 50 {
-			continue
-		}
-
-		if toll.Sentido != "" {
-			if toll.Sentido == "Crescente" && !routeIsCrescente {
-				continue
-			}
-			if toll.Sentido == "Decrescente" && routeIsCrescente {
-				continue
-			}
-		}
-
-		foundTolls = append(foundTolls, toll)
-	}
-
-	return foundTolls, nil
-}
-
-func findBalancaOnRoute(routeGeometry string, balancas []Balanca) ([]Balanca, error) {
-	var foundBalancas []Balanca
-
-	polyPoints, err := decodePolyline(routeGeometry)
-	if err != nil {
-		return nil, err
-	}
-	if len(polyPoints) < 2 {
-		return foundBalancas, nil
-	}
-
-	routeIsCrescente := polyPoints[0].Lat < polyPoints[len(polyPoints)-1].Lat
-
-	for _, b := range balancas {
-		pos := LatLng{Lat: b.Lat, Lng: b.Lng}
-		minDistance := math.MaxFloat64
-
-		for i := 0; i < len(polyPoints)-1; i++ {
-			d := distancePointToSegment(pos, polyPoints[i], polyPoints[i+1])
-			if d < minDistance {
-				minDistance = d
-			}
-		}
-
-		if minDistance > 50 {
-			continue
-		}
-
-		if b.Sentido != "" {
-			if b.Sentido == "Crescente" && !routeIsCrescente {
-				continue
-			}
-			if b.Sentido == "Decrescente" && routeIsCrescente {
-				continue
-			}
-		}
-
-		foundBalancas = append(foundBalancas, b)
-	}
-
-	return foundBalancas, nil
-}
-
-func getAllFreight(axles int, kmValue float64, db *sql.DB) (map[string][]FreightLoad, error) {
-	grouped := make(map[string][]FreightLoad)
-
-	rows, err := db.Query("SELECT type_of_load, two_axes, three_axes, four_axes, five_axes, six_axes, seven_axes, nine_axes, name, description FROM freight_load")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var fl FreightLoad
-		var twoAxes, threeAxes, fourAxes, fiveAxes, sixAxes, sevenAxes, nineAxes, name, description string
-		err := rows.Scan(&fl.TypeOfLoad, &twoAxes, &threeAxes, &fourAxes, &fiveAxes, &sixAxes, &sevenAxes, &nineAxes, &name, &description)
-		if err != nil {
-			continue
-		}
-		var rateStr string
-		switch axles {
-		case 2:
-			rateStr = twoAxes
-		case 3:
-			rateStr = threeAxes
-		case 4:
-			rateStr = fourAxes
-		case 5:
-			rateStr = fiveAxes
-		case 6:
-			rateStr = sixAxes
-		case 7:
-			rateStr = sevenAxes
-		case 8:
-			rateStr = sevenAxes
-		case 9:
-			rateStr = nineAxes
-		default:
-			rateStr = twoAxes
-		}
-		rateStr = strings.Replace(rateStr, ",", ".", -1)
-		rate, err := strconv.ParseFloat(rateStr, 64)
-		if err != nil {
-			rate = 0
-		}
-		fl.Description = description
-		fl.QtdAxle = axles
-		fl.TotalValue = kmValue * rate
-		fl.TypeOfLoad = fl.TypeOfLoad
-
-		grouped[name] = append(grouped[name], fl)
-	}
-	return grouped, nil
-}
-
 func queryFuelStations(polyline string) ([]GasStation, error) {
-	// Decodifica a polyline para obter os pontos da rota
 	points, err := decodePolyline(polyline)
 	if err != nil {
 		return nil, err
 	}
-	// Calcula a bounding box que cobre todos os pontos da rota
 	minLat, minLon := points[0].Lat, points[0].Lng
 	maxLat, maxLon := points[0].Lat, points[0].Lng
 	for _, p := range points[1:] {
@@ -593,14 +339,12 @@ func queryFuelStations(polyline string) ([]GasStation, error) {
 			maxLon = p.Lng
 		}
 	}
-	// (Opcional) Expanda um pouco a bbox para garantir cobertura
-	padding := 0.05
+	padding := 1.0
 	minLat -= padding
 	minLon -= padding
 	maxLat += padding
 	maxLon += padding
 
-	// Cria a query Overpass para buscar nós com amenity=fuel
 	overpassQuery := fmt.Sprintf(`
 		[out:json][timeout:25];
 		(
@@ -630,7 +374,6 @@ func queryFuelStations(polyline string) ([]GasStation, error) {
 		return nil, err
 	}
 
-	// Filtra os postos que estão realmente próximos da rota (tolerância em metros)
 	tolerance := 50.0
 	var stations []GasStation
 	for _, el := range overpassResp.Elements {
@@ -655,4 +398,161 @@ func queryFuelStations(polyline string) ([]GasStation, error) {
 		}
 	}
 	return stations, nil
+}
+
+func StateToCapital(address string) string {
+	state := strings.ToLower(strings.TrimSpace(address))
+
+	if strings.Contains(state, ",") {
+		parts := strings.Split(state, ",")
+		state = strings.TrimSpace(parts[0])
+	}
+
+	switch state {
+	case "acre":
+		return "Rio Branco, Acre"
+	case "alagoas":
+		return "Maceió, Alagoas"
+	case "amapá", "amapa":
+		return "Macapá, Amapá"
+	case "amazonas":
+		return "Manaus, Amazonas"
+	case "bahia":
+		return "Salvador, Bahia"
+	case "ceará", "ceara":
+		return "Fortaleza, Ceará"
+	case "espírito santo", "espirito santo":
+		return "Vitória, Espírito Santo"
+	case "goiás", "goias":
+		return "Goiânia, Goiás"
+	case "maranhão", "maranhao":
+		return "São Luís, Maranhão"
+	case "mato grosso":
+		return "Cuiabá, Mato Grosso"
+	case "mato grosso do sul":
+		return "Campo Grande, Mato Grosso do Sul"
+	case "minas gerais":
+		return "Belo Horizonte, Minas Gerais"
+	case "pará", "para":
+		return "Belém, Pará"
+	case "paraíba", "paraiba":
+		return "João Pessoa, Paraíba"
+	case "paraná", "parana":
+		return "Curitiba, Paraná"
+	case "pernambuco":
+		return "Recife, Pernambuco"
+	case "piauí", "piaui":
+		return "Teresina, Piauí"
+	case "rio de janeiro":
+		return "Rio de Janeiro, Rio de Janeiro"
+	case "rio grande do norte":
+		return "Natal, Rio Grande do Norte"
+	case "rio grande do sul":
+		return "Porto Alegre, Rio Grande do Sul"
+	case "rondônia", "rondonia":
+		return "Porto Velho, Rondônia"
+	case "roraima":
+		return "Boa Vista, Roraima"
+	case "santa catarina":
+		return "Florianópolis, Santa Catarina"
+	case "são paulo", "sao paulo":
+		return "Praça da sé, São Paulo"
+	case "sergipe":
+		return "Aracaju, Sergipe"
+	case "tocantins":
+		return "Palmas, Tocantins"
+	case "distrito federal":
+		return "Brasília, Distrito Federal"
+	default:
+		return address
+	}
+}
+
+func IsNearby(lat1, lng1, lat2, lng2, radius float64) bool {
+	const earthRadius = 6371
+
+	dLat := (lat2 - lat1) * (math.Pi / 180)
+	dLng := (lng2 - lng1) * (math.Pi / 180)
+
+	lat1Rad := lat1 * (math.Pi / 180)
+	lat2Rad := lat2 * (math.Pi / 180)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Sin(dLng/2)*math.Sin(dLng/2)*math.Cos(lat1Rad)*math.Cos(lat2Rad)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	distance := earthRadius * c
+	return distance <= radius
+}
+
+func PriceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {
+	var calculation float64
+	switch os := vehicle; os {
+	case "motorcycle":
+		calculation = price / 2
+		return calculation, nil
+	case "auto":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price
+		return calculation, nil
+	case "bus":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price * axes
+		return calculation, nil
+	case "truck":
+		if int(axes)%2 != 0 {
+			price = price / 2
+		}
+		calculation = price * axes
+		return calculation, nil
+	default:
+		fmt.Printf("incoorect value")
+	}
+
+	return calculation, nil
+}
+
+func RoundCoord(coord float64) float64 {
+	return math.Round(coord*1000) / 1000
+}
+
+func sortByProximity[T any](origin Location, points []T, getLocation func(T) Location) []T {
+	sort.Slice(points, func(i, j int) bool {
+		locI := getLocation(points[i])
+		locJ := getLocation(points[j])
+		distI := haversineDistance(origin, locI)
+		distJ := haversineDistance(origin, locJ)
+		return distI < distJ
+	})
+	return points
+}
+
+func haversineDistance(loc1, loc2 Location) float64 {
+	const R = 6371
+	deltaLat := (loc2.Latitude - loc1.Latitude) * (math.Pi / 180)
+	deltaLon := (loc2.Longitude - loc1.Longitude) * (math.Pi / 180)
+	lat1 := loc1.Latitude * (math.Pi / 180)
+	lat2 := loc2.Latitude * (math.Pi / 180)
+	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
+		math.Sin(deltaLon/2)*math.Sin(deltaLon/2)*math.Cos(lat1)*math.Cos(lat2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return R * c
+}
+
+func haversineDistanceTolls(lat1, lng1, lat2, lng2 float64) float64 {
+	const R = 6371000
+	φ1 := lat1 * math.Pi / 180
+	φ2 := lat2 * math.Pi / 180
+	Δφ := (lat2 - lat1) * math.Pi / 180
+	Δλ := (lng2 - lng1) * math.Pi / 180
+
+	a := math.Sin(Δφ/2)*math.Sin(Δφ/2) +
+		math.Cos(φ1)*math.Cos(φ2)*math.Sin(Δλ/2)*math.Sin(Δλ/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c
 }

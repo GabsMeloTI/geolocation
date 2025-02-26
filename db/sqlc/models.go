@@ -106,6 +106,7 @@ type Toll struct {
 	Tarifa           sql.NullString `json:"tarifa"`
 	FreeFlow         sql.NullBool   `json:"free_flow"`
 	PayFreeFlow      sql.NullString `json:"pay_free_flow"`
+	Tags             []string `json:"tags"`
 }
 
 type TollTag struct {

@@ -203,6 +203,7 @@ func selectFastestRoute(routes []Route) Route {
 	}
 	return fastest
 }
+
 func selectCheapestRoute(routes []Route) Route {
 	cheapest := routes[0]
 	for _, r := range routes {
@@ -214,6 +215,7 @@ func selectCheapestRoute(routes []Route) Route {
 	}
 	return cheapest
 }
+
 func selectEfficientRoute(routes []Route, alpha float64) Route {
 	var maxTime, minTime float64
 	var maxCost, minCost float64

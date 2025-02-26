@@ -12,11 +12,11 @@ type Handler struct {
 	InterfaceService InterfaceService
 }
 
-func NewRoutesHandler(InterfaceService InterfaceService) *Handler {
+func NewRoutesNewHandler(InterfaceService InterfaceService) *Handler {
 	return &Handler{InterfaceService}
 }
 
-func (h *Handler) CheckRouteTolls(e echo.Context) error {
+func (h *Handler) CalculateRoutes(e echo.Context) error {
 	var frontInfo FrontInfo
 	if err := e.Bind(&frontInfo); err != nil {
 		return e.JSON(http.StatusBadRequest, err.Error())
@@ -28,7 +28,7 @@ func (h *Handler) CheckRouteTolls(e echo.Context) error {
 	}
 
 	payload := get_token.GetPublicPayloadToken(e)
-	result, err := h.InterfaceService.CheckRouteTolls(e.Request().Context(), frontInfo, payload.ID)
+	result, err := h.InterfaceService.CalculateRoutes(e.Request().Context(), frontInfo, payload.ID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {

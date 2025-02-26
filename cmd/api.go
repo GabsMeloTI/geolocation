@@ -37,6 +37,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	e.POST("/route", container.HandlerNewRoutes.CalculateRoutes)
 	e.POST("/check-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.GET("/public/:ip", container.HandlerHist.GetPublicToken)
 
