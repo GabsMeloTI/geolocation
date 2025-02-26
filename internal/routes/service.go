@@ -483,6 +483,9 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 			Longitude: results[0].Geometry.Location.Lng,
 		},
 	}
+	fmt.Println(result)
+	fmt.Println(results[0].Geometry.Location.Lat)
+	fmt.Println(results[0].Geometry.Location.Lng)
 
 	data, err := json.Marshal(result)
 	if err == nil {
@@ -1139,7 +1142,7 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 	grouped := make(map[string][]FreightLoad)
 	for _, result := range results {
 		var fl FreightLoad
-		fl.ParseFromFreightObject(result)
+		fl.ParseFromNcmObject(result)
 		grouped[fl.Name] = append(grouped[fl.Name], fl)
 	}
 
