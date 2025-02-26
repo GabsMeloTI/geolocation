@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"encoding/json"
 	db "geolocation/db/sqlc"
-	"googlemaps.github.io/maps"
 	"time"
 )
 
@@ -45,18 +43,6 @@ type Summary struct {
 	FuelEfficiency      FuelEfficiency `json:"fuel_efficiency"`
 }
 
-type Balanca struct {
-	ID             int64  `json:"id"`
-	Concessionaria string `json:"concessionaria"`
-	Km             string `json:"km"`
-	Lat            string `json:"lat"`
-	Lng            string `json:"lng"`
-	Nome           string `json:"nome"`
-	Rodovia        string `json:"rodovia"`
-	Sentido        string `json:"sentido"`
-	Uf             string `json:"uf"`
-}
-
 type Toll struct {
 	ID              int             `json:"id"`
 	Latitude        float64         `json:"lat"`
@@ -74,6 +60,7 @@ type Toll struct {
 	PrepaidCardCost float64         `json:"prepaidCardCost"`
 	ArrivalResponse ArrivalResponse `json:"arrival"`
 	TagPrimary      []string        `json:"tagPrimary"`
+	TagImg          []string        `json:"tagImg"`
 	FreeFlow        bool            `json:"free_flow"`
 	PayFreeFlow     string          `json:"pay_free_flow"`
 }
@@ -113,26 +100,6 @@ type Instruction struct {
 	Text string `json:"text"`
 	Img  string `json:"img"`
 }
-type TollResponse struct {
-	ID              int64           `json:"id"`
-	Lat             string          `json:"lat"`
-	Lng             string          `json:"lng"`
-	Name            string          `json:"name"`
-	Concession      string          `json:"concession"`
-	ConcessionImg   string          `json:"concession_img"`
-	Road            string          `json:"road"`
-	State           string          `json:"state"`
-	Country         string          `json:"country"`
-	Type            string          `json:"type"`
-	TagCost         float64         `json:"tagCost"`
-	CashCost        float64         `json:"cashCost"`
-	Currency        string          `json:"currency"`
-	PrepaidCardCost float64         `json:"prepaidCardCost"`
-	Arrival         ArrivalResponse `json:"arrival"`
-	TagPrimary      []string        `json:"tagPrimary"`
-	FreeFlow        bool            `json:"free_flow"`
-	PayFreeFlow     string          `json:"pay_free_flow"`
-}
 
 type RouteOutput struct {
 	Summary      RouteSummary           `json:"summary"`
@@ -144,28 +111,6 @@ type RouteOutput struct {
 	FreightLoad  map[string]interface{} `json:"freight_load"`
 	Polyline     string                 `json:"polyline"`
 }
-
-//type Toll struct {
-//	ID               int64    `json:"id"`
-//	Concessionaria   string   `json:"concessionaria"`
-//	ConcessionImg    string   `json:"concession_img"`
-//	PracaDePedagio   string   `json:"praca_de_pedagio"`
-//	AnoDoPNVSNV      int64    `json:"ano_do_pnv_snv"`
-//	Rodovia          string   `json:"rodovia"`
-//	UF               string   `json:"uf"`
-//	KmM              string   `json:"km_m"`
-//	Municipio        string   `json:"municipio"`
-//	TipoPista        string   `json:"tipo_pista"`
-//	Sentido          string   `json:"sentido"`
-//	Situacao         string   `json:"situacao"`
-//	DataDaInativacao string   `json:"data_da_inativacao"`
-//	Latitude         string   `json:"lat"`
-//	Longitude        string   `json:"lng"`
-//	Tarifa           string   `json:"tarifa"`
-//	FreeFlow         bool     `json:"free_flow"`
-//	PayFreeFlow      string   `json:"pay_free_flow"`
-//	Tags             []string `json:"tags"`
-//}
 
 type GasStation struct {
 	Name     string   `json:"name"`
@@ -213,8 +158,6 @@ type LatLng struct {
 	Lng float64
 }
 
-///////////////////////
-
 type FrontInfo struct {
 	Origin          string   `json:"origin" validate:"required"`
 	Destination     string   `json:"destination" validate:"required"`
@@ -226,40 +169,6 @@ type FrontInfo struct {
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
 	PublicOrPrivate string   `json:"public_or_private"`
-}
-
-type Response struct {
-	SummaryRoute SummaryRoute `json:"summary"`
-	Routes       []Route      `json:"routes"`
-}
-
-type SummaryRoute struct {
-	RouteOrigin      PrincipalRoute   `json:"location_origin"`
-	RouteDestination PrincipalRoute   `json:"location_destination"`
-	AllWayPoints     []PrincipalRoute `json:"all_stopping_points"`
-	FuelPrice        FuelPrice        `json:"fuel_price"`
-	FuelEfficiency   FuelEfficiency   `json:"fuel_efficiency"`
-}
-
-type PrincipalRoute struct {
-	Location Location `json:"location"`
-	Address  string   `json:"address"`
-}
-
-type Route struct {
-	Summary      Summary                `json:"summary"`
-	Costs        Costs                  `json:"costs"`
-	Tolls        []Toll                 `json:"tolls"`
-	Balanca      []Balanca              `json:"balances"`
-	GasStations  []GasStation           `json:"gas_stations"`
-	Polyline     string                 `json:"polyline"`
-	Instructions []Instructions         `json:"instructions"`
-	FreightLoad  map[string]interface{} `json:"freight_load"`
-}
-
-type Instructions struct {
-	Text string `json:"text"`
-	Img  string `json:"img"`
 }
 
 type GeocodeResult struct {
@@ -275,21 +184,6 @@ type Arrival struct {
 type ArrivalResponse struct {
 	Distance string `json:"distance"`
 	Time     string `json:"time"`
-}
-
-type PlaceRequest struct {
-	Latitude  float64 `form:"latitude" binding:"required"`
-	Longitude float64 `form:"longitude" binding:"required"`
-}
-
-type PlaceResponse struct {
-	Place maps.PlacesSearchResult `json:"place"`
-}
-
-type CreateFavoriteRouteRequest struct {
-	TollsID          int64           `json:"tolls_id"`
-	Response         json.RawMessage `json:"response"`
-	UserOrganization string          `json:"user_organization"`
 }
 
 type FreightLoad struct {
