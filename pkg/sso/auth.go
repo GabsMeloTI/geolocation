@@ -22,5 +22,4 @@ func ValidateGoogleToken(token string) (*oauth2.Tokeninfo, error) {
 	}
 
 	return tokenInfo, nil
-
 }

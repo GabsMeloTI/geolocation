@@ -136,4 +136,5 @@ type User struct {
 	Phone          sql.NullString `json:"phone"`
 	GoogleID       sql.NullString `json:"google_id"`
 	ProfilePicture sql.NullString `json:"profile_picture"`
+	Status         bool           `json:"status"`
 }

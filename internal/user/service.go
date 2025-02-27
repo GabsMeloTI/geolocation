@@ -6,13 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"geolocation/infra/token"
+	"geolocation/internal/get_token"
 	"geolocation/pkg/crypt"
 	"time"
 )
 
 type InterfaceService interface {
 	CreateUserService(ctx context.Context, data CreateUserDTO) (CreateUserResponse, error)
-	UserLogin(ctx context.Context, data LoginDTO) (LoginUserResponse, error)
+	UserLoginService(ctx context.Context, data LoginDTO) (LoginUserResponse, error)
+	DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error
+	UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error)
 }
 
 type Service struct {
@@ -57,7 +60,7 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserDTO) (Cr
 	return res, nil
 }
 
-func (s *Service) UserLogin(ctx context.Context, data LoginDTO) (LoginUserResponse, error) {
+func (s *Service) UserLoginService(ctx context.Context, data LoginDTO) (LoginUserResponse, error) {
 	result, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -93,4 +96,22 @@ func (s *Service) UserLogin(ctx context.Context, data LoginDTO) (LoginUserRespon
 		Document:       result.Document.String,
 		Token:          tokenStr,
 	}, nil
+}
+
+func (s *Service) DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error {
+	err := s.InterfaceService.DeleteUserByIdRepository(ctx, payload.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error) {
+	u, err := s.InterfaceService.UpdateUserByIdRepository(ctx, data.ParseToUpdateUserByIdParams())
+
+	if err != nil {
+		return UpdateUserResponse{}, err
+	}
+
+	return data.ParseToUpdateUserResponse(u), nil
 }

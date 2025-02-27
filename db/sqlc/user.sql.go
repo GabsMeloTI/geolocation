@@ -12,9 +12,9 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users
-(name, email, password, google_id, profile_picture)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture
+(name, email, password, google_id, profile_picture, status)
+VALUES ($1, $2, $3, $4, $5, true)
+RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
 `
 
 type CreateUserParams struct {
@@ -51,12 +51,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Phone,
 		&i.GoogleID,
 		&i.ProfilePicture,
+		&i.Status,
 	)
 	return i, err
 }
 
+const deleteUserById = `-- name: DeleteUserById :exec
+UPDATE users SET status = false WHERE id = $1
+`
+
+func (q *Queries) DeleteUserById(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserById, id)
+	return err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture FROM users WHERE email = $1
+SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -79,6 +89,70 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Phone,
 		&i.GoogleID,
 		&i.ProfilePicture,
+		&i.Status,
+	)
+	return i, err
+}
+
+const updateUserById = `-- name: UpdateUserById :one
+UPDATE users
+SET name = $1,
+    profile_picture = $2,
+    state = $3,
+    city = $4,
+    neighborhood = $5,
+    street = $6,
+    street_number = $7,
+    phone = $8,
+    updated_at = now()
+
+WHERE id = $9
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
+`
+
+type UpdateUserByIdParams struct {
+	Name           string         `json:"name"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
+	State          sql.NullString `json:"state"`
+	City           sql.NullString `json:"city"`
+	Neighborhood   sql.NullString `json:"neighborhood"`
+	Street         sql.NullString `json:"street"`
+	StreetNumber   sql.NullString `json:"street_number"`
+	Phone          sql.NullString `json:"phone"`
+	ID             int64          `json:"id"`
+}
+
+func (q *Queries) UpdateUserById(ctx context.Context, arg UpdateUserByIdParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserById,
+		arg.Name,
+		arg.ProfilePicture,
+		arg.State,
+		arg.City,
+		arg.Neighborhood,
+		arg.Street,
+		arg.StreetNumber,
+		arg.Phone,
+		arg.ID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
 	)
 	return i, err
 }
