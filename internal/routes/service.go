@@ -1142,7 +1142,7 @@ func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float6
 	grouped := make(map[string][]FreightLoad)
 	for _, result := range results {
 		var fl FreightLoad
-		fl.ParseFromNcmObject(result)
+		fl.ParseFromFreightObject(result)
 		grouped[fl.Name] = append(grouped[fl.Name], fl)
 	}
 
