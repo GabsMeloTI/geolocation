@@ -117,10 +117,10 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 	}.Encode()
 
 	osrmURLEfficient := baseOSRMURL + "?" + url.Values{
-		"alternatives":      {"3"},
-		"steps":             {"true"},
-		"overview":          {"full"},
-		"continue_straight": {"true"},
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"motorway"},
 	}.Encode()
 
 	type osrmResult struct {
