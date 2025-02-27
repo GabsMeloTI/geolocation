@@ -10,6 +10,34 @@ import (
 	"time"
 )
 
+type Announcement struct {
+	ID                 int64        `json:"id"`
+	Destination        string       `json:"destination"`
+	Origin             string       `json:"origin"`
+	DestinationLat     string       `json:"destination_lat"`
+	DestinationLng     string       `json:"destination_lng"`
+	OriginLat          string       `json:"origin_lat"`
+	OriginLng          string       `json:"origin_lng"`
+	Description        string       `json:"description"`
+	CargoDescription   string       `json:"cargo_description"`
+	PaymentDescription string       `json:"payment_description"`
+	DeliveryDate       time.Time    `json:"delivery_date"`
+	PickupDate         time.Time    `json:"pickup_date"`
+	DeadlineDate       time.Time    `json:"deadline_date"`
+	Price              string       `json:"price"`
+	Vehicle            string       `json:"vehicle"`
+	BodyType           string       `json:"body_type"`
+	Kilometers         string       `json:"kilometers"`
+	CargoNature        string       `json:"cargo_nature"`
+	CargoType          string       `json:"cargo_type"`
+	CargoWeight        string       `json:"cargo_weight"`
+	Tracking           bool         `json:"tracking"`
+	RequiresTarp       bool         `json:"requires_tarp"`
+	Status             bool         `json:"status"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          sql.NullTime `json:"updated_at"`
+}
+
 type Balanca struct {
 	ID             int64  `json:"id"`
 	Concessionaria string `json:"concessionaria"`

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
+	"geolocation/internal/announcement"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	new_routes "geolocation/internal/new_routes"
@@ -13,25 +14,28 @@ import (
 )
 
 type ContainerDI struct {
-	Config                Config
-	ConnDB                *sql.DB
-	HandlerRoutes         *routes.Handler
-	ServiceRoutes         *routes.Service
-	RepositoryRoutes      *routes.Repository
-	HandlerNewRoutes      *new_routes.Handler
-	ServiceNewRoutes      *new_routes.Service
-	HandlerHist           *hist.Handler
-	ServiceHist           *hist.Service
-	RepositoryHist        *hist.Repository
-	HandlerDriver         *drivers.Handler
-	ServiceDriver         *drivers.Service
-	RepositoryDriver      *drivers.Repository
-	HandlerTractorUnit    *tractor_unit.Handler
-	ServiceTractorUnit    *tractor_unit.Service
-	RepositoryTractorUnit *tractor_unit.Repository
-	HandlerTrailer        *trailer.Handler
-	ServiceTrailer        *trailer.Service
-	RepositoryTrailer     *trailer.Repository
+	Config                 Config
+	ConnDB                 *sql.DB
+	HandlerRoutes          *routes.Handler
+	ServiceRoutes          *routes.Service
+	RepositoryRoutes       *routes.Repository
+	HandlerNewRoutes       *new_routes.Handler
+	ServiceNewRoutes       *new_routes.Service
+	HandlerHist            *hist.Handler
+	ServiceHist            *hist.Service
+	RepositoryHist         *hist.Repository
+	HandlerDriver          *drivers.Handler
+	ServiceDriver          *drivers.Service
+	RepositoryDriver       *drivers.Repository
+	HandlerTractorUnit     *tractor_unit.Handler
+	ServiceTractorUnit     *tractor_unit.Service
+	RepositoryTractorUnit  *tractor_unit.Repository
+	HandlerTrailer         *trailer.Handler
+	ServiceTrailer         *trailer.Service
+	RepositoryTrailer      *trailer.Repository
+	HandlerAnnouncement    *announcement.Handler
+	ServiceAnnouncement    *announcement.Service
+	RepositoryAnnouncement *announcement.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -63,6 +67,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryDriver = drivers.NewDriversRepository(c.ConnDB)
 	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
+	c.RepositoryAnnouncement = announcement.NewAnnouncementsRepository(c.ConnDB)
 
 }
 
@@ -73,6 +78,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceDriver = drivers.NewDriversService(c.RepositoryDriver)
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
+	c.ServiceAnnouncement = announcement.NewAnnouncementsService(c.RepositoryAnnouncement)
 
 }
 
@@ -83,4 +89,6 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerDriver = drivers.NewDriversHandler(c.ServiceDriver)
 	c.HandlerTractorUnit = tractor_unit.NewTractorUnitsHandler(c.ServiceTractorUnit)
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
+	c.HandlerAnnouncement = announcement.NewAnnouncementHandler(c.ServiceAnnouncement)
+
 }
