@@ -6,6 +6,8 @@ import (
 	db "geolocation/db/sqlc"
 	"google.golang.org/api/oauth2/v2"
 	"net/mail"
+	"regexp"
+	"unicode"
 )
 
 type CreateUserRequest struct {
@@ -31,6 +33,31 @@ func (u CreateUserDTO) Validate() error {
 		if u.Request.Password != u.Request.ConfirmPassword {
 			return errors.New("password does not match")
 		}
+
+		if len(u.Request.Password) < 8 {
+			return errors.New("password must have at least one uppercase letter, one number and one special character")
+		}
+
+		var hasUpper, hasDigit, hasSpecial bool
+
+		for _, c := range u.Request.Password {
+			switch {
+
+			case unicode.IsUpper(c):
+				hasUpper = true
+			case unicode.IsDigit(c):
+				hasDigit = true
+			}
+		}
+
+		specialCharRegex := regexp.MustCompile(`[!@#$%^&*()\-_=+\[\]{}|;:'",.<>?/\\` + "`~]")
+
+		hasSpecial = specialCharRegex.MatchString(u.Request.Password)
+
+		if !hasUpper || !hasDigit || !hasSpecial {
+			return errors.New("password must have at least one uppercase letter, one number and one special character")
+		}
+
 	}
 
 	return nil
