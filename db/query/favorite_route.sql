@@ -1,6 +1,6 @@
 -- name: CreateFavoriteRoute :one
 INSERT INTO public.favorite_route
-(id, id_token_hist, origin, destination, waypoints, response, created_who, created_at)
+(id, id_user, origin, destination, waypoints, response, created_who, created_at)
 VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, $6, now())
     RETURNING *;
 
@@ -8,4 +8,4 @@ VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, $6, now()
 DELETE
 FROM public.favorite_route
 WHERE id = $1 AND
-      id_token_hist = $2;
+    id_user = $2;

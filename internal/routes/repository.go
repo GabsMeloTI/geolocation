@@ -22,6 +22,8 @@ type InterfaceRepository interface {
 	CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error)
 	GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error)
 	GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error)
+	GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error)
+	UpdateNumberOfRequestRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
 }
 
 type Repository struct {
@@ -82,4 +84,10 @@ func (r *Repository) GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, e
 }
 func (r *Repository) GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error) {
 	return r.Queries.GetGasStationsByBoundingBox(ctx, arg)
+}
+func (r *Repository) UpdateNumberOfRequestRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error {
+	return r.Queries.UpdateNumberOfRequest(ctx, arg)
+}
+func (r *Repository) GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error) {
+	return r.Queries.GetRouteHistByUnique(ctx, arg)
 }

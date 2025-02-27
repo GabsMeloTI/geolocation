@@ -13,36 +13,98 @@ import (
 
 const createRouteHist = `-- name: CreateRouteHist :one
 INSERT INTO public.route_hist
-(id, id_token_hist, origin, destination, waypoints, response, created_at)
-VALUES(nextval('route_hist_id_seq'::regclass), $1, $2, $3, $4, $5, now())
-    RETURNING id, id_token_hist, origin, destination, waypoints, response, created_at
+(id, id_user, origin, destination, waypoints, response, is_public, number_request, created_at)
+VALUES(nextval('route_hist_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7,now())
+    RETURNING id, id_user, origin, destination, waypoints, response, is_public, number_request, created_at
 `
 
 type CreateRouteHistParams struct {
-	IDTokenHist int64           `json:"id_token_hist"`
-	Origin      string          `json:"origin"`
-	Destination string          `json:"destination"`
-	Waypoints   sql.NullString  `json:"waypoints"`
-	Response    json.RawMessage `json:"response"`
+	IDUser        int64           `json:"id_user"`
+	Origin        string          `json:"origin"`
+	Destination   string          `json:"destination"`
+	Waypoints     sql.NullString  `json:"waypoints"`
+	Response      json.RawMessage `json:"response"`
+	IsPublic      bool            `json:"is_public"`
+	NumberRequest int64           `json:"number_request"`
 }
 
 func (q *Queries) CreateRouteHist(ctx context.Context, arg CreateRouteHistParams) (RouteHist, error) {
 	row := q.db.QueryRowContext(ctx, createRouteHist,
-		arg.IDTokenHist,
+		arg.IDUser,
 		arg.Origin,
 		arg.Destination,
 		arg.Waypoints,
 		arg.Response,
+		arg.IsPublic,
+		arg.NumberRequest,
 	)
 	var i RouteHist
 	err := row.Scan(
 		&i.ID,
-		&i.IDTokenHist,
+		&i.IDUser,
 		&i.Origin,
 		&i.Destination,
 		&i.Waypoints,
 		&i.Response,
+		&i.IsPublic,
+		&i.NumberRequest,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getRouteHistByUnique = `-- name: GetRouteHistByUnique :one
+SELECT id, id_user, origin, destination, waypoints, response, is_public, number_request, created_at
+FROM route_hist
+WHERE id_user = $1
+  AND origin = $2
+  AND destination = $3
+  AND waypoints = $4
+  AND is_public = $5
+    LIMIT 1
+`
+
+type GetRouteHistByUniqueParams struct {
+	IDUser      int64          `json:"id_user"`
+	Origin      string         `json:"origin"`
+	Destination string         `json:"destination"`
+	Waypoints   sql.NullString `json:"waypoints"`
+	IsPublic    bool           `json:"is_public"`
+}
+
+func (q *Queries) GetRouteHistByUnique(ctx context.Context, arg GetRouteHistByUniqueParams) (RouteHist, error) {
+	row := q.db.QueryRowContext(ctx, getRouteHistByUnique,
+		arg.IDUser,
+		arg.Origin,
+		arg.Destination,
+		arg.Waypoints,
+		arg.IsPublic,
+	)
+	var i RouteHist
+	err := row.Scan(
+		&i.ID,
+		&i.IDUser,
+		&i.Origin,
+		&i.Destination,
+		&i.Waypoints,
+		&i.Response,
+		&i.IsPublic,
+		&i.NumberRequest,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateRouteHistCount = `-- name: UpdateRouteHistCount :one
+UPDATE route_hist
+SET number_request = number_request + 1
+WHERE id = $1
+    RETURNING number_request
+`
+
+func (q *Queries) UpdateRouteHistCount(ctx context.Context, id int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, updateRouteHistCount, id)
+	var number_request int64
+	err := row.Scan(&number_request)
+	return number_request, err
 }

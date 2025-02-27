@@ -391,37 +391,74 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 		idTokenHist = IdUser
 	}
 
-	if strings.ToLower(PublicOrPrivate) == "public" {
-		_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
-			IDTokenHist: idTokenHist,
-			Origin:      origin,
-			Destination: destination,
-			Waypoints: sql.NullString{
-				String: waypoints,
-				Valid:  true,
-			},
-			Response: responseJSON,
-		})
-		if err != nil {
+	isPublic := strings.ToLower(PublicOrPrivate) == "public"
+
+	existingRoute, err := s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
+		IDUser:      idTokenHist,
+		Origin:      origin,
+		Destination: destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		IsPublic: isPublic,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+				IDUser:      idTokenHist,
+				Origin:      origin,
+				Destination: destination,
+				Waypoints: sql.NullString{
+					String: waypoints,
+					Valid:  true,
+				},
+				Response:      responseJSON,
+				IsPublic:      isPublic,
+				NumberRequest: 1,
+			})
+			if err != nil {
+				if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+					existingRoute, err = s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
+						IDUser:      idTokenHist,
+						Origin:      origin,
+						Destination: destination,
+						Waypoints: sql.NullString{
+							String: waypoints,
+							Valid:  true,
+						},
+						IsPublic: isPublic,
+					})
+					if err != nil {
+						return err
+					}
+					newCount := existingRoute.NumberRequest + 1
+					err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
+						ID:            existingRoute.ID,
+						NumberRequest: newCount,
+					})
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			}
+		} else {
 			return err
 		}
 	} else {
-		_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
-			IDTokenHist: idTokenHist,
-			Origin:      origin,
-			Destination: destination,
-			Waypoints: sql.NullString{
-				String: waypoints,
-				Valid:  true,
-			},
-			Response: responseJSON,
+		newCount := existingRoute.NumberRequest + 1
+		err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
+			ID:            existingRoute.ID,
+			NumberRequest: newCount,
 		})
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
 		Origin:      origin,
 		Destination: destination,
 		Waypoints: sql.NullString{
@@ -433,12 +470,14 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 		ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
 	})
 	if err != nil {
-		return err
+		if !strings.Contains(err.Error(), `duplicate key value violates unique constraint "idx_saved_routes_unique"`) {
+			return err
+		}
 	}
 
 	if favorite {
 		_, err := s.InterfaceService.CreateFavoriteRoute(ctx, db.CreateFavoriteRouteParams{
-			IDTokenHist: idTokenHist,
+			IDUser:      idTokenHist,
 			Origin:      origin,
 			Destination: destination,
 			Waypoints: sql.NullString{
@@ -448,7 +487,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 			Response: responseJSON,
 		})
 		if err != nil {
-			log.Printf("Erro ao calcular favorite route: %v", err)
+			log.Printf("Erro ao salvar rota favorita: %v", err)
 		}
 	}
 

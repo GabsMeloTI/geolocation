@@ -40,7 +40,6 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 		return "", fmt.Errorf("falha ao verificar token no histórico: %w", err)
 	}
 
-	// Se o ID for 0, assumimos que o registro não existe
 	if tokenHist.ID != 0 {
 		if tokenHist.ExpritedAt.After(now) {
 			return "", errors.New("Token já gerado para este IP")

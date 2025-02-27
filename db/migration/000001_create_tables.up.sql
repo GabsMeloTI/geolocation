@@ -77,9 +77,6 @@ CREATE TABLE saved_routes (
 CREATE UNIQUE INDEX idx_saved_routes_unique ON saved_routes(origin, destination, waypoints);
 
 
-
-
-
 CREATE TABLE public.token_hist (
                                    id bigserial NOT NULL,
                                    ip varchar(30) NOT NULL,
@@ -91,23 +88,19 @@ CREATE TABLE public.token_hist (
 
 CREATE TABLE public.route_hist (
                                    id bigserial PRIMARY KEY,
-                                   id_token_hist bigint not null,
+                                   id_user bigint not null,
                                    origin TEXT NOT NULL,
                                    destination TEXT NOT NULL,
                                    waypoints TEXT NULL,
                                    response JSONB NOT NULL,
+                                   is_public BOOL NOT NULL,
+                                   number_request bigint NOT NULL,
                                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-ALTER TABLE route_hist
-    ADD CONSTRAINT "fk_token_hist"
-    FOREIGN KEY ("id_token_hist")
-    REFERENCES token_hist ("id");
-
-CREATE UNIQUE INDEX idx_route_hist_unique ON route_hist(origin, destination, waypoints, id_token_hist);
 
 create table favorite_route (
                                 id BIGSERIAL PRIMARY KEY,
-                                id_token_hist BIGSERIAL NOT NULL,
+                                id_user BIGSERIAL NOT NULL,
                                 origin TEXT NOT NULL,
                                 destination TEXT NOT NULL,
                                 waypoints TEXT NULL,
@@ -115,10 +108,4 @@ create table favorite_route (
                                 created_who varchar not null,
                                 created_at timestamp not null default now()
 );
-ALTER TABLE favorite_route
-    ADD CONSTRAINT "fk_token_hist"
-    FOREIGN KEY ("id_token_hist")
-    REFERENCES token_hist ("id");
-
-CREATE UNIQUE INDEX idx_favorite_route_unique ON favorite_route(origin, destination, waypoints, id_token_hist);
 

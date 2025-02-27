@@ -13,13 +13,13 @@ import (
 
 const createFavoriteRoute = `-- name: CreateFavoriteRoute :one
 INSERT INTO public.favorite_route
-(id, id_token_hist, origin, destination, waypoints, response, created_who, created_at)
+(id, id_user, origin, destination, waypoints, response, created_who, created_at)
 VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, $6, now())
-    RETURNING id, id_token_hist, origin, destination, waypoints, response, created_who, created_at
+    RETURNING id, id_user, origin, destination, waypoints, response, created_who, created_at
 `
 
 type CreateFavoriteRouteParams struct {
-	IDTokenHist int64           `json:"id_token_hist"`
+	IDUser      int64           `json:"id_user"`
 	Origin      string          `json:"origin"`
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
@@ -29,7 +29,7 @@ type CreateFavoriteRouteParams struct {
 
 func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRouteParams) (FavoriteRoute, error) {
 	row := q.db.QueryRowContext(ctx, createFavoriteRoute,
-		arg.IDTokenHist,
+		arg.IDUser,
 		arg.Origin,
 		arg.Destination,
 		arg.Waypoints,
@@ -39,7 +39,7 @@ func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRou
 	var i FavoriteRoute
 	err := row.Scan(
 		&i.ID,
-		&i.IDTokenHist,
+		&i.IDUser,
 		&i.Origin,
 		&i.Destination,
 		&i.Waypoints,
@@ -54,15 +54,15 @@ const removeFavorite = `-- name: RemoveFavorite :exec
 DELETE
 FROM public.favorite_route
 WHERE id = $1 AND
-      id_token_hist = $2
+    id_user = $2
 `
 
 type RemoveFavoriteParams struct {
-	ID          int64 `json:"id"`
-	IDTokenHist int64 `json:"id_token_hist"`
+	ID     int64 `json:"id"`
+	IDUser int64 `json:"id_user"`
 }
 
 func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) error {
-	_, err := q.db.ExecContext(ctx, removeFavorite, arg.ID, arg.IDTokenHist)
+	_, err := q.db.ExecContext(ctx, removeFavorite, arg.ID, arg.IDUser)
 	return err
 }

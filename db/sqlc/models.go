@@ -24,7 +24,7 @@ type Balanca struct {
 
 type FavoriteRoute struct {
 	ID          int64           `json:"id"`
-	IDTokenHist int64           `json:"id_token_hist"`
+	IDUser      int64           `json:"id_user"`
 	Origin      string          `json:"origin"`
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
@@ -57,13 +57,15 @@ type GasStation struct {
 }
 
 type RouteHist struct {
-	ID          int64           `json:"id"`
-	IDTokenHist int64           `json:"id_token_hist"`
-	Origin      string          `json:"origin"`
-	Destination string          `json:"destination"`
-	Waypoints   sql.NullString  `json:"waypoints"`
-	Response    json.RawMessage `json:"response"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID            int64           `json:"id"`
+	IDUser        int64           `json:"id_user"`
+	Origin        string          `json:"origin"`
+	Destination   string          `json:"destination"`
+	Waypoints     sql.NullString  `json:"waypoints"`
+	Response      json.RawMessage `json:"response"`
+	IsPublic      bool            `json:"is_public"`
+	NumberRequest int64           `json:"number_request"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
 type SavedRoute struct {
