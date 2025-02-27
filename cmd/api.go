@@ -41,5 +41,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/check-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.GET("/public/:ip", container.HandlerHist.GetPublicToken)
 
+	e.POST("/create-user", container.UserHandler.CreateUser)
+	e.POST("/login", container.UserHandler.UserLogin)
+
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
