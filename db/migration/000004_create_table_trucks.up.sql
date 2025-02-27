@@ -36,3 +36,14 @@ CREATE TABLE trailer (
                          CONSTRAINT fk_user
                              FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+
+CREATE TABLE truck (
+                          id BIGINT PRIMARY KEY,
+                          tractor_unit_id BIGINT NOT NULL,
+                          trailer_id  BIGINT,
+                          driver_id BIGINT NOT NULL,
+                          CONSTRAINT fk_tractor_unit FOREIGN KEY (tractor_unit_id) REFERENCES tractor_unit(id),
+                          CONSTRAINT fk_trailer FOREIGN KEY (trailer_id) REFERENCES trailer(id),
+                          CONSTRAINT fk_driver FOREIGN KEY (driver_id) REFERENCES driver(id)
+);

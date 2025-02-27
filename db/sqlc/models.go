@@ -173,6 +173,13 @@ type Trailer struct {
 	UpdatedAt    sql.NullTime    `json:"updated_at"`
 }
 
+type Truck struct {
+	ID            int64         `json:"id"`
+	TractorUnitID int64         `json:"tractor_unit_id"`
+	TrailerID     sql.NullInt64 `json:"trailer_id"`
+	DriverID      int64         `json:"driver_id"`
+}
+
 type User struct {
 	ID             int64          `json:"id"`
 	Name           string         `json:"name"`
