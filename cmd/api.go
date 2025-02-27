@@ -45,9 +45,10 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/login", container.UserHandler.UserLogin)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
-
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
+
+	e.GET("/ws", container.WsHandler.HandleWs)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

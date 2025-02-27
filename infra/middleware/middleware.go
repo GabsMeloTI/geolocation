@@ -91,3 +91,30 @@ func CheckUserAuthorization(handlerFunc echo.HandlerFunc) echo.HandlerFunc {
 		return handlerFunc(c)
 	}
 }
+
+func CheckUserWsAuthorization(handlerFunc echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tokenStr := c.QueryParam("token")
+
+		maker, err := token.NewPasetoMaker(os.Getenv("SIGNATURE_STRING"))
+		if err != nil {
+			return c.JSON(http.StatusBadGateway, err.Error())
+		}
+
+		tokenPayload, err := maker.VerifyTokenUser(tokenStr)
+
+		if err != nil {
+			return c.JSON(http.StatusBadGateway, err.Error())
+		}
+
+		c.Set("token_id", tokenPayload.ID)
+		c.Set("token_user_name", tokenPayload.Name)
+		c.Set("token_user_email", tokenPayload.Email)
+		c.Set("token_expire_at", tokenPayload.ExpireAt)
+		c.Set("token_document", tokenPayload.Document)
+		c.Set("token_google_id", tokenPayload.GoogleID)
+		c.Set("token_profile_id", tokenPayload.ProfileID)
+
+		return handlerFunc(c)
+	}
+}

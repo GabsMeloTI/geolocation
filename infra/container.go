@@ -8,6 +8,7 @@ import (
 	new_routes "geolocation/internal/new_routes"
 	"geolocation/internal/routes"
 	"geolocation/internal/user"
+	"geolocation/internal/ws"
 )
 
 type ContainerDI struct {
@@ -24,6 +25,7 @@ type ContainerDI struct {
 	UserHandler      *user.Handler
 	UserService      *user.Service
 	UserRepository   *user.Repository
+	WsHandler        *ws.Handler
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -67,4 +69,8 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerNewRoutes = new_routes.NewRoutesNewHandler(c.ServiceNewRoutes)
 	c.HandlerHist = hist.NewHistHandler(c.ServiceHist)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
+	hub := ws.NewHub()
+	c.WsHandler = ws.NewWsHandler(hub)
+	go hub.Run()
+
 }
