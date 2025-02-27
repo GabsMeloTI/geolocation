@@ -35,12 +35,28 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
-	e.POST("/check-route-tolls-public", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
+	user := e.Group("/driver")
+	user.POST("/create", container.HandlerDriver.CreateDriverHandler)
+	user.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
+	user.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
 
+	trailer := e.Group("/trailer")
+	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
+	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
+	trailer.PUT("/delete/:id", container.HandlerTrailer.DeleteTrailerHandler)
+
+	tractorUnit := e.Group("/tractor-unit")
+	tractorUnit.POST("/create", container.HandlerTractorUnit.CreateTractorUnitHandler)
+	tractorUnit.PUT("/update", container.HandlerTractorUnit.UpdateTractorUnitHandler)
+	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
+	
+	public := e.Group("/public")
+	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
+
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-	e.GET("/public/:ip", container.HandlerHist.GetPublicToken)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

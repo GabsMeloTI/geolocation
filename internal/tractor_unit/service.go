@@ -1,0 +1,73 @@
+package tractor_unit
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+)
+
+type InterfaceService interface {
+	CreateTractorUnitService(ctx context.Context, data CreateTractorUnitRequest) (TractorUnitResponse, error)
+	UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitRequest) (TractorUnitResponse, error)
+	DeleteTractorUnitService(ctx context.Context, id int64) error
+}
+
+type Service struct {
+	InterfaceService InterfaceRepository
+}
+
+func NewTractorUnitsService(InterfaceService InterfaceRepository) *Service {
+	return &Service{InterfaceService}
+}
+
+func (p *Service) CreateTractorUnitService(ctx context.Context, data CreateTractorUnitRequest) (TractorUnitResponse, error) {
+	arg := data.ParseCreateToTractorUnit()
+
+	result, err := p.InterfaceService.CreateTractorUnit(ctx, arg)
+	if err != nil {
+		return TractorUnitResponse{}, err
+	}
+
+	createTractorUnitService := TractorUnitResponse{}
+	createTractorUnitService.ParseFromTractorUnitObject(result)
+
+	return createTractorUnitService, nil
+}
+
+func (p *Service) UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitRequest) (TractorUnitResponse, error) {
+	_, err := p.InterfaceService.GetTractorUnitById(ctx, data.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TractorUnitResponse{}, errors.New("driver not found")
+	}
+	if err != nil {
+		return TractorUnitResponse{}, err
+	}
+
+	arg := data.ParseUpdateToTractorUnit()
+
+	result, err := p.InterfaceService.UpdateTractorUnit(ctx, arg)
+	if err != nil {
+		return TractorUnitResponse{}, err
+	}
+
+	updateTractorUnitService := TractorUnitResponse{}
+	updateTractorUnitService.ParseFromTractorUnitObject(result)
+
+	return updateTractorUnitService, nil
+}
+
+func (p *Service) DeleteTractorUnitService(ctx context.Context, id int64) error {
+	_, err := p.InterfaceService.GetTractorUnitById(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return errors.New("driver not found")
+	}
+	if err != nil {
+		return err
+	}
+
+	err = p.InterfaceService.DeleteTractorUnit(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

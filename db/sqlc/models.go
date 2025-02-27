@@ -22,6 +22,25 @@ type Balanca struct {
 	Uf             string `json:"uf"`
 }
 
+type Driver struct {
+	ID                    int64          `json:"id"`
+	UserID                int64          `json:"user_id"`
+	BirthDate             time.Time      `json:"birth_date"`
+	Cpf                   string         `json:"cpf"`
+	LicenseNumber         string         `json:"license_number"`
+	LicenseCategory       string         `json:"license_category"`
+	LicenseExpirationDate time.Time      `json:"license_expiration_date"`
+	State                 sql.NullString `json:"state"`
+	City                  sql.NullString `json:"city"`
+	Neighborhood          sql.NullString `json:"neighborhood"`
+	Street                sql.NullString `json:"street"`
+	StreetNumber          sql.NullString `json:"street_number"`
+	Phone                 string         `json:"phone"`
+	Status                bool           `json:"status"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             sql.NullTime   `json:"updated_at"`
+}
+
 type FavoriteRoute struct {
 	ID          int64           `json:"id"`
 	IDUser      int64           `json:"id_user"`
@@ -54,6 +73,11 @@ type GasStation struct {
 	AddressName   string `json:"address_name"`
 	Municipio     string `json:"municipio"`
 	SpecificPoint string `json:"specific_point"`
+}
+
+type Profile struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 type RouteHist struct {
@@ -114,4 +138,56 @@ type TollTag struct {
 	ID                int64  `json:"id"`
 	Name              string `json:"name"`
 	DealershipAccepts string `json:"dealership_accepts"`
+}
+
+type TractorUnit struct {
+	ID              int64           `json:"id"`
+	LicensePlate    string          `json:"license_plate"`
+	DriverID        int64           `json:"driver_id"`
+	UserID          int64           `json:"user_id"`
+	Chassis         string          `json:"chassis"`
+	Brand           string          `json:"brand"`
+	Model           string          `json:"model"`
+	ManufactureYear sql.NullInt32   `json:"manufacture_year"`
+	EnginePower     sql.NullString  `json:"engine_power"`
+	UnitType        sql.NullString  `json:"unit_type"`
+	CanCouple       sql.NullBool    `json:"can_couple"`
+	Height          sql.NullFloat64 `json:"height"`
+	Status          bool            `json:"status"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       sql.NullTime    `json:"updated_at"`
+}
+
+type Trailer struct {
+	ID           int64           `json:"id"`
+	LicensePlate string          `json:"license_plate"`
+	UserID       int64           `json:"user_id"`
+	Chassis      string          `json:"chassis"`
+	BodyType     sql.NullString  `json:"body_type"`
+	LoadCapacity sql.NullFloat64 `json:"load_capacity"`
+	Length       sql.NullFloat64 `json:"length"`
+	Width        sql.NullFloat64 `json:"width"`
+	Height       sql.NullFloat64 `json:"height"`
+	Status       bool            `json:"status"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    sql.NullTime    `json:"updated_at"`
+}
+
+type User struct {
+	ID             int64          `json:"id"`
+	Name           string         `json:"name"`
+	Email          string         `json:"email"`
+	Password       sql.NullString `json:"password"`
+	CreatedAt      sql.NullTime   `json:"created_at"`
+	UpdatedAt      sql.NullTime   `json:"updated_at"`
+	ProfileID      sql.NullInt64  `json:"profile_id"`
+	Document       sql.NullString `json:"document"`
+	State          sql.NullString `json:"state"`
+	City           sql.NullString `json:"city"`
+	Neighborhood   sql.NullString `json:"neighborhood"`
+	Street         sql.NullString `json:"street"`
+	StreetNumber   sql.NullString `json:"street_number"`
+	Phone          sql.NullString `json:"phone"`
+	GoogleID       sql.NullString `json:"google_id"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
 }
