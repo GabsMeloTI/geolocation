@@ -169,6 +169,7 @@ type FrontInfo struct {
 	Waypoints       []string `json:"waypoints"`
 	TypeRoute       string   `json:"typeRoute"`
 	PublicOrPrivate string   `json:"public_or_private"`
+	Favorite        bool     `json:"favorite"`
 }
 
 type GeocodeResult struct {

@@ -7,40 +7,62 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
 const createFavoriteRoute = `-- name: CreateFavoriteRoute :one
 INSERT INTO public.favorite_route
-(id, tolls_id, response, user_organization, created_who, created_at)
-VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, now())
-    RETURNING id, tolls_id, response, user_organization, created_who, created_at, updated_who, updated_at
+(id, id_token_hist, origin, destination, waypoints, response, created_who, created_at)
+VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, $6, now())
+    RETURNING id, id_token_hist, origin, destination, waypoints, response, created_who, created_at
 `
 
 type CreateFavoriteRouteParams struct {
-	TollsID          int64           `json:"tolls_id"`
-	Response         json.RawMessage `json:"response"`
-	UserOrganization string          `json:"user_organization"`
-	CreatedWho       string          `json:"created_who"`
+	IDTokenHist int64           `json:"id_token_hist"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedWho  string          `json:"created_who"`
 }
 
 func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRouteParams) (FavoriteRoute, error) {
 	row := q.db.QueryRowContext(ctx, createFavoriteRoute,
-		arg.TollsID,
+		arg.IDTokenHist,
+		arg.Origin,
+		arg.Destination,
+		arg.Waypoints,
 		arg.Response,
-		arg.UserOrganization,
 		arg.CreatedWho,
 	)
 	var i FavoriteRoute
 	err := row.Scan(
 		&i.ID,
-		&i.TollsID,
+		&i.IDTokenHist,
+		&i.Origin,
+		&i.Destination,
+		&i.Waypoints,
 		&i.Response,
-		&i.UserOrganization,
 		&i.CreatedWho,
 		&i.CreatedAt,
-		&i.UpdatedWho,
-		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const removeFavorite = `-- name: RemoveFavorite :exec
+DELETE
+FROM public.favorite_route
+WHERE id = $1 AND
+      id_token_hist = $2
+`
+
+type RemoveFavoriteParams struct {
+	ID          int64 `json:"id"`
+	IDTokenHist int64 `json:"id_token_hist"`
+}
+
+func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) error {
+	_, err := q.db.ExecContext(ctx, removeFavorite, arg.ID, arg.IDTokenHist)
+	return err
 }

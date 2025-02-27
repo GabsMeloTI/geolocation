@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,7 +24,7 @@ import (
 )
 
 type InterfaceService interface {
-	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id int64) (FinalOutput, error)
+	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
 }
 
 type Service struct {
@@ -38,9 +39,9 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, googleMaps
 	}
 }
 
-func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id int64) (FinalOutput, error) {
-	if frontInfo.PublicOrPrivate == "public" {
-		if err := s.updateNumberOfRequest(ctx, id); err != nil {
+func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error) {
+	if strings.ToLower(frontInfo.PublicOrPrivate) == "public" {
+		if err := s.updateNumberOfRequest(ctx, idPublicToken); err != nil {
 			return FinalOutput{}, err
 		}
 	}
@@ -50,10 +51,22 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		strings.ToLower(frontInfo.Destination),
 		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
 	)
+
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
+			waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+			responseJSON, _ := json.Marshal(cachedOutput)
+			requestJSON, _ := json.Marshal(frontInfo)
+
+			errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+				cachedOutput.Summary.LocationOrigin.Address,
+				cachedOutput.Summary.LocationDestination.Address,
+				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+			if errSavedRoutes != nil {
+				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+			}
 			return cachedOutput, nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
@@ -356,7 +369,90 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
+	waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+	responseJSON, _ := json.Marshal(finalOutput)
+	requestJSON, _ := json.Marshal(frontInfo)
+
+	errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+		origin.FormattedAddress, destination.FormattedAddress,
+		waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+	if errSavedRoutes != nil {
+		return FinalOutput{}, errSavedRoutes
+	}
+
 	return finalOutput, nil
+}
+
+func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) error {
+	var idTokenHist int64
+	if strings.ToLower(PublicOrPrivate) == "public" {
+		idTokenHist = idPublicToken
+	} else {
+		idTokenHist = IdUser
+	}
+
+	if strings.ToLower(PublicOrPrivate) == "public" {
+		_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+			IDTokenHist: idTokenHist,
+			Origin:      origin,
+			Destination: destination,
+			Waypoints: sql.NullString{
+				String: waypoints,
+				Valid:  true,
+			},
+			Response: responseJSON,
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+			IDTokenHist: idTokenHist,
+			Origin:      origin,
+			Destination: destination,
+			Waypoints: sql.NullString{
+				String: waypoints,
+				Valid:  true,
+			},
+			Response: responseJSON,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err := s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+		Origin:      origin,
+		Destination: destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		Request:   requestJSON,
+		Response:  responseJSON,
+		ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
+	})
+	if err != nil {
+		return err
+	}
+
+	if favorite {
+		_, err := s.InterfaceService.CreateFavoriteRoute(ctx, db.CreateFavoriteRouteParams{
+			IDTokenHist: idTokenHist,
+			Origin:      origin,
+			Destination: destination,
+			Waypoints: sql.NullString{
+				String: waypoints,
+				Valid:  true,
+			},
+			Response: responseJSON,
+		})
+		if err != nil {
+			log.Printf("Erro ao calcular favorite route: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float64) (map[string]interface{}, error) {
@@ -966,20 +1062,24 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 }
 
 func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return errors.New("ID inválido")
+	}
+
 	result, err := s.InterfaceService.GetTokenHist(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("falha ao obter token do histórico: %w", err)
 	}
 	number := result.NumberRequest + 1
-	if number > 5 {
-		return errors.New("you have reached the limit of requests per day")
+	if number > 2 {
+		return errors.New("você atingiu o limite de requisições por dia")
 	}
 	err = s.InterfaceService.UpdateNumberOfRequest(ctx, db.UpdateNumberOfRequestParams{
 		NumberRequest: number,
 		ID:            id,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("falha ao atualizar número de requisições: %w", err)
 	}
 	return nil
 }

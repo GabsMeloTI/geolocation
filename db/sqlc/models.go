@@ -23,14 +23,14 @@ type Balanca struct {
 }
 
 type FavoriteRoute struct {
-	ID               int64           `json:"id"`
-	TollsID          int64           `json:"tolls_id"`
-	Response         json.RawMessage `json:"response"`
-	UserOrganization string          `json:"user_organization"`
-	CreatedWho       string          `json:"created_who"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedWho       sql.NullString  `json:"updated_who"`
-	UpdatedAt        sql.NullTime    `json:"updated_at"`
+	ID          int64           `json:"id"`
+	IDTokenHist int64           `json:"id_token_hist"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedWho  string          `json:"created_who"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
 
 type FreightLoad struct {
@@ -106,7 +106,6 @@ type Toll struct {
 	Tarifa           sql.NullString `json:"tarifa"`
 	FreeFlow         sql.NullBool   `json:"free_flow"`
 	PayFreeFlow      sql.NullString `json:"pay_free_flow"`
-	Tags             []string `json:"tags"`
 }
 
 type TollTag struct {
