@@ -13,7 +13,6 @@ import (
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
 
-	// Graceful Shutdown
 	go func() {
 		for {
 			select {
