@@ -36,7 +36,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	driver := e.Group("/driver")
+	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
 	driver.POST("/create", container.HandlerDriver.CreateDriverHandler)
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)

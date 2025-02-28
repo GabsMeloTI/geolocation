@@ -1,6 +1,7 @@
 package drivers
 
 import (
+	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -43,6 +44,9 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 	if !validation.ValidateCNH(request.LicenseNumber) {
 		return c.JSON(http.StatusBadRequest, "CNH inválida")
 	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	request.UserID = payload.ID
 
 	result, err := p.InterfaceService.CreateDriverService(c.Request().Context(), request)
 	if err != nil {
