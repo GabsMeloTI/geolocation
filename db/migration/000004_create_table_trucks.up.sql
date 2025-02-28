@@ -34,7 +34,7 @@ CREATE TABLE trailer (
                          created_at timestamp not null,
                          updated_at timestamp null,
                          CONSTRAINT fk_user
-                             FOREIGN KEY (user_id) REFERENCES users(id)
+                         FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 
