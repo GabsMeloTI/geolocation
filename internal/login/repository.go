@@ -8,6 +8,7 @@ import (
 
 type RepositoryInterface interface {
 	GetUser(context.Context, db.LoginParams) (db.User, error)
+	CreateUser(context.Context, db.NewCreateUserParams) (db.User, error)
 }
 
 type Repository struct {
@@ -29,4 +30,8 @@ func NewRepository(conn *sql.DB) *Repository {
 
 func (r *Repository) GetUser(ctx context.Context, arg db.LoginParams) (db.User, error) {
 	return r.Queries.Login(ctx, arg)
+}
+
+func (r *Repository) CreateUser(ctx context.Context, arg db.NewCreateUserParams) (db.User, error) {
+	return r.Queries.NewCreateUser(ctx, arg)
 }

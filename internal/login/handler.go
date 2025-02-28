@@ -26,3 +26,17 @@ func (h *Handler) Login(e echo.Context) error {
 
 	return e.JSON(http.StatusOK, result)
 }
+
+func (h *Handler) CreateUser(e echo.Context) error {
+	var request RequestCreateUser
+	if err := e.Bind(&request); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := h.service.CreateUser(e.Request().Context(), request)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}

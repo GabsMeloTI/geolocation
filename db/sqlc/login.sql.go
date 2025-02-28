@@ -50,3 +50,55 @@ func (q *Queries) Login(ctx context.Context, arg LoginParams) (User, error) {
 	)
 	return i, err
 }
+
+const newCreateUser = `-- name: NewCreateUser :one
+INSERT INTO public.users
+("name", email, "password", created_at, profile_id, "document", phone, google_id, profile_picture, status)
+VALUES( $1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, true)
+    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
+`
+
+type NewCreateUserParams struct {
+	Name           string         `json:"name"`
+	Email          string         `json:"email"`
+	Password       sql.NullString `json:"password"`
+	ProfileID      sql.NullInt64  `json:"profile_id"`
+	Document       sql.NullString `json:"document"`
+	Phone          sql.NullString `json:"phone"`
+	GoogleID       sql.NullString `json:"google_id"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
+}
+
+func (q *Queries) NewCreateUser(ctx context.Context, arg NewCreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, newCreateUser,
+		arg.Name,
+		arg.Email,
+		arg.Password,
+		arg.ProfileID,
+		arg.Document,
+		arg.Phone,
+		arg.GoogleID,
+		arg.ProfilePicture,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
+	)
+	return i, err
+}

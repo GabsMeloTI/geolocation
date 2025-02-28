@@ -67,6 +67,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/create-user", container.UserHandler.CreateUser)
 	e.POST("/login", container.UserHandler.UserLogin)
 	e.POST("/v2/login", container.LoginHandler.Login)
+	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.PUT("/delete", container.UserHandler.DeleteUser)

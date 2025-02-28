@@ -19,37 +19,37 @@ import (
 )
 
 type ContainerDI struct {
-	Config                 Config
-	ConnDB                 *sql.DB
-	HandlerRoutes          *routes.Handler
-	ServiceRoutes          *routes.Service
-	RepositoryRoutes       *routes.Repository
-	HandlerNewRoutes       *new_routes.Handler
-	ServiceNewRoutes       *new_routes.Service
-	HandlerHist            *hist.Handler
-	ServiceHist            *hist.Service
-	RepositoryHist         *hist.Repository
-	HandlerDriver          *drivers.Handler
-	ServiceDriver          *drivers.Service
-	RepositoryDriver       *drivers.Repository
-	HandlerTractorUnit     *tractor_unit.Handler
-	ServiceTractorUnit     *tractor_unit.Service
-	RepositoryTractorUnit  *tractor_unit.Repository
-	HandlerTrailer         *trailer.Handler
-	ServiceTrailer         *trailer.Service
-	RepositoryTrailer      *trailer.Repository
+	Config                  Config
+	ConnDB                  *sql.DB
+	HandlerRoutes           *routes.Handler
+	ServiceRoutes           *routes.Service
+	RepositoryRoutes        *routes.Repository
+	HandlerNewRoutes        *new_routes.Handler
+	ServiceNewRoutes        *new_routes.Service
+	HandlerHist             *hist.Handler
+	ServiceHist             *hist.Service
+	RepositoryHist          *hist.Repository
+	HandlerDriver           *drivers.Handler
+	ServiceDriver           *drivers.Service
+	RepositoryDriver        *drivers.Repository
+	HandlerTractorUnit      *tractor_unit.Handler
+	ServiceTractorUnit      *tractor_unit.Service
+	RepositoryTractorUnit   *tractor_unit.Repository
+	HandlerTrailer          *trailer.Handler
+	ServiceTrailer          *trailer.Service
+	RepositoryTrailer       *trailer.Repository
 	HandlerAdvertisement    *advertisement.Handler
 	ServiceAdvertisement    *advertisement.Service
 	RepositoryAdvertisement *advertisement.Repository
-	UserHandler            *user.Handler
-	UserService            *user.Service
-	UserRepository         *user.Repository
-	WsHandler              *ws.Handler
-	LoginHandler           *login.Handler
-	LoginService           *login.Service
-	LoginRepository        *login.Repository
-	GoogleToken            *sso.GoogleToken
-	PasetoMaker            *token.Maker
+	UserHandler             *user.Handler
+	UserService             *user.Service
+	UserRepository          *user.Repository
+	WsHandler               *ws.Handler
+	LoginHandler            *login.Handler
+	LoginService            *login.Service
+	LoginRepository         *login.Repository
+	GoogleToken             *sso.GoogleToken
+	PasetoMaker             *token.Maker
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -102,7 +102,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
-	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker)
+	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 }
 
 func (c *ContainerDI) buildHandler() {
