@@ -11,6 +11,8 @@ import (
 	"geolocation/internal/routes"
 	"geolocation/internal/tractor_unit"
 	"geolocation/internal/trailer"
+	"geolocation/internal/user"
+	"geolocation/internal/ws"
 )
 
 type ContainerDI struct {
@@ -36,6 +38,10 @@ type ContainerDI struct {
 	HandlerAnnouncement    *announcement.Handler
 	ServiceAnnouncement    *announcement.Service
 	RepositoryAnnouncement *announcement.Repository
+	UserHandler            *user.Handler
+	UserService            *user.Service
+	UserRepository         *user.Repository
+	WsHandler              *ws.Handler
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -68,7 +74,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAnnouncement = announcement.NewAnnouncementsRepository(c.ConnDB)
-
+	c.UserRepository = user.NewUserRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -79,7 +85,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAnnouncement = announcement.NewAnnouncementsService(c.RepositoryAnnouncement)
-
+	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -90,5 +96,9 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerTractorUnit = tractor_unit.NewTractorUnitsHandler(c.ServiceTractorUnit)
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
 	c.HandlerAnnouncement = announcement.NewAnnouncementHandler(c.ServiceAnnouncement)
+	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
+	hub := ws.NewHub()
+	c.WsHandler = ws.NewWsHandler(hub)
+	go hub.Run()
 
 }

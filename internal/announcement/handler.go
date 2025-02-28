@@ -1,6 +1,8 @@
 package announcement
 
 import (
+	"database/sql"
+	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -84,7 +86,15 @@ func (p *Handler) DeleteAnnouncementHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = p.InterfaceService.DeleteAnnouncementService(c.Request().Context(), id)
+	payload := get_token.GetUserPayloadToken(c)
+	data := DeleteAnnouncementRequest{
+		ID: id,
+		UpdatedWho: sql.NullString{
+			String: payload.Name,
+			Valid:  true,
+		},
+	}
+	err = p.InterfaceService.DeleteAnnouncementService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

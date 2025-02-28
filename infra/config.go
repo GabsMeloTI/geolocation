@@ -23,6 +23,7 @@ type Config struct {
 	GoogleMapsKey      string
 	SignatureTokenSimp string
 	RedisUrl           string
+	GoogleClientId     string
 }
 
 func NewConfig() Config {
@@ -50,5 +51,6 @@ func NewConfig() Config {
 		AwsRegion:          os.Getenv("AWS_REGION"),
 		GoogleMapsKey:      os.Getenv("GOOGLE_MAPS_KEY"),
 		RedisUrl:           os.Getenv("REDIS_URL"),
+		GoogleClientId:     os.Getenv("GOOGLE_CLIENT_ID"),
 	}
 }

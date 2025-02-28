@@ -9,7 +9,7 @@ import (
 type InterfaceService interface {
 	CreateAnnouncementService(ctx context.Context, data CreateAnnouncementRequest) (AnnouncementResponse, error)
 	UpdateAnnouncementService(ctx context.Context, data UpdateAnnouncementRequest) (AnnouncementResponse, error)
-	DeleteAnnouncementService(ctx context.Context, id int64) error
+	DeleteAnnouncementService(ctx context.Context, data DeleteAnnouncementRequest) error
 }
 
 type Service struct {
@@ -56,8 +56,8 @@ func (p *Service) UpdateAnnouncementService(ctx context.Context, data UpdateAnno
 	return updateAnnouncementService, nil
 }
 
-func (p *Service) DeleteAnnouncementService(ctx context.Context, id int64) error {
-	_, err := p.InterfaceService.GetAnnouncementById(ctx, id)
+func (p *Service) DeleteAnnouncementService(ctx context.Context, data DeleteAnnouncementRequest) error {
+	_, err := p.InterfaceService.GetAnnouncementById(ctx, data.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("Announcement not found")
 	}
@@ -65,9 +65,11 @@ func (p *Service) DeleteAnnouncementService(ctx context.Context, id int64) error
 		return err
 	}
 
-	err = p.InterfaceService.DeleteAnnouncement(ctx, id)
+	arg := data.ParseDeleteToAnnouncement()
+	err = p.InterfaceService.DeleteAnnouncement(ctx, arg)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

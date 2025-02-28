@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func Validate(data interface{}) error {
@@ -15,6 +16,34 @@ func Validate(data interface{}) error {
 
 func IsValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil
+}
+
+func ValidatePassword(password string) bool {
+	if len(password) < 8 {
+		return false
+	}
+
+	var hasUpper, hasDigit, hasSpecial bool
+
+	for _, c := range password {
+		switch {
+
+		case unicode.IsUpper(c):
+			hasUpper = true
+		case unicode.IsDigit(c):
+			hasDigit = true
+		}
+	}
+
+	specialCharRegex := regexp.MustCompile(`[!@#$%^&*()\-_=+\[\]{}|;:'",.<>?/\\` + "`~]")
+
+	hasSpecial = specialCharRegex.MatchString(password)
+
+	if !hasUpper || !hasDigit || !hasSpecial {
+		return false
+	}
+
+	return true
 }
 
 func ValidateCPF(cpf string) bool {
