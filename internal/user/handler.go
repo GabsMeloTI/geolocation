@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/pkg/sso"
+	"geolocation/validation"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"net/mail"
 	"strings"
 )
 
@@ -19,16 +21,35 @@ func NewUserHandler(InterfaceService InterfaceService, GoogleClientId string) *H
 }
 
 func (h *Handler) CreateUser(c echo.Context) error {
-	var data CreateUserDTO
 	var req CreateUserRequest
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	authorization := c.Request().Header.Get("Authorization")
+	if err := validation.Validate(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
-	if authorization != "" {
+	if ok := validation.ValidatePassword(req.Password); !ok {
+		return c.JSON(http.StatusBadRequest, "invalid password")
+	}
+
+	if ok := req.Password == req.ConfirmPassword; !ok {
+		return c.JSON(http.StatusBadRequest, "password and confirm password are different")
+	}
+
+	_, err := mail.ParseAddress(req.Email)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "invalid email address")
+	}
+
+	if ok := validation.ValidatePhone(req.Phone); !ok {
+		return c.JSON(http.StatusBadRequest, "invalid phone number")
+	}
+
+	if req.Provider == "google" {
+		authorization := c.Request().Header.Get("Authorization")
 
 		token := strings.Replace(authorization, "Bearer ", "", 1)
 
@@ -42,24 +63,13 @@ func (h *Handler) CreateUser(c echo.Context) error {
 			fmt.Println("invalid client")
 		}
 
-		data = CreateUserDTO{
-			Request: req,
-			Sso:     true,
-			Payload: payload,
-		}
 	}
 
-	data = CreateUserDTO{
-		Request: req,
+	if !validation.ValidatePassword(req.Password) {
+		return c.JSON(http.StatusBadRequest, "invalid password")
 	}
 
-	err := data.Validate()
-
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	res, err := h.InterfaceService.CreateUserService(c.Request().Context(), data)
+	res, err := h.InterfaceService.CreateUserService(c.Request().Context(), req)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -67,18 +77,15 @@ func (h *Handler) CreateUser(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
-
 func (h *Handler) UserLogin(c echo.Context) error {
 	var req LoginRequest
-	var data LoginDTO
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	authorization := c.Request().Header.Get("Authorization")
-
-	if authorization != "" {
+	if req.Provider == "google" {
+		authorization := c.Request().Header.Get("Authorization")
 		token := strings.Replace(authorization, "Bearer ", "", 1)
 
 		payload, err := sso.ValidateGoogleToken(token)
@@ -90,21 +97,9 @@ func (h *Handler) UserLogin(c echo.Context) error {
 		if h.GoogleClientId != payload.Audience {
 			fmt.Println("invalid client")
 		}
-		data = LoginDTO{
-			Request: LoginRequest{
-				Email: payload.Email,
-			},
-			Sso: true,
-		}
 	}
 
-	if !data.Sso {
-		data = LoginDTO{
-			Request: req,
-		}
-	}
-
-	res, err := h.InterfaceService.UserLoginService(c.Request().Context(), data)
+	res, err := h.InterfaceService.UserLoginService(c.Request().Context(), req)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -113,7 +108,6 @@ func (h *Handler) UserLogin(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 
 }
-
 func (h *Handler) DeleteUser(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
 	err := h.InterfaceService.DeleteUserService(c.Request().Context(), payload)
@@ -126,7 +120,6 @@ func (h *Handler) DeleteUser(c echo.Context) error {
 		"message": "success",
 	})
 }
-
 func (h *Handler) UpdateUser(c echo.Context) error {
 
 	var req UpdateUserRequest

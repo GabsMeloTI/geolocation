@@ -1,7 +1,7 @@
 -- name: CreateUser :one
 INSERT INTO users
-(name, email, password, google_id, profile_picture, status)
-VALUES ($1, $2, $3, $4, $5, true)
+(name, email, password, google_id, profile_picture, status, phone, document)
+VALUES ($1, $2, $3, $4, $5, true, $6, $7)
 RETURNING *;
 
 -- name: GetUserByEmail :one
@@ -25,3 +25,8 @@ SET name = $1,
 WHERE id = $9
     RETURNING *;
 
+
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $1
+WHERE id = $2;

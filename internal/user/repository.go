@@ -11,6 +11,7 @@ type InterfaceRepository interface {
 	GetUserByEmailRepository(ctx context.Context, email string) (db.User, error)
 	DeleteUserByIdRepository(ctx context.Context, id int64) error
 	UpdateUserByIdRepository(ctx context.Context, arg db.UpdateUserByIdParams) (db.User, error)
+	UpdateUserPasswordRepository(ctx context.Context, arg db.UpdateUserPasswordParams) error
 }
 
 type Repository struct {
@@ -44,4 +45,7 @@ func (r *Repository) DeleteUserByIdRepository(ctx context.Context, id int64) err
 
 func (r *Repository) UpdateUserByIdRepository(ctx context.Context, arg db.UpdateUserByIdParams) (db.User, error) {
 	return r.Queries.UpdateUserById(ctx, arg)
+}
+func (r *Repository) UpdateUserPasswordRepository(ctx context.Context, arg db.UpdateUserPasswordParams) error {
+	return r.Queries.UpdateUserPassword(ctx, arg)
 }

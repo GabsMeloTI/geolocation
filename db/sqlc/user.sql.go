@@ -12,8 +12,8 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users
-(name, email, password, google_id, profile_picture, status)
-VALUES ($1, $2, $3, $4, $5, true)
+(name, email, password, google_id, profile_picture, status, phone, document)
+VALUES ($1, $2, $3, $4, $5, true, $6, $7)
 RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
 `
 
@@ -23,6 +23,8 @@ type CreateUserParams struct {
 	Password       sql.NullString `json:"password"`
 	GoogleID       sql.NullString `json:"google_id"`
 	ProfilePicture sql.NullString `json:"profile_picture"`
+	Phone          sql.NullString `json:"phone"`
+	Document       sql.NullString `json:"document"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -32,6 +34,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Password,
 		arg.GoogleID,
 		arg.ProfilePicture,
+		arg.Phone,
+		arg.Document,
 	)
 	var i User
 	err := row.Scan(
@@ -155,4 +159,20 @@ func (q *Queries) UpdateUserById(ctx context.Context, arg UpdateUserByIdParams) 
 		&i.Status,
 	)
 	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $1
+WHERE id = $2
+`
+
+type UpdateUserPasswordParams struct {
+	Password sql.NullString `json:"password"`
+	ID       int64          `json:"id"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.ID)
+	return err
 }

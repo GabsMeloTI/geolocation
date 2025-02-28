@@ -12,8 +12,8 @@ import (
 )
 
 type InterfaceService interface {
-	CreateUserService(ctx context.Context, data CreateUserDTO) (CreateUserResponse, error)
-	UserLoginService(ctx context.Context, data LoginDTO) (LoginUserResponse, error)
+	CreateUserService(ctx context.Context, data CreateUserRequest) (CreateUserResponse, error)
+	UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error)
 	DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error
 	UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error)
 }
@@ -30,8 +30,8 @@ func NewUserService(interfaceService InterfaceRepository, SignatureString string
 	}
 }
 
-func (s *Service) CreateUserService(ctx context.Context, data CreateUserDTO) (CreateUserResponse, error) {
-	u, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Request.Email)
+func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest) (CreateUserResponse, error) {
+	u, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -43,7 +43,7 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserDTO) (Cr
 		return CreateUserResponse{}, errors.New("email already exists")
 	}
 
-	hashedPassword, err := crypt.HashPassword(data.Request.Password)
+	hashedPassword, err := crypt.HashPassword(data.Password)
 
 	if err != nil {
 		return CreateUserResponse{}, err
@@ -59,9 +59,8 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserDTO) (Cr
 
 	return res, nil
 }
-
-func (s *Service) UserLoginService(ctx context.Context, data LoginDTO) (LoginUserResponse, error) {
-	result, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Request.Email)
+func (s *Service) UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error) {
+	result, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return LoginUserResponse{}, errors.New("invalid credentials")
@@ -69,8 +68,8 @@ func (s *Service) UserLoginService(ctx context.Context, data LoginDTO) (LoginUse
 		return LoginUserResponse{}, err
 	}
 
-	if !data.Sso {
-		if !crypt.CheckPasswordHash(data.Request.Password, result.Password.String) {
+	if data.Provider != "google" {
+		if !crypt.CheckPasswordHash(data.Password, result.Password.String) {
 			return LoginUserResponse{}, errors.New("invalid credentials")
 		}
 	}
@@ -97,7 +96,6 @@ func (s *Service) UserLoginService(ctx context.Context, data LoginDTO) (LoginUse
 		Token:          tokenStr,
 	}, nil
 }
-
 func (s *Service) DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error {
 	err := s.InterfaceService.DeleteUserByIdRepository(ctx, payload.ID)
 	if err != nil {
@@ -105,7 +103,6 @@ func (s *Service) DeleteUserService(ctx context.Context, payload get_token.Paylo
 	}
 	return nil
 }
-
 func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error) {
 	u, err := s.InterfaceService.UpdateUserByIdRepository(ctx, data.ParseToUpdateUserByIdParams())
 
