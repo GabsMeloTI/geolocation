@@ -5,7 +5,7 @@ import (
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
-	"geolocation/internal/announcement"
+	"geolocation/internal/advertisement"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	"geolocation/internal/login"
@@ -38,9 +38,9 @@ type ContainerDI struct {
 	HandlerTrailer         *trailer.Handler
 	ServiceTrailer         *trailer.Service
 	RepositoryTrailer      *trailer.Repository
-	HandlerAnnouncement    *announcement.Handler
-	ServiceAnnouncement    *announcement.Service
-	RepositoryAnnouncement *announcement.Repository
+	HandlerAdvertisement    *advertisement.Handler
+	ServiceAdvertisement    *advertisement.Service
+	RepositoryAdvertisement *advertisement.Repository
 	UserHandler            *user.Handler
 	UserService            *user.Service
 	UserRepository         *user.Repository
@@ -88,7 +88,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryDriver = drivers.NewDriversRepository(c.ConnDB)
 	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
-	c.RepositoryAnnouncement = announcement.NewAnnouncementsRepository(c.ConnDB)
+	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
 }
@@ -100,7 +100,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceDriver = drivers.NewDriversService(c.RepositoryDriver)
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
-	c.ServiceAnnouncement = announcement.NewAnnouncementsService(c.RepositoryAnnouncement)
+	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker)
 }
@@ -112,7 +112,7 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerDriver = drivers.NewDriversHandler(c.ServiceDriver)
 	c.HandlerTractorUnit = tractor_unit.NewTractorUnitsHandler(c.ServiceTractorUnit)
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
-	c.HandlerAnnouncement = announcement.NewAnnouncementHandler(c.ServiceAnnouncement)
+	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	c.LoginHandler = login.NewHandler(c.LoginService)
 	hub := ws.NewHub()

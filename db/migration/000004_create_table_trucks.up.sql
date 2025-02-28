@@ -11,6 +11,7 @@ CREATE TABLE tractor_unit (
                               unit_type VARCHAR(50),
                               can_couple BOOLEAN,
                               height FLOAT,
+                              axles BIGINT not null,
                               status BOOL not null,
                               created_at timestamp not null,
                               updated_at timestamp null,
@@ -30,11 +31,12 @@ CREATE TABLE trailer (
                          length FLOAT,
                          width FLOAT,
                          height FLOAT,
+                         axles BIGINT not null,
                          status BOOL not null,
                          created_at timestamp not null,
                          updated_at timestamp null,
                          CONSTRAINT fk_user
-                             FOREIGN KEY (user_id) REFERENCES users(id)
+                         FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 

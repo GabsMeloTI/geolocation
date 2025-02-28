@@ -40,6 +40,12 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
 
+	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
+	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
+	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
+	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
+	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
+
 	trailer := e.Group("/trailer")
 	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
 	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
@@ -65,7 +71,12 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
+	user.PUT("/create", container.UserHandler.CreateUser)
+	user.POST("/login", container.UserHandler.UserLogin)
 
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.GET("/ws", container.WsHandler.HandleWs)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
