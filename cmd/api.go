@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
 	"time"
 )
 
@@ -82,5 +83,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 
+	log.Printf("Server started")
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
