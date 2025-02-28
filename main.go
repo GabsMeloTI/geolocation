@@ -4,6 +4,7 @@ import (
 	"context"
 	"geolocation/cmd"
 	"geolocation/infra"
+	"geolocation/pkg"
 	"os/signal"
 	"syscall"
 )
@@ -15,8 +16,6 @@ func main() {
 	loadingEnv := infra.NewConfig()
 	container := infra.NewContainerDI(loadingEnv)
 
-	//pkg.InitRedis()
+	pkg.InitRedis(loadingEnv.Environment)
 	cmd.StartAPI(ctx, container)
 }
-
-//testing

@@ -4,15 +4,18 @@ import (
 	"database/sql"
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
+	"geolocation/infra/token"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
+	"geolocation/internal/login"
 	new_routes "geolocation/internal/new_routes"
 	"geolocation/internal/routes"
 	"geolocation/internal/tractor_unit"
 	"geolocation/internal/trailer"
 	"geolocation/internal/user"
 	"geolocation/internal/ws"
+	"geolocation/pkg/sso"
 )
 
 type ContainerDI struct {
@@ -42,6 +45,11 @@ type ContainerDI struct {
 	UserService             *user.Service
 	UserRepository          *user.Repository
 	WsHandler               *ws.Handler
+	LoginHandler            *login.Handler
+	LoginService            *login.Service
+	LoginRepository         *login.Repository
+	GoogleToken             *sso.GoogleToken
+	PasetoMaker             *token.Maker
 	WsRepository            *ws.Repository
 	WsService               *ws.Service
 }
@@ -49,6 +57,7 @@ type ContainerDI struct {
 func NewContainerDI(config Config) *ContainerDI {
 	container := &ContainerDI{Config: config}
 	container.db()
+	container.buildPkg()
 	container.buildRepository()
 	container.buildService()
 	container.buildHandler()
@@ -69,6 +78,12 @@ func (c *ContainerDI) db() {
 	c.ConnDB = db_postgresql.NewConnection(&dbConfig)
 }
 
+func (c *ContainerDI) buildPkg() {
+	c.GoogleToken = sso.NewGoogleToken(c.Config.GoogleClientId)
+	maker, _ := token.NewPasetoMaker(c.Config.SignatureToken)
+	c.PasetoMaker = &maker
+}
+
 func (c *ContainerDI) buildRepository() {
 	c.RepositoryRoutes = routes.NewTollsRepository(c.ConnDB)
 	c.RepositoryHist = hist.NewHistRepository(c.ConnDB)
@@ -77,6 +92,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
+	c.LoginRepository = login.NewRepository(c.ConnDB)
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 }
 
@@ -89,6 +105,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 }
 
@@ -101,6 +118,7 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
 	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
+	c.LoginHandler = login.NewHandler(c.LoginService)
 	hub := ws.NewHub()
 	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()

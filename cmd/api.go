@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
 	"time"
 )
 
@@ -67,15 +68,21 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.POST("/create-user", container.UserHandler.CreateUser)
 	e.POST("/login", container.UserHandler.UserLogin)
+	e.POST("/v2/login", container.LoginHandler.Login)
+	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
 
-	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 
+	e.GET("/ws", container.WsHandler.HandleWs)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 
+	log.Printf("Server started")
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
