@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
-	"geolocation/internal/announcement"
+	"geolocation/internal/advertisement"
+
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	new_routes "geolocation/internal/new_routes"
@@ -16,32 +17,34 @@ import (
 )
 
 type ContainerDI struct {
-	Config                 Config
-	ConnDB                 *sql.DB
-	HandlerRoutes          *routes.Handler
-	ServiceRoutes          *routes.Service
-	RepositoryRoutes       *routes.Repository
-	HandlerNewRoutes       *new_routes.Handler
-	ServiceNewRoutes       *new_routes.Service
-	HandlerHist            *hist.Handler
-	ServiceHist            *hist.Service
-	RepositoryHist         *hist.Repository
-	HandlerDriver          *drivers.Handler
-	ServiceDriver          *drivers.Service
-	RepositoryDriver       *drivers.Repository
-	HandlerTractorUnit     *tractor_unit.Handler
-	ServiceTractorUnit     *tractor_unit.Service
-	RepositoryTractorUnit  *tractor_unit.Repository
-	HandlerTrailer         *trailer.Handler
-	ServiceTrailer         *trailer.Service
-	RepositoryTrailer      *trailer.Repository
-	HandlerAnnouncement    *announcement.Handler
-	ServiceAnnouncement    *announcement.Service
-	RepositoryAnnouncement *announcement.Repository
-	UserHandler      *user.Handler
-	UserService      *user.Service
-	UserRepository   *user.Repository
-	WsHandler        *ws.Handler
+	Config                  Config
+	ConnDB                  *sql.DB
+	HandlerRoutes           *routes.Handler
+	ServiceRoutes           *routes.Service
+	RepositoryRoutes        *routes.Repository
+	HandlerNewRoutes        *new_routes.Handler
+	ServiceNewRoutes        *new_routes.Service
+	HandlerHist             *hist.Handler
+	ServiceHist             *hist.Service
+	RepositoryHist          *hist.Repository
+	HandlerDriver           *drivers.Handler
+	ServiceDriver           *drivers.Service
+	RepositoryDriver        *drivers.Repository
+	HandlerTractorUnit      *tractor_unit.Handler
+	ServiceTractorUnit      *tractor_unit.Service
+	RepositoryTractorUnit   *tractor_unit.Repository
+	HandlerTrailer          *trailer.Handler
+	ServiceTrailer          *trailer.Service
+	RepositoryTrailer       *trailer.Repository
+	HandlerAdvertisement    *advertisement.Handler
+	ServiceAdvertisement    *advertisement.Service
+	RepositoryAdvertisement *advertisement.Repository
+	UserHandler             *user.Handler
+	UserService             *user.Service
+	UserRepository          *user.Repository
+	WsHandler               *ws.Handler
+	WsRepository            *ws.Repository
+	WsService               *ws.Service
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -73,8 +76,9 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryDriver = drivers.NewDriversRepository(c.ConnDB)
 	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
-	c.RepositoryAnnouncement = announcement.NewAnnouncementsRepository(c.ConnDB)
+	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
+	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -84,8 +88,9 @@ func (c *ContainerDI) buildService() {
 	c.ServiceDriver = drivers.NewDriversService(c.RepositoryDriver)
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
-	c.ServiceAnnouncement = announcement.NewAnnouncementsService(c.RepositoryAnnouncement)
+	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -95,10 +100,10 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerDriver = drivers.NewDriversHandler(c.ServiceDriver)
 	c.HandlerTractorUnit = tractor_unit.NewTractorUnitsHandler(c.ServiceTractorUnit)
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
-	c.HandlerAnnouncement = announcement.NewAnnouncementHandler(c.ServiceAnnouncement)
+	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	hub := ws.NewHub()
-	c.WsHandler = ws.NewWsHandler(hub)
+	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()
 
 }

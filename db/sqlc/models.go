@@ -10,32 +10,40 @@ import (
 	"time"
 )
 
-type Announcement struct {
-	ID                 int64        `json:"id"`
-	Destination        string       `json:"destination"`
-	Origin             string       `json:"origin"`
-	DestinationLat     string       `json:"destination_lat"`
-	DestinationLng     string       `json:"destination_lng"`
-	OriginLat          string       `json:"origin_lat"`
-	OriginLng          string       `json:"origin_lng"`
-	Description        string       `json:"description"`
-	CargoDescription   string       `json:"cargo_description"`
-	PaymentDescription string       `json:"payment_description"`
-	DeliveryDate       time.Time    `json:"delivery_date"`
-	PickupDate         time.Time    `json:"pickup_date"`
-	DeadlineDate       time.Time    `json:"deadline_date"`
-	Price              string       `json:"price"`
-	Vehicle            string       `json:"vehicle"`
-	BodyType           string       `json:"body_type"`
-	Kilometers         string       `json:"kilometers"`
-	CargoNature        string       `json:"cargo_nature"`
-	CargoType          string       `json:"cargo_type"`
-	CargoWeight        string       `json:"cargo_weight"`
-	Tracking           bool         `json:"tracking"`
-	RequiresTarp       bool         `json:"requires_tarp"`
-	Status             bool         `json:"status"`
-	CreatedAt          time.Time    `json:"created_at"`
-	UpdatedAt          sql.NullTime `json:"updated_at"`
+type Advertisement struct {
+	ID               int64          `json:"id"`
+	UserID           int64          `json:"user_id"`
+	Destination      string         `json:"destination"`
+	Origin           string         `json:"origin"`
+	DestinationLat   string         `json:"destination_lat"`
+	DestinationLng   string         `json:"destination_lng"`
+	OriginLat        string         `json:"origin_lat"`
+	OriginLng        string         `json:"origin_lng"`
+	Distance         int64          `json:"distance"`
+	PickupDate       time.Time      `json:"pickup_date"`
+	DeliveryDate     time.Time      `json:"delivery_date"`
+	ExpirationDate   time.Time      `json:"expiration_date"`
+	Title            string         `json:"title"`
+	CargoType        string         `json:"cargo_type"`
+	CargoSpecies     string         `json:"cargo_species"`
+	CargoVolume      string         `json:"cargo_volume"`
+	CargoWeight      string         `json:"cargo_weight"`
+	VehiclesAccepted string         `json:"vehicles_accepted"`
+	Trailer          string         `json:"trailer"`
+	RequiresTarp     bool           `json:"requires_tarp"`
+	Tracking         bool           `json:"tracking"`
+	Agency           bool           `json:"agency"`
+	Description      string         `json:"description"`
+	PaymentType      string         `json:"payment_type"`
+	Advance          string         `json:"advance"`
+	Toll             bool           `json:"toll"`
+	Situation        string         `json:"situation"`
+	Price            string         `json:"price"`
+	Status           bool           `json:"status"`
+	CreatedAt        time.Time      `json:"created_at"`
+	CreatedWho       string         `json:"created_who"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
+	UpdatedWho       sql.NullString `json:"updated_who"`
 }
 
 type Balanca struct {
@@ -48,6 +56,29 @@ type Balanca struct {
 	Rodovia        string `json:"rodovia"`
 	Sentido        string `json:"sentido"`
 	Uf             string `json:"uf"`
+}
+
+type ChatMessage struct {
+	ID        int64         `json:"id"`
+	RoomID    sql.NullInt64 `json:"room_id"`
+	UserID    sql.NullInt64 `json:"user_id"`
+	Content   string        `json:"content"`
+	Status    bool          `json:"status"`
+	ReplyID   sql.NullInt64 `json:"reply_id"`
+	ReadAt    sql.NullTime  `json:"read_at"`
+	IsRead    sql.NullBool  `json:"is_read"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt sql.NullTime  `json:"updated_at"`
+}
+
+type ChatRoom struct {
+	ID                  int64        `json:"id"`
+	AdvertisementID     int64        `json:"advertisement_id"`
+	AdvertisementUserID int64        `json:"advertisement_user_id"`
+	InterestedUserID    int64        `json:"interested_user_id"`
+	Status              bool         `json:"status"`
+	CreatedAt           time.Time    `json:"created_at"`
+	UpdatedAt           sql.NullTime `json:"updated_at"`
 }
 
 type Driver struct {

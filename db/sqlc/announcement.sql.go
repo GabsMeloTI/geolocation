@@ -7,231 +7,493 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
-const createAnnouncement = `-- name: CreateAnnouncement :one
-INSERT INTO public.announcement
-(id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, description, cargo_description, payment_description, delivery_date, pickup_date, deadline_date, price, vehicle, body_type, kilometers, cargo_nature, cargo_type, cargo_weight, tracking, requires_tarp, status, created_at)
-VALUES(nextval('announcement_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, true, now())
-    RETURNING id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, description, cargo_description, payment_description, delivery_date, pickup_date, deadline_date, price, vehicle, body_type, kilometers, cargo_nature, cargo_type, cargo_weight, tracking, requires_tarp, status, created_at, updated_at
+const countAdvertisementByUserID = `-- name: CountAdvertisementByUserID :one
+SELECT COUNT(*)
+FROM public.advertisement
+WHERE user_id = $1
+  AND status = true
+  AND situation = 'ativo'
 `
 
-type CreateAnnouncementParams struct {
-	Destination        string    `json:"destination"`
-	Origin             string    `json:"origin"`
-	DestinationLat     string    `json:"destination_lat"`
-	DestinationLng     string    `json:"destination_lng"`
-	OriginLat          string    `json:"origin_lat"`
-	OriginLng          string    `json:"origin_lng"`
-	Description        string    `json:"description"`
-	CargoDescription   string    `json:"cargo_description"`
-	PaymentDescription string    `json:"payment_description"`
-	DeliveryDate       time.Time `json:"delivery_date"`
-	PickupDate         time.Time `json:"pickup_date"`
-	DeadlineDate       time.Time `json:"deadline_date"`
-	Price              string    `json:"price"`
-	Vehicle            string    `json:"vehicle"`
-	BodyType           string    `json:"body_type"`
-	Kilometers         string    `json:"kilometers"`
-	CargoNature        string    `json:"cargo_nature"`
-	CargoType          string    `json:"cargo_type"`
-	CargoWeight        string    `json:"cargo_weight"`
-	Tracking           bool      `json:"tracking"`
-	RequiresTarp       bool      `json:"requires_tarp"`
+func (q *Queries) CountAdvertisementByUserID(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAdvertisementByUserID, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
-func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, createAnnouncement,
+const createAdvertisement = `-- name: CreateAdvertisement :one
+INSERT INTO public.advertisement
+(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who)
+VALUES(nextval('advertisement_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9,
+       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, true, now(), $28)
+    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, updated_at, updated_who
+`
+
+type CreateAdvertisementParams struct {
+	UserID           int64     `json:"user_id"`
+	Destination      string    `json:"destination"`
+	Origin           string    `json:"origin"`
+	DestinationLat   string    `json:"destination_lat"`
+	DestinationLng   string    `json:"destination_lng"`
+	OriginLat        string    `json:"origin_lat"`
+	OriginLng        string    `json:"origin_lng"`
+	Distance         int64     `json:"distance"`
+	PickupDate       time.Time `json:"pickup_date"`
+	DeliveryDate     time.Time `json:"delivery_date"`
+	ExpirationDate   time.Time `json:"expiration_date"`
+	Title            string    `json:"title"`
+	CargoType        string    `json:"cargo_type"`
+	CargoSpecies     string    `json:"cargo_species"`
+	CargoVolume      string    `json:"cargo_volume"`
+	CargoWeight      string    `json:"cargo_weight"`
+	VehiclesAccepted string    `json:"vehicles_accepted"`
+	Trailer          string    `json:"trailer"`
+	RequiresTarp     bool      `json:"requires_tarp"`
+	Tracking         bool      `json:"tracking"`
+	Agency           bool      `json:"agency"`
+	Description      string    `json:"description"`
+	PaymentType      string    `json:"payment_type"`
+	Advance          string    `json:"advance"`
+	Toll             bool      `json:"toll"`
+	Situation        string    `json:"situation"`
+	Price            string    `json:"price"`
+	CreatedWho       string    `json:"created_who"`
+}
+
+func (q *Queries) CreateAdvertisement(ctx context.Context, arg CreateAdvertisementParams) (Advertisement, error) {
+	row := q.db.QueryRowContext(ctx, createAdvertisement,
+		arg.UserID,
 		arg.Destination,
 		arg.Origin,
 		arg.DestinationLat,
 		arg.DestinationLng,
 		arg.OriginLat,
 		arg.OriginLng,
-		arg.Description,
-		arg.CargoDescription,
-		arg.PaymentDescription,
-		arg.DeliveryDate,
+		arg.Distance,
 		arg.PickupDate,
-		arg.DeadlineDate,
-		arg.Price,
-		arg.Vehicle,
-		arg.BodyType,
-		arg.Kilometers,
-		arg.CargoNature,
+		arg.DeliveryDate,
+		arg.ExpirationDate,
+		arg.Title,
 		arg.CargoType,
+		arg.CargoSpecies,
+		arg.CargoVolume,
 		arg.CargoWeight,
-		arg.Tracking,
+		arg.VehiclesAccepted,
+		arg.Trailer,
 		arg.RequiresTarp,
+		arg.Tracking,
+		arg.Agency,
+		arg.Description,
+		arg.PaymentType,
+		arg.Advance,
+		arg.Toll,
+		arg.Situation,
+		arg.Price,
+		arg.CreatedWho,
 	)
-	var i Announcement
+	var i Advertisement
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Destination,
 		&i.Origin,
 		&i.DestinationLat,
 		&i.DestinationLng,
 		&i.OriginLat,
 		&i.OriginLng,
-		&i.Description,
-		&i.CargoDescription,
-		&i.PaymentDescription,
-		&i.DeliveryDate,
+		&i.Distance,
 		&i.PickupDate,
-		&i.DeadlineDate,
-		&i.Price,
-		&i.Vehicle,
-		&i.BodyType,
-		&i.Kilometers,
-		&i.CargoNature,
+		&i.DeliveryDate,
+		&i.ExpirationDate,
+		&i.Title,
 		&i.CargoType,
+		&i.CargoSpecies,
+		&i.CargoVolume,
 		&i.CargoWeight,
-		&i.Tracking,
+		&i.VehiclesAccepted,
+		&i.Trailer,
 		&i.RequiresTarp,
+		&i.Tracking,
+		&i.Agency,
+		&i.Description,
+		&i.PaymentType,
+		&i.Advance,
+		&i.Toll,
+		&i.Situation,
+		&i.Price,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedWho,
 		&i.UpdatedAt,
+		&i.UpdatedWho,
 	)
 	return i, err
 }
 
-const deleteAnnouncement = `-- name: DeleteAnnouncement :exec
-UPDATE public.announcement
-SET status=false, updated_at=now()
+const deleteAdvertisement = `-- name: DeleteAdvertisement :exec
+UPDATE public.advertisement
+SET status=false, updated_at=now(), updated_who=$2
 WHERE id=$1
 `
 
-func (q *Queries) DeleteAnnouncement(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteAnnouncement, id)
+type DeleteAdvertisementParams struct {
+	ID         int64          `json:"id"`
+	UpdatedWho sql.NullString `json:"updated_who"`
+}
+
+func (q *Queries) DeleteAdvertisement(ctx context.Context, arg DeleteAdvertisementParams) error {
+	_, err := q.db.ExecContext(ctx, deleteAdvertisement, arg.ID, arg.UpdatedWho)
 	return err
 }
 
-const getAnnouncementById = `-- name: GetAnnouncementById :one
-SELECT id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, description, cargo_description, payment_description, delivery_date, pickup_date, deadline_date, price, vehicle, body_type, kilometers, cargo_nature, cargo_type, cargo_weight, tracking, requires_tarp, status, created_at, updated_at
-FROM public.announcement
+const getAdvertisementById = `-- name: GetAdvertisementById :one
+SELECT id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, updated_at, updated_who
+FROM public.advertisement
 WHERE id=$1
 `
 
-func (q *Queries) GetAnnouncementById(ctx context.Context, id int64) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, getAnnouncementById, id)
-	var i Announcement
+func (q *Queries) GetAdvertisementById(ctx context.Context, id int64) (Advertisement, error) {
+	row := q.db.QueryRowContext(ctx, getAdvertisementById, id)
+	var i Advertisement
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Destination,
 		&i.Origin,
 		&i.DestinationLat,
 		&i.DestinationLng,
 		&i.OriginLat,
 		&i.OriginLng,
-		&i.Description,
-		&i.CargoDescription,
-		&i.PaymentDescription,
-		&i.DeliveryDate,
+		&i.Distance,
 		&i.PickupDate,
-		&i.DeadlineDate,
-		&i.Price,
-		&i.Vehicle,
-		&i.BodyType,
-		&i.Kilometers,
-		&i.CargoNature,
+		&i.DeliveryDate,
+		&i.ExpirationDate,
+		&i.Title,
 		&i.CargoType,
+		&i.CargoSpecies,
+		&i.CargoVolume,
 		&i.CargoWeight,
-		&i.Tracking,
+		&i.VehiclesAccepted,
+		&i.Trailer,
 		&i.RequiresTarp,
+		&i.Tracking,
+		&i.Agency,
+		&i.Description,
+		&i.PaymentType,
+		&i.Advance,
+		&i.Toll,
+		&i.Situation,
+		&i.Price,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedWho,
 		&i.UpdatedAt,
+		&i.UpdatedWho,
 	)
 	return i, err
 }
 
-const updateAnnouncement = `-- name: UpdateAnnouncement :one
-UPDATE public.announcement
-SET destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, description=$8, cargo_description=$9, payment_description=$10, delivery_date=$11, pickup_date=$12,
-    deadline_date=$13, price=$14, vehicle=$15, body_type=$16, kilometers=$17, cargo_nature=$18, cargo_type=$19, cargo_weight=$20, tracking=$21, requires_tarp=$22, updated_at=now()
-WHERE id=$1
-    RETURNING id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, description, cargo_description, payment_description, delivery_date, pickup_date, deadline_date, price, vehicle, body_type, kilometers, cargo_nature, cargo_type, cargo_weight, tracking, requires_tarp, status, created_at, updated_at
+const getAllAdvertisementPublic = `-- name: GetAllAdvertisementPublic :many
+SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at
+FROM public.advertisement
+WHERE status=true
+ORDER BY expiration_date
 `
 
-type UpdateAnnouncementParams struct {
-	ID                 int64     `json:"id"`
-	Destination        string    `json:"destination"`
-	Origin             string    `json:"origin"`
-	DestinationLat     string    `json:"destination_lat"`
-	DestinationLng     string    `json:"destination_lng"`
-	OriginLat          string    `json:"origin_lat"`
-	OriginLng          string    `json:"origin_lng"`
-	Description        string    `json:"description"`
-	CargoDescription   string    `json:"cargo_description"`
-	PaymentDescription string    `json:"payment_description"`
-	DeliveryDate       time.Time `json:"delivery_date"`
-	PickupDate         time.Time `json:"pickup_date"`
-	DeadlineDate       time.Time `json:"deadline_date"`
-	Price              string    `json:"price"`
-	Vehicle            string    `json:"vehicle"`
-	BodyType           string    `json:"body_type"`
-	Kilometers         string    `json:"kilometers"`
-	CargoNature        string    `json:"cargo_nature"`
-	CargoType          string    `json:"cargo_type"`
-	CargoWeight        string    `json:"cargo_weight"`
-	Tracking           bool      `json:"tracking"`
-	RequiresTarp       bool      `json:"requires_tarp"`
+type GetAllAdvertisementPublicRow struct {
+	ID               int64     `json:"id"`
+	Destination      string    `json:"destination"`
+	Origin           string    `json:"origin"`
+	PickupDate       time.Time `json:"pickup_date"`
+	DeliveryDate     time.Time `json:"delivery_date"`
+	ExpirationDate   time.Time `json:"expiration_date"`
+	Title            string    `json:"title"`
+	CargoType        string    `json:"cargo_type"`
+	CargoSpecies     string    `json:"cargo_species"`
+	CargoVolume      string    `json:"cargo_volume"`
+	CargoWeight      string    `json:"cargo_weight"`
+	VehiclesAccepted string    `json:"vehicles_accepted"`
+	Trailer          string    `json:"trailer"`
+	RequiresTarp     bool      `json:"requires_tarp"`
+	Tracking         bool      `json:"tracking"`
+	Agency           bool      `json:"agency"`
+	Description      string    `json:"description"`
+	PaymentType      string    `json:"payment_type"`
+	Advance          string    `json:"advance"`
+	Toll             bool      `json:"toll"`
+	Situation        string    `json:"situation"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
-func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, updateAnnouncement,
-		arg.ID,
+func (q *Queries) GetAllAdvertisementPublic(ctx context.Context) ([]GetAllAdvertisementPublicRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAdvertisementPublic)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllAdvertisementPublicRow
+	for rows.Next() {
+		var i GetAllAdvertisementPublicRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Destination,
+			&i.Origin,
+			&i.PickupDate,
+			&i.DeliveryDate,
+			&i.ExpirationDate,
+			&i.Title,
+			&i.CargoType,
+			&i.CargoSpecies,
+			&i.CargoVolume,
+			&i.CargoWeight,
+			&i.VehiclesAccepted,
+			&i.Trailer,
+			&i.RequiresTarp,
+			&i.Tracking,
+			&i.Agency,
+			&i.Description,
+			&i.PaymentType,
+			&i.Advance,
+			&i.Toll,
+			&i.Situation,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllAdvertisementUsers = `-- name: GetAllAdvertisementUsers :many
+SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, a.created_at, created_who, a.updated_at, updated_who
+FROM public.advertisement a
+         inner join users u on u.id = a.user_id
+WHERE a.status=true
+ORDER BY expiration_date
+`
+
+type GetAllAdvertisementUsersRow struct {
+	ID                 int64          `json:"id"`
+	UserID             int64          `json:"user_id"`
+	UserName           string         `json:"user_name"`
+	ActiveThere        sql.NullTime   `json:"active_there"`
+	UserCity           sql.NullString `json:"user_city"`
+	UserState          sql.NullString `json:"user_state"`
+	UserPhone          sql.NullString `json:"user_phone"`
+	UserEmail          string         `json:"user_email"`
+	UserProfilePicture sql.NullString `json:"user_profile_picture"`
+	Destination        string         `json:"destination"`
+	Origin             string         `json:"origin"`
+	DestinationLat     string         `json:"destination_lat"`
+	DestinationLng     string         `json:"destination_lng"`
+	OriginLat          string         `json:"origin_lat"`
+	OriginLng          string         `json:"origin_lng"`
+	Distance           int64          `json:"distance"`
+	PickupDate         time.Time      `json:"pickup_date"`
+	DeliveryDate       time.Time      `json:"delivery_date"`
+	ExpirationDate     time.Time      `json:"expiration_date"`
+	Title              string         `json:"title"`
+	CargoType          string         `json:"cargo_type"`
+	CargoSpecies       string         `json:"cargo_species"`
+	CargoVolume        string         `json:"cargo_volume"`
+	CargoWeight        string         `json:"cargo_weight"`
+	VehiclesAccepted   string         `json:"vehicles_accepted"`
+	Trailer            string         `json:"trailer"`
+	RequiresTarp       bool           `json:"requires_tarp"`
+	Tracking           bool           `json:"tracking"`
+	Agency             bool           `json:"agency"`
+	Description        string         `json:"description"`
+	PaymentType        string         `json:"payment_type"`
+	Advance            string         `json:"advance"`
+	Toll               bool           `json:"toll"`
+	Situation          string         `json:"situation"`
+	CreatedAt          time.Time      `json:"created_at"`
+	CreatedWho         string         `json:"created_who"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+	UpdatedWho         sql.NullString `json:"updated_who"`
+}
+
+func (q *Queries) GetAllAdvertisementUsers(ctx context.Context) ([]GetAllAdvertisementUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAdvertisementUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllAdvertisementUsersRow
+	for rows.Next() {
+		var i GetAllAdvertisementUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserName,
+			&i.ActiveThere,
+			&i.UserCity,
+			&i.UserState,
+			&i.UserPhone,
+			&i.UserEmail,
+			&i.UserProfilePicture,
+			&i.Destination,
+			&i.Origin,
+			&i.DestinationLat,
+			&i.DestinationLng,
+			&i.OriginLat,
+			&i.OriginLng,
+			&i.Distance,
+			&i.PickupDate,
+			&i.DeliveryDate,
+			&i.ExpirationDate,
+			&i.Title,
+			&i.CargoType,
+			&i.CargoSpecies,
+			&i.CargoVolume,
+			&i.CargoWeight,
+			&i.VehiclesAccepted,
+			&i.Trailer,
+			&i.RequiresTarp,
+			&i.Tracking,
+			&i.Agency,
+			&i.Description,
+			&i.PaymentType,
+			&i.Advance,
+			&i.Toll,
+			&i.Situation,
+			&i.CreatedAt,
+			&i.CreatedWho,
+			&i.UpdatedAt,
+			&i.UpdatedWho,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateAdvertisement = `-- name: UpdateAdvertisement :one
+UPDATE public.advertisement
+SET user_id=$1, destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, distance=$8, pickup_date=$9, delivery_date=$10, expiration_date=$11, title=$12,
+    cargo_type=$13, cargo_species=$14, cargo_volume=$15, cargo_weight=$16, vehicles_accepted=$17, trailer=$18, requires_tarp=$19, tracking=$20, agency=$21, description=$22, payment_type=$23, advance=$24, toll=$25, situation=$26, price=$27, updated_at=now(), updated_who=$28
+WHERE id=$29
+    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, updated_at, updated_who
+`
+
+type UpdateAdvertisementParams struct {
+	UserID           int64          `json:"user_id"`
+	Destination      string         `json:"destination"`
+	Origin           string         `json:"origin"`
+	DestinationLat   string         `json:"destination_lat"`
+	DestinationLng   string         `json:"destination_lng"`
+	OriginLat        string         `json:"origin_lat"`
+	OriginLng        string         `json:"origin_lng"`
+	Distance         int64          `json:"distance"`
+	PickupDate       time.Time      `json:"pickup_date"`
+	DeliveryDate     time.Time      `json:"delivery_date"`
+	ExpirationDate   time.Time      `json:"expiration_date"`
+	Title            string         `json:"title"`
+	CargoType        string         `json:"cargo_type"`
+	CargoSpecies     string         `json:"cargo_species"`
+	CargoVolume      string         `json:"cargo_volume"`
+	CargoWeight      string         `json:"cargo_weight"`
+	VehiclesAccepted string         `json:"vehicles_accepted"`
+	Trailer          string         `json:"trailer"`
+	RequiresTarp     bool           `json:"requires_tarp"`
+	Tracking         bool           `json:"tracking"`
+	Agency           bool           `json:"agency"`
+	Description      string         `json:"description"`
+	PaymentType      string         `json:"payment_type"`
+	Advance          string         `json:"advance"`
+	Toll             bool           `json:"toll"`
+	Situation        string         `json:"situation"`
+	Price            string         `json:"price"`
+	UpdatedWho       sql.NullString `json:"updated_who"`
+	ID               int64          `json:"id"`
+}
+
+func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertisementParams) (Advertisement, error) {
+	row := q.db.QueryRowContext(ctx, updateAdvertisement,
+		arg.UserID,
 		arg.Destination,
 		arg.Origin,
 		arg.DestinationLat,
 		arg.DestinationLng,
 		arg.OriginLat,
 		arg.OriginLng,
-		arg.Description,
-		arg.CargoDescription,
-		arg.PaymentDescription,
-		arg.DeliveryDate,
+		arg.Distance,
 		arg.PickupDate,
-		arg.DeadlineDate,
-		arg.Price,
-		arg.Vehicle,
-		arg.BodyType,
-		arg.Kilometers,
-		arg.CargoNature,
+		arg.DeliveryDate,
+		arg.ExpirationDate,
+		arg.Title,
 		arg.CargoType,
+		arg.CargoSpecies,
+		arg.CargoVolume,
 		arg.CargoWeight,
-		arg.Tracking,
+		arg.VehiclesAccepted,
+		arg.Trailer,
 		arg.RequiresTarp,
+		arg.Tracking,
+		arg.Agency,
+		arg.Description,
+		arg.PaymentType,
+		arg.Advance,
+		arg.Toll,
+		arg.Situation,
+		arg.Price,
+		arg.UpdatedWho,
+		arg.ID,
 	)
-	var i Announcement
+	var i Advertisement
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Destination,
 		&i.Origin,
 		&i.DestinationLat,
 		&i.DestinationLng,
 		&i.OriginLat,
 		&i.OriginLng,
-		&i.Description,
-		&i.CargoDescription,
-		&i.PaymentDescription,
-		&i.DeliveryDate,
+		&i.Distance,
 		&i.PickupDate,
-		&i.DeadlineDate,
-		&i.Price,
-		&i.Vehicle,
-		&i.BodyType,
-		&i.Kilometers,
-		&i.CargoNature,
+		&i.DeliveryDate,
+		&i.ExpirationDate,
+		&i.Title,
 		&i.CargoType,
+		&i.CargoSpecies,
+		&i.CargoVolume,
 		&i.CargoWeight,
-		&i.Tracking,
+		&i.VehiclesAccepted,
+		&i.Trailer,
 		&i.RequiresTarp,
+		&i.Tracking,
+		&i.Agency,
+		&i.Description,
+		&i.PaymentType,
+		&i.Advance,
+		&i.Toll,
+		&i.Situation,
+		&i.Price,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedWho,
 		&i.UpdatedAt,
+		&i.UpdatedWho,
 	)
 	return i, err
 }
