@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -30,7 +29,8 @@ func InitRedis(environment string) {
 			panic("Não foi possível conectar ao Redis: " + err.Error())
 		}
 
-		fmt.Println("Conectado ao Redis em:", redisAddr)
+		log.Printf("Conectado ao Redis em: %s\n", redisAddr)
+		return
 	}
 	log.Println("redis pass...")
 }
