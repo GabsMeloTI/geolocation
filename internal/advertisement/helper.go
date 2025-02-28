@@ -23,9 +23,6 @@ func (data *CreateAdvertisementRequest) ValidateCreate() error {
 	if data.Origin == "" || data.Destination == "" {
 		return errors.New("a origem e o destino são obrigatórios")
 	}
-	if data.CargoType == "" {
-		return errors.New("o tipo da carga é obrigatório")
-	}
 	if data.CargoSpecies == "" {
 		return errors.New("a espécie da carga é obrigatória")
 	}

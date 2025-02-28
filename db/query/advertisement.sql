@@ -44,3 +44,5 @@ SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, tit
 FROM public.advertisement
 WHERE status=true
 ORDER BY expiration_date;
+
+

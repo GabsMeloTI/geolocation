@@ -18,6 +18,6 @@ WHERE r.interested_user_id = $1;
 
 
 -- name: GetCarrierChatRooms :many
-=SELECT r.*, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+SELECT r.*, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.interested_user_id = $1;

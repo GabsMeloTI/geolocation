@@ -5,7 +5,6 @@ import (
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/internal/advertisement"
-
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	new_routes "geolocation/internal/new_routes"

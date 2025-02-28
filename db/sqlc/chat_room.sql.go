@@ -41,6 +41,61 @@ func (q *Queries) CreateChatRoom(ctx context.Context, arg CreateChatRoomParams) 
 	return i, err
 }
 
+const getCarrierChatRooms = `-- name: GetCarrierChatRooms :many
+SELECT r.id, r.advertisement_id, r.advertisement_user_id, r.interested_user_id, r.status, r.created_at, r.updated_at, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+JOIN "advertisement" a ON a.id = r.advertisement_id
+WHERE r.interested_user_id = $1
+`
+
+type GetCarrierChatRoomsRow struct {
+	ID                  int64        `json:"id"`
+	AdvertisementID     int64        `json:"advertisement_id"`
+	AdvertisementUserID int64        `json:"advertisement_user_id"`
+	InterestedUserID    int64        `json:"interested_user_id"`
+	Status              bool         `json:"status"`
+	CreatedAt           time.Time    `json:"created_at"`
+	UpdatedAt           sql.NullTime `json:"updated_at"`
+	AdvertisementID_2   int64        `json:"advertisement_id_2"`
+	Origin              string       `json:"origin"`
+	Destination         string       `json:"destination"`
+	Distance            int64        `json:"distance"`
+}
+
+func (q *Queries) GetCarrierChatRooms(ctx context.Context, interestedUserID int64) ([]GetCarrierChatRoomsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCarrierChatRooms, interestedUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCarrierChatRoomsRow
+	for rows.Next() {
+		var i GetCarrierChatRoomsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AdvertisementID,
+			&i.AdvertisementUserID,
+			&i.InterestedUserID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.AdvertisementID_2,
+			&i.Origin,
+			&i.Destination,
+			&i.Distance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatRoomById = `-- name: GetChatRoomById :one
 SELECT r.id, r.advertisement_id, r.advertisement_user_id, r.interested_user_id, r.status, r.created_at, r.updated_at, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id

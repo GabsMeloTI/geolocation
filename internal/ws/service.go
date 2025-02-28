@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	db "geolocation/db/sqlc"
 	"geolocation/internal/advertisement"
-	"geolocation/internal/get_token"
 )
 
 type InterfaceService interface {
@@ -89,6 +88,6 @@ func (s *Service) GetRoomService(ctx context.Context, id int64) (Room, error) {
 
 }
 
-func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) error {
-	
-}
+//func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) error {
+//
+//}

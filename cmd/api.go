@@ -40,6 +40,12 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
 
+	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
+	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
+	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
+	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
+	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
+
 	trailer := e.Group("/trailer")
 	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
 	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
