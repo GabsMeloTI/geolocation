@@ -12,4 +12,18 @@ WHERE id = $2;
 -- name: GetTokenHist :one
 SELECT *
 FROM public.token_hist
-WHERE id=$1;
+WHERE ip=$1;
+
+-- name: GetTokenHistExist :one
+SELECT EXISTS (
+    SELECT 1
+    FROM public.token_hist
+    WHERE ip = $1
+);
+
+-- name: UpdateTokenHist :one
+UPDATE public.token_hist
+SET number_request = $2,
+    exprited_at = $3
+WHERE id = $1
+    RETURNING id, ip, number_request, valid, exprited_at;

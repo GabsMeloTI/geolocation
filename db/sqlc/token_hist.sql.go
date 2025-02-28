@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -40,11 +41,11 @@ func (q *Queries) CreateTokenHist(ctx context.Context, arg CreateTokenHistParams
 const getTokenHist = `-- name: GetTokenHist :one
 SELECT id, ip, number_request, created_at, exprited_at, valid
 FROM public.token_hist
-WHERE id=$1
+WHERE ip=$1
 `
 
-func (q *Queries) GetTokenHist(ctx context.Context, id int64) (TokenHist, error) {
-	row := q.db.QueryRowContext(ctx, getTokenHist, id)
+func (q *Queries) GetTokenHist(ctx context.Context, ip string) (TokenHist, error) {
+	row := q.db.QueryRowContext(ctx, getTokenHist, ip)
 	var i TokenHist
 	err := row.Scan(
 		&i.ID,
@@ -55,6 +56,21 @@ func (q *Queries) GetTokenHist(ctx context.Context, id int64) (TokenHist, error)
 		&i.Valid,
 	)
 	return i, err
+}
+
+const getTokenHistExist = `-- name: GetTokenHistExist :one
+SELECT EXISTS (
+    SELECT 1
+    FROM public.token_hist
+    WHERE ip = $1
+)
+`
+
+func (q *Queries) GetTokenHistExist(ctx context.Context, ip string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getTokenHistExist, ip)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const updateNumberOfRequest = `-- name: UpdateNumberOfRequest :exec
@@ -71,4 +87,39 @@ type UpdateNumberOfRequestParams struct {
 func (q *Queries) UpdateNumberOfRequest(ctx context.Context, arg UpdateNumberOfRequestParams) error {
 	_, err := q.db.ExecContext(ctx, updateNumberOfRequest, arg.NumberRequest, arg.ID)
 	return err
+}
+
+const updateTokenHist = `-- name: UpdateTokenHist :one
+UPDATE public.token_hist
+SET number_request = $2,
+    exprited_at = $3
+WHERE id = $1
+    RETURNING id, ip, number_request, valid, exprited_at
+`
+
+type UpdateTokenHistParams struct {
+	ID            int64     `json:"id"`
+	NumberRequest int64     `json:"number_request"`
+	ExpritedAt    time.Time `json:"exprited_at"`
+}
+
+type UpdateTokenHistRow struct {
+	ID            int64        `json:"id"`
+	Ip            string       `json:"ip"`
+	NumberRequest int64        `json:"number_request"`
+	Valid         sql.NullBool `json:"valid"`
+	ExpritedAt    time.Time    `json:"exprited_at"`
+}
+
+func (q *Queries) UpdateTokenHist(ctx context.Context, arg UpdateTokenHistParams) (UpdateTokenHistRow, error) {
+	row := q.db.QueryRowContext(ctx, updateTokenHist, arg.ID, arg.NumberRequest, arg.ExpritedAt)
+	var i UpdateTokenHistRow
+	err := row.Scan(
+		&i.ID,
+		&i.Ip,
+		&i.NumberRequest,
+		&i.Valid,
+		&i.ExpritedAt,
+	)
+	return i, err
 }

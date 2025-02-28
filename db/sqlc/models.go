@@ -10,6 +10,34 @@ import (
 	"time"
 )
 
+type Announcement struct {
+	ID                 int64        `json:"id"`
+	Destination        string       `json:"destination"`
+	Origin             string       `json:"origin"`
+	DestinationLat     string       `json:"destination_lat"`
+	DestinationLng     string       `json:"destination_lng"`
+	OriginLat          string       `json:"origin_lat"`
+	OriginLng          string       `json:"origin_lng"`
+	Description        string       `json:"description"`
+	CargoDescription   string       `json:"cargo_description"`
+	PaymentDescription string       `json:"payment_description"`
+	DeliveryDate       time.Time    `json:"delivery_date"`
+	PickupDate         time.Time    `json:"pickup_date"`
+	DeadlineDate       time.Time    `json:"deadline_date"`
+	Price              string       `json:"price"`
+	Vehicle            string       `json:"vehicle"`
+	BodyType           string       `json:"body_type"`
+	Kilometers         string       `json:"kilometers"`
+	CargoNature        string       `json:"cargo_nature"`
+	CargoType          string       `json:"cargo_type"`
+	CargoWeight        string       `json:"cargo_weight"`
+	Tracking           bool         `json:"tracking"`
+	RequiresTarp       bool         `json:"requires_tarp"`
+	Status             bool         `json:"status"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          sql.NullTime `json:"updated_at"`
+}
+
 type Balanca struct {
 	ID             int64  `json:"id"`
 	Concessionaria string `json:"concessionaria"`
@@ -22,15 +50,34 @@ type Balanca struct {
 	Uf             string `json:"uf"`
 }
 
+type Driver struct {
+	ID                    int64          `json:"id"`
+	UserID                int64          `json:"user_id"`
+	BirthDate             time.Time      `json:"birth_date"`
+	Cpf                   string         `json:"cpf"`
+	LicenseNumber         string         `json:"license_number"`
+	LicenseCategory       string         `json:"license_category"`
+	LicenseExpirationDate time.Time      `json:"license_expiration_date"`
+	State                 sql.NullString `json:"state"`
+	City                  sql.NullString `json:"city"`
+	Neighborhood          sql.NullString `json:"neighborhood"`
+	Street                sql.NullString `json:"street"`
+	StreetNumber          sql.NullString `json:"street_number"`
+	Phone                 string         `json:"phone"`
+	Status                bool           `json:"status"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             sql.NullTime   `json:"updated_at"`
+}
+
 type FavoriteRoute struct {
-	ID               int64           `json:"id"`
-	TollsID          int64           `json:"tolls_id"`
-	Response         json.RawMessage `json:"response"`
-	UserOrganization string          `json:"user_organization"`
-	CreatedWho       string          `json:"created_who"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedWho       sql.NullString  `json:"updated_who"`
-	UpdatedAt        sql.NullTime    `json:"updated_at"`
+	ID          int64           `json:"id"`
+	IDUser      int64           `json:"id_user"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedWho  string          `json:"created_who"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
 
 type FreightLoad struct {
@@ -62,13 +109,15 @@ type Profile struct {
 }
 
 type RouteHist struct {
-	ID          int64           `json:"id"`
-	IDTokenHist int64           `json:"id_token_hist"`
-	Origin      string          `json:"origin"`
-	Destination string          `json:"destination"`
-	Waypoints   sql.NullString  `json:"waypoints"`
-	Response    json.RawMessage `json:"response"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID            int64           `json:"id"`
+	IDUser        int64           `json:"id_user"`
+	Origin        string          `json:"origin"`
+	Destination   string          `json:"destination"`
+	Waypoints     sql.NullString  `json:"waypoints"`
+	Response      json.RawMessage `json:"response"`
+	IsPublic      bool            `json:"is_public"`
+	NumberRequest int64           `json:"number_request"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
 type SavedRoute struct {
@@ -117,6 +166,46 @@ type TollTag struct {
 	ID                int64  `json:"id"`
 	Name              string `json:"name"`
 	DealershipAccepts string `json:"dealership_accepts"`
+}
+
+type TractorUnit struct {
+	ID              int64           `json:"id"`
+	LicensePlate    string          `json:"license_plate"`
+	DriverID        int64           `json:"driver_id"`
+	UserID          int64           `json:"user_id"`
+	Chassis         string          `json:"chassis"`
+	Brand           string          `json:"brand"`
+	Model           string          `json:"model"`
+	ManufactureYear sql.NullInt32   `json:"manufacture_year"`
+	EnginePower     sql.NullString  `json:"engine_power"`
+	UnitType        sql.NullString  `json:"unit_type"`
+	CanCouple       sql.NullBool    `json:"can_couple"`
+	Height          sql.NullFloat64 `json:"height"`
+	Status          bool            `json:"status"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       sql.NullTime    `json:"updated_at"`
+}
+
+type Trailer struct {
+	ID           int64           `json:"id"`
+	LicensePlate string          `json:"license_plate"`
+	UserID       int64           `json:"user_id"`
+	Chassis      string          `json:"chassis"`
+	BodyType     sql.NullString  `json:"body_type"`
+	LoadCapacity sql.NullFloat64 `json:"load_capacity"`
+	Length       sql.NullFloat64 `json:"length"`
+	Width        sql.NullFloat64 `json:"width"`
+	Height       sql.NullFloat64 `json:"height"`
+	Status       bool            `json:"status"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    sql.NullTime    `json:"updated_at"`
+}
+
+type Truck struct {
+	ID            int64         `json:"id"`
+	TractorUnitID int64         `json:"tractor_unit_id"`
+	TrailerID     sql.NullInt64 `json:"trailer_id"`
+	DriverID      int64         `json:"driver_id"`
 }
 
 type User struct {

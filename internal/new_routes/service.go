@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,7 +24,7 @@ import (
 )
 
 type InterfaceService interface {
-	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id int64) (FinalOutput, error)
+	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
 }
 
 type Service struct {
@@ -38,9 +39,38 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, googleMaps
 	}
 }
 
-func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id int64) (FinalOutput, error) {
-	if frontInfo.Origin == "" || frontInfo.Destination == "" {
-		return FinalOutput{}, fmt.Errorf("os campos origin e destination são obrigatórios")
+func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error) {
+	if strings.ToLower(frontInfo.PublicOrPrivate) == "public" {
+		if err := s.updateNumberOfRequest(ctx, idPublicToken); err != nil {
+			return FinalOutput{}, err
+		}
+	}
+
+	cacheKey := fmt.Sprintf("route:%s:%s:%s",
+		strings.ToLower(frontInfo.Origin),
+		strings.ToLower(frontInfo.Destination),
+		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+	)
+
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var cachedOutput FinalOutput
+		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
+			waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+			responseJSON, _ := json.Marshal(cachedOutput)
+			requestJSON, _ := json.Marshal(frontInfo)
+
+			errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+				cachedOutput.Summary.LocationOrigin.Address,
+				cachedOutput.Summary.LocationDestination.Address,
+				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+			if errSavedRoutes != nil {
+				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+			}
+			return cachedOutput, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
 	}
 
 	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
@@ -82,49 +112,74 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	client := http.Client{Timeout: 120 * time.Second}
 
-	baseOSRMURL := "http://http://192.168.1.54/route/v1/driving/" + url.PathEscape(coords)
+	osrmURLFast := baseOSRMURL + "?" + url.Values{
+		"alternatives":      {"3"},
+		"steps":             {"true"},
+		"overview":          {"full"},
+		"continue_straight": {"false"},
+	}.Encode()
 
-	osrmParamsTolls := url.Values{}
-	osrmParamsTolls.Set("alternatives", "3")
-	osrmParamsTolls.Set("steps", "true")
-	osrmParamsTolls.Set("overview", "full")
-	osrmURLTolls := baseOSRMURL + "?" + osrmParamsTolls.Encode()
+	osrmURLNoTolls := baseOSRMURL + "?" + url.Values{
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"toll"},
+	}.Encode()
 
-	client := http.Client{Timeout: 60 * time.Second}
-	respTolls, err := client.Get(osrmURLTolls)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro na requisição OSRM (com pedágio): %w", err)
+	osrmURLEfficient := baseOSRMURL + "?" + url.Values{
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"motorway"},
+	}.Encode()
+
+	type osrmResult struct {
+		resp     OSRMResponse
+		err      error
+		category string
 	}
-	defer respTolls.Body.Close()
+	resultsCh := make(chan osrmResult, 3)
 
-	var osrmRespTolls OSRMResponse
-	if err := json.NewDecoder(respTolls.Body).Decode(&osrmRespTolls); err != nil {
-		return FinalOutput{}, fmt.Errorf("erro ao decodificar resposta OSRM (com pedágio): %w", err)
-	}
-	if osrmRespTolls.Code != "Ok" || len(osrmRespTolls.Routes) == 0 {
-		return FinalOutput{}, fmt.Errorf("OSRM (com pedágio) retornou erro ou nenhuma rota encontrada")
+	makeOSRMRequest := func(url, category, errMsg string) {
+		resp, err := client.Get(url)
+		if err != nil {
+			resultsCh <- osrmResult{err: fmt.Errorf("%s: %w", errMsg, err), category: category}
+			return
+		}
+		defer resp.Body.Close()
+		var osrmResp OSRMResponse
+		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+			resultsCh <- osrmResult{err: fmt.Errorf("erro ao decodificar resposta OSRM (%s): %w", category, err), category: category}
+			return
+		}
+		if osrmResp.Code != "Ok" || len(osrmResp.Routes) == 0 {
+			resultsCh <- osrmResult{err: fmt.Errorf("OSRM (%s) retornou erro ou nenhuma rota encontrada", category), category: category}
+			return
+		}
+		resultsCh <- osrmResult{resp: osrmResp, category: category}
 	}
 
-	osrmParamsNoTolls := url.Values{}
-	osrmParamsNoTolls.Set("alternatives", "3")
-	osrmParamsNoTolls.Set("steps", "true")
-	osrmParamsNoTolls.Set("overview", "full")
-	osrmParamsNoTolls.Set("exclude", "toll")
-	osrmURLNoTolls := baseOSRMURL + "?" + osrmParamsNoTolls.Encode()
+	go makeOSRMRequest(osrmURLFast, "fatest", "erro na requisição OSRM (rota rápida)")
+	go makeOSRMRequest(osrmURLNoTolls, "cheapest", "erro na requisição OSRM (rota com menos pedágio)")
+	go makeOSRMRequest(osrmURLEfficient, "efficient", "erro na requisição OSRM (rota eficiente)")
 
-	respNoTolls, err := client.Get(osrmURLNoTolls)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro na requisição OSRM (sem pedágio): %w", err)
-	}
-	defer respNoTolls.Body.Close()
-
-	var osrmRespNoTolls OSRMResponse
-	if err := json.NewDecoder(respNoTolls.Body).Decode(&osrmRespNoTolls); err != nil {
-		return FinalOutput{}, fmt.Errorf("erro ao decodificar resposta OSRM (sem pedágio): %w", err)
-	}
-	if osrmRespNoTolls.Code != "Ok" || len(osrmRespNoTolls.Routes) == 0 {
-		return FinalOutput{}, fmt.Errorf("OSRM (sem pedágio) retornou erro ou nenhuma rota encontrada")
+	var osrmRespFast, osrmRespNoTolls, osrmRespEfficient OSRMResponse
+	for i := 0; i < 3; i++ {
+		res := <-resultsCh
+		if res.err != nil {
+			return FinalOutput{}, res.err
+		}
+		switch res.category {
+		case "fatest":
+			osrmRespFast = res.resp
+		case "cheapest":
+			osrmRespNoTolls = res.resp
+		case "efficient":
+			osrmRespEfficient = res.resp
+		}
 	}
 
 	dbCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -136,7 +191,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		balancas = nil
 	}
 
-	routeGasStations, err := s.findGasStations(dbCtx, osrmRespTolls.Routes[0].Geometry)
+	routeGasStations, err := s.findGasStations(dbCtx, osrmRespFast.Routes[0].Geometry)
 	if err != nil {
 		log.Printf("Erro ao consultar postos de gasolina: %v", err)
 		routeGasStations = nil
@@ -148,7 +203,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 	if len(frontInfo.Waypoints) > 0 {
 		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 	}
-	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespTolls.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
+	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 	wazeURL := ""
 	if origin.PlaceID != "" && destination.PlaceID != "" {
 		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
@@ -163,7 +218,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 
 	processRoutes := func(osrmResp OSRMResponse, routeCategory string) []RouteOutput {
 		var output []RouteOutput
-		for idx, route := range osrmResp.Routes {
+		for _, route := range osrmResp.Routes {
 			distText, distVal := formatDistance(route.Distance)
 			durText, durVal := formatDuration(route.Duration)
 
@@ -225,10 +280,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 			}
 
 			routeType := routeCategory
-			if idx > 0 {
-				routeType = "cheapest"
-			}
-
 			var totalTollCost float64
 			for _, toll := range rawTolls {
 				totalTollCost += toll.CashCost
@@ -275,15 +326,13 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		sort.Slice(output, func(i, j int) bool {
 			return len(output[i].Tolls) < len(output[j].Tolls)
 		})
-
 		return output
 	}
 
-	routesWithTolls := processRoutes(osrmRespTolls, "with_toll")
-	routesWithoutTolls := processRoutes(osrmRespNoTolls, "without_toll")
-
-	combinedRoutes := append(routesWithTolls, routesWithoutTolls...)
-	classifyRoutes(combinedRoutes)
+	routesFast := processRoutes(osrmRespFast, "fatest")
+	routesNoTolls := processRoutes(osrmRespNoTolls, "cheapest")
+	routesEfficient := processRoutes(osrmRespEfficient, "efficient")
+	combinedRoutes := append(append(routesFast, routesNoTolls...), routesEfficient...)
 
 	finalOutput := FinalOutput{
 		Summary: Summary{
@@ -314,80 +363,135 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		Routes: combinedRoutes,
 	}
 
+	if data, err := json.Marshal(finalOutput); err == nil {
+		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+		}
+	}
+
+	waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+	responseJSON, _ := json.Marshal(finalOutput)
+	requestJSON, _ := json.Marshal(frontInfo)
+
+	errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+		origin.FormattedAddress, destination.FormattedAddress,
+		waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+	if errSavedRoutes != nil {
+		return FinalOutput{}, errSavedRoutes
+	}
+
 	return finalOutput, nil
 }
 
-func classifyRoutes(routes []RouteOutput) {
-	// Se não há rotas, não faz nada
-	if len(routes) == 0 {
-		return
+func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) error {
+	var idTokenHist int64
+	if strings.ToLower(PublicOrPrivate) == "public" {
+		idTokenHist = idPublicToken
+	} else {
+		idTokenHist = IdUser
 	}
 
-	// 1) Calcular um custo total para cada rota.
-	//    Por exemplo: custo total = pedágio em dinheiro + combustível em rodovia.
-	//    Ajuste conforme sua necessidade.
-	costs := make([]float64, len(routes))
-	for i, r := range routes {
-		// Exemplo de soma: pedágio + custo de combustível na rodovia
-		totalCost := r.Costs.Cash + float64(r.Costs.FuelInTheHwy)
-		costs[i] = totalCost
-	}
+	isPublic := strings.ToLower(PublicOrPrivate) == "public"
 
-	// 2) Encontrar índice da rota mais barata
-	minCostIndex := 0
-	for i := 1; i < len(routes); i++ {
-		if costs[i] < costs[minCostIndex] {
-			minCostIndex = i
-		}
-	}
-
-	// 3) Encontrar índice da rota mais rápida
-	minTimeIndex := 0
-	for i := 1; i < len(routes); i++ {
-		if routes[i].Summary.Duration.Value < routes[minTimeIndex].Summary.Duration.Value {
-			minTimeIndex = i
-		}
-	}
-
-	// 4) Classificar de acordo com a quantidade de rotas retornadas
-	switch len(routes) {
-	case 1:
-		// Só existe uma rota? Ela pode ser considerada "econômica".
-		routes[0].Summary.RouteType = "economica"
-
-	case 2:
-		// Se há 2 rotas, atribuímos "econômica" à mais barata e "rápida" à mais rápida.
-		// Se elas coincidirem (a mesma rota é mais barata e mais rápida),
-		// você pode dar preferência a uma classificação ou usar a outra como fallback.
-		routes[minCostIndex].Summary.RouteType = "economica"
-		if minCostIndex == minTimeIndex {
-			// Se for a mesma rota, a outra vira "eficiente", por exemplo.
-			for i := 0; i < len(routes); i++ {
-				if i != minCostIndex {
-					routes[i].Summary.RouteType = "eficiente"
+	existingRoute, err := s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
+		IDUser:      idTokenHist,
+		Origin:      origin,
+		Destination: destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		IsPublic: isPublic,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+				IDUser:      idTokenHist,
+				Origin:      origin,
+				Destination: destination,
+				Waypoints: sql.NullString{
+					String: waypoints,
+					Valid:  true,
+				},
+				Response:      responseJSON,
+				IsPublic:      isPublic,
+				NumberRequest: 1,
+			})
+			if err != nil {
+				if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+					existingRoute, err = s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
+						IDUser:      idTokenHist,
+						Origin:      origin,
+						Destination: destination,
+						Waypoints: sql.NullString{
+							String: waypoints,
+							Valid:  true,
+						},
+						IsPublic: isPublic,
+					})
+					if err != nil {
+						return err
+					}
+					newCount := existingRoute.NumberRequest + 1
+					err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
+						ID:            existingRoute.ID,
+						NumberRequest: newCount,
+					})
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
 				}
 			}
 		} else {
-			// São rotas diferentes
-			routes[minTimeIndex].Summary.RouteType = "rapida"
+			return err
 		}
-
-	default:
-		// 3 ou mais rotas (no seu caso, pediu até 3 alternativas)
-		// "econômica" = a de menor custo
-		// "rápida" = a de menor duração
-		// "eficiente" = as demais (que não forem nem a mais barata nem a mais rápida)
-		routes[minCostIndex].Summary.RouteType = "economica"
-		routes[minTimeIndex].Summary.RouteType = "rapida"
-
-		// Se houver 3 rotas, a terceira é "eficiente".
-		// Se houver mais de 3 (improvável no seu caso), todas as demais viram "eficiente".
-		for i := 0; i < len(routes); i++ {
-			if i != minCostIndex && i != minTimeIndex {
-				routes[i].Summary.RouteType = "eficiente"
-			}
+	} else {
+		newCount := existingRoute.NumberRequest + 1
+		err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
+			ID:            existingRoute.ID,
+			NumberRequest: newCount,
+		})
+		if err != nil {
+			return err
 		}
 	}
+
+	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
+		Origin:      origin,
+		Destination: destination,
+		Waypoints: sql.NullString{
+			String: waypoints,
+			Valid:  true,
+		},
+		Request:   requestJSON,
+		Response:  responseJSON,
+		ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
+	})
+	if err != nil {
+		if !strings.Contains(err.Error(), `duplicate key value violates unique constraint "idx_saved_routes_unique"`) {
+			return err
+		}
+	}
+
+	if favorite {
+		_, err := s.InterfaceService.CreateFavoriteRoute(ctx, db.CreateFavoriteRouteParams{
+			IDUser:      idTokenHist,
+			Origin:      origin,
+			Destination: destination,
+			Waypoints: sql.NullString{
+				String: waypoints,
+				Valid:  true,
+			},
+			Response: responseJSON,
+		})
+		if err != nil {
+			log.Printf("Erro ao salvar rota favorita: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float64) (map[string]interface{}, error) {
@@ -556,11 +660,42 @@ func (s *Service) findTollsOnRoute(ctx context.Context, routeGeometry string, ve
 			}
 		}
 
+		var imgTags []string
+		for _, tag := range tags {
+			var imgTag string
+			switch tag {
+			case "veloe":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/veloe.png"
+			case "semParar":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/semparar.png"
+			case "moveMais":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/moveMais.png"
+			case "greenPass":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/greenpass.png"
+			case "ecotaggy":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/ecotaggy.png"
+			case "autoExpresso":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/auto-expresso.png"
+			case "c6Taggy":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/c6-tag.png"
+			case "dBTrans":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/dbTrans.png"
+			case "taggy":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/taggy.png"
+			case "conectCar":
+				imgTag = "https://tags-tolls.s3.us-east-1.amazonaws.com/conectcar.png"
+			default:
+				imgTag = ""
+			}
+			imgTags = append(imgTags, imgTag)
+		}
+
 		candidateTolls[i].TagCost = math.Round(totalToll - (totalToll * 0.05))
 		candidateTolls[i].CashCost = totalToll
 		candidateTolls[i].Currency = "BRL"
 		candidateTolls[i].PrepaidCardCost = math.Round(totalToll - (totalToll * 0.05))
 		candidateTolls[i].TagPrimary = tags
+		candidateTolls[i].TagImg = imgTags
 	}
 
 	originStr := fmt.Sprintf("%.6f,%.6f", polyPoints[0].Lat, polyPoints[0].Lng)
@@ -963,4 +1098,27 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		}
 	}
 	return result, nil
+}
+
+func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return errors.New("ID inválido")
+	}
+
+	result, err := s.InterfaceService.GetTokenHist(ctx, id)
+	if err != nil {
+		return fmt.Errorf("falha ao obter token do histórico: %w", err)
+	}
+	number := result.NumberRequest + 1
+	if number > 2 {
+		return errors.New("você atingiu o limite de requisições por dia")
+	}
+	err = s.InterfaceService.UpdateNumberOfRequest(ctx, db.UpdateNumberOfRequestParams{
+		NumberRequest: number,
+		ID:            id,
+	})
+	if err != nil {
+		return fmt.Errorf("falha ao atualizar número de requisições: %w", err)
+	}
+	return nil
 }

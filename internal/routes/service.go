@@ -483,6 +483,9 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 			Longitude: results[0].Geometry.Location.Lng,
 		},
 	}
+	fmt.Println(result)
+	fmt.Println(results[0].Geometry.Location.Lat)
+	fmt.Println(results[0].Geometry.Location.Lng)
 
 	data, err := json.Marshal(result)
 	if err == nil {
@@ -1110,7 +1113,7 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info FrontInfo, response json.RawMessage) error {
 	waypoints := strings.ToLower(strings.Join(info.Waypoints, ","))
 	_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
-		IDTokenHist: idTokenHist,
+		IDUser:      idTokenHist,
 		Origin:      info.Origin,
 		Destination: info.Destination,
 		Waypoints: sql.NullString{
@@ -1118,6 +1121,7 @@ func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info F
 			Valid:  true,
 		},
 		Response: response,
+		IsPublic: false,
 	})
 	if err != nil {
 		return err

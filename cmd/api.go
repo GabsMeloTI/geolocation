@@ -13,7 +13,6 @@ import (
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
 
-	// Graceful Shutdown
 	go func() {
 		for {
 			select {
@@ -36,10 +35,28 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	e.POST("/check-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-	e.POST("/route", container.HandlerNewRoutes.CalculateRoutes)
-	e.POST("/check-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
-	e.GET("/public/:ip", container.HandlerHist.GetPublicToken)
+	driver := e.Group("/driver")
+	driver.POST("/create", container.HandlerDriver.CreateDriverHandler)
+	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
+	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
+
+	trailer := e.Group("/trailer")
+	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
+	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
+	trailer.PUT("/delete/:id", container.HandlerTrailer.DeleteTrailerHandler)
+
+	tractorUnit := e.Group("/tractor-unit")
+	tractorUnit.POST("/create", container.HandlerTractorUnit.CreateTractorUnitHandler)
+	tractorUnit.PUT("/update", container.HandlerTractorUnit.UpdateTractorUnitHandler)
+	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
+
+	public := e.Group("/public")
+	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
+
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 
 	e.POST("/create-user", container.UserHandler.CreateUser)
 	e.POST("/login", container.UserHandler.UserLogin)
