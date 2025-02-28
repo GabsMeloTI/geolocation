@@ -331,3 +331,28 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 		p.UpdatedWho = &result.UpdatedWho.String
 	}
 }
+
+func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.GetAllAdvertisementPublicRow) {
+	p.ID = result.ID
+	p.Destination = result.Destination
+	p.Origin = result.Origin
+	p.PickupDate = result.PickupDate
+	p.DeliveryDate = result.DeliveryDate
+	p.ExpirationDate = result.ExpirationDate
+	p.Title = result.Title
+	p.CargoType = result.CargoType
+	p.CargoSpecies = result.CargoSpecies
+	p.CargoVolume = result.CargoVolume
+	p.CargoWeight = result.CargoWeight
+	p.VehiclesAccepted = result.VehiclesAccepted
+	p.Trailer = result.Trailer
+	p.RequiresTarp = result.RequiresTarp
+	p.Tracking = result.Tracking
+	p.Agency = result.Agency
+	p.Description = result.Description
+	p.PaymentType = result.PaymentType
+	p.Advance = result.Advance
+	p.Toll = result.Toll
+	p.Situation = result.Situation
+	p.CreatedAt = result.CreatedAt
+}

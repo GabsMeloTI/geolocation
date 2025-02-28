@@ -58,6 +58,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
