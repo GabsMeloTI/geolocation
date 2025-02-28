@@ -41,47 +41,41 @@ func (q *Queries) CreateChatRoom(ctx context.Context, arg CreateChatRoomParams) 
 	return i, err
 }
 
-const getCarrierChatRooms = `-- name: GetCarrierChatRooms :many
-SELECT r.id, r.advertisement_id, r.advertisement_user_id, r.interested_user_id, r.status, r.created_at, r.updated_at, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+const getAdvertisementChatRooms = `-- name: GetAdvertisementChatRooms :many
+SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertisement_id, a.origin, a.destination, a.distance, a.title FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
-WHERE r.interested_user_id = $1
+WHERE r.advertisement_user_id = $1
 `
 
-type GetCarrierChatRoomsRow struct {
-	ID                  int64        `json:"id"`
-	AdvertisementID     int64        `json:"advertisement_id"`
-	AdvertisementUserID int64        `json:"advertisement_user_id"`
-	InterestedUserID    int64        `json:"interested_user_id"`
-	Status              bool         `json:"status"`
-	CreatedAt           time.Time    `json:"created_at"`
-	UpdatedAt           sql.NullTime `json:"updated_at"`
-	AdvertisementID_2   int64        `json:"advertisement_id_2"`
-	Origin              string       `json:"origin"`
-	Destination         string       `json:"destination"`
-	Distance            int64        `json:"distance"`
+type GetAdvertisementChatRoomsRow struct {
+	RoomID              int64     `json:"room_id"`
+	CreatedAt           time.Time `json:"created_at"`
+	AdvertisementUserID int64     `json:"advertisement_user_id"`
+	AdvertisementID     int64     `json:"advertisement_id"`
+	Origin              string    `json:"origin"`
+	Destination         string    `json:"destination"`
+	Distance            int64     `json:"distance"`
+	Title               string    `json:"title"`
 }
 
-func (q *Queries) GetCarrierChatRooms(ctx context.Context, interestedUserID int64) ([]GetCarrierChatRoomsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCarrierChatRooms, interestedUserID)
+func (q *Queries) GetAdvertisementChatRooms(ctx context.Context, advertisementUserID int64) ([]GetAdvertisementChatRoomsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAdvertisementChatRooms, advertisementUserID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCarrierChatRoomsRow
+	var items []GetAdvertisementChatRoomsRow
 	for rows.Next() {
-		var i GetCarrierChatRoomsRow
+		var i GetAdvertisementChatRoomsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AdvertisementID,
-			&i.AdvertisementUserID,
-			&i.InterestedUserID,
-			&i.Status,
+			&i.RoomID,
 			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.AdvertisementID_2,
+			&i.AdvertisementUserID,
+			&i.AdvertisementID,
 			&i.Origin,
 			&i.Destination,
 			&i.Distance,
+			&i.Title,
 		); err != nil {
 			return nil, err
 		}
@@ -135,47 +129,41 @@ func (q *Queries) GetChatRoomById(ctx context.Context, id int64) (GetChatRoomByI
 	return i, err
 }
 
-const getDriverChatRooms = `-- name: GetDriverChatRooms :many
-SELECT r.id, r.advertisement_id, r.advertisement_user_id, r.interested_user_id, r.status, r.created_at, r.updated_at, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+const getInterestedChatRooms = `-- name: GetInterestedChatRooms :many
+SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertisement_id, a.origin, a.destination, a.distance, a.title FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.interested_user_id = $1
 `
 
-type GetDriverChatRoomsRow struct {
-	ID                  int64        `json:"id"`
-	AdvertisementID     int64        `json:"advertisement_id"`
-	AdvertisementUserID int64        `json:"advertisement_user_id"`
-	InterestedUserID    int64        `json:"interested_user_id"`
-	Status              bool         `json:"status"`
-	CreatedAt           time.Time    `json:"created_at"`
-	UpdatedAt           sql.NullTime `json:"updated_at"`
-	AdvertisementID_2   int64        `json:"advertisement_id_2"`
-	Origin              string       `json:"origin"`
-	Destination         string       `json:"destination"`
-	Distance            int64        `json:"distance"`
+type GetInterestedChatRoomsRow struct {
+	RoomID              int64     `json:"room_id"`
+	CreatedAt           time.Time `json:"created_at"`
+	AdvertisementUserID int64     `json:"advertisement_user_id"`
+	AdvertisementID     int64     `json:"advertisement_id"`
+	Origin              string    `json:"origin"`
+	Destination         string    `json:"destination"`
+	Distance            int64     `json:"distance"`
+	Title               string    `json:"title"`
 }
 
-func (q *Queries) GetDriverChatRooms(ctx context.Context, interestedUserID int64) ([]GetDriverChatRoomsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDriverChatRooms, interestedUserID)
+func (q *Queries) GetInterestedChatRooms(ctx context.Context, interestedUserID int64) ([]GetInterestedChatRoomsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getInterestedChatRooms, interestedUserID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetDriverChatRoomsRow
+	var items []GetInterestedChatRoomsRow
 	for rows.Next() {
-		var i GetDriverChatRoomsRow
+		var i GetInterestedChatRoomsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AdvertisementID,
-			&i.AdvertisementUserID,
-			&i.InterestedUserID,
-			&i.Status,
+			&i.RoomID,
 			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.AdvertisementID_2,
+			&i.AdvertisementUserID,
+			&i.AdvertisementID,
 			&i.Origin,
 			&i.Destination,
 			&i.Distance,
+			&i.Title,
 		); err != nil {
 			return nil, err
 		}

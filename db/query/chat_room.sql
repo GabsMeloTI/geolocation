@@ -11,13 +11,13 @@ SELECT r.*, a.id as advertisement_id, a.origin, a.destination, a.distance FROM c
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.id = $1;
 
--- name: GetDriverChatRooms :many
-SELECT r.*, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+-- name: GetInterestedChatRooms :many
+SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertisement_id, a.origin, a.destination, a.distance, a.title FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.interested_user_id = $1;
 
 
--- name: GetCarrierChatRooms :many
-SELECT r.*, a.id as advertisement_id, a.origin, a.destination, a.distance FROM chat_rooms r
+-- name: GetAdvertisementChatRooms :many
+SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertisement_id, a.origin, a.destination, a.distance, a.title FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
-WHERE r.interested_user_id = $1;
+WHERE r.advertisement_user_id = $1;

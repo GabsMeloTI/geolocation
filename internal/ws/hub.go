@@ -49,6 +49,13 @@ func (h *Hub) Run() {
 		case m := <-h.Broadcast:
 			h.Mu.Lock()
 			if _, ok := h.Rooms[m.RoomId]; ok {
+				for id := range h.Rooms[m.RoomId].Participants {
+					if _, ok = h.Clients[id]; ok {
+						if id != m.UserId {
+							h.Clients[id].Message <- m
+						}
+					}
+				}
 			}
 			h.Mu.Unlock()
 

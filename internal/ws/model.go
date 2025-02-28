@@ -17,6 +17,32 @@ type CreateChatRoomResponse struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
+type HomeResponse struct {
+	Advertisement []RoomResponse `json:"advertisements"`
+	Interested    []RoomResponse `json:"interested"`
+}
+
+type RoomResponse struct {
+	RoomId              int64           `json:"room_id"`
+	Title               string          `json:"title"`
+	Origin              string          `json:"origin"`
+	Destination         string          `json:"destination"`
+	AdvertisementUserId int64           `json:"advertisement_user_id"`
+	AdvertisementId     int64           `json:"advertisement_id"`
+	Distance            int64           `json:"distance"`
+	LastMessage         MessageResponse `json:"last_message"`
+}
+
+type MessageResponse struct {
+	MessageId      int64     `json:"message_id"`
+	RoomId         int64     `json:"room_id"`
+	UserId         int64     `json:"user_id"`
+	Content        string    `json:"content"`
+	Name           string    `json:"name"`
+	ProfilePicture string    `json:"profile_picture"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 func (r CreateChatRoomRequest) ParseToCreateChatRoomResponse(room db.ChatRoom) CreateChatRoomResponse {
 	return CreateChatRoomResponse{
 		ID:                  room.ID,

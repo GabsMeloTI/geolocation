@@ -11,7 +11,7 @@ import (
 
 type Client struct {
 	Conn           *websocket.Conn          `json:"conn"`
-	Message        chan *Message            `json:"message"`
+	Message        chan *OutgoingMessage    `json:"message"`
 	UserId         int64                    `json:"user_id"`
 	Name           string                   `json:"name"`
 	ProfilePicture string                   `json:"profile_picture"`
@@ -21,6 +21,7 @@ type Client struct {
 type Message struct {
 	RoomId  int64  `json:"room_id"`
 	Content string `json:"content"`
+	Action  string `json:"action"`
 }
 
 type OutgoingMessage struct {
@@ -81,6 +82,21 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			continue
 		}
 
+		if _, ok := hub.Rooms[msg.RoomId]; !ok {
+			var room Room
+			room, err = s.GetRoomService(context.Background(), msg.RoomId)
+
+			if err != nil {
+				log.Println("error in get room service")
+				continue
+			}
+			hub.Rooms[msg.RoomId] = &room
+		}
+
+		if _, ok := hub.Rooms[msg.RoomId].Participants[c.UserId]; !ok {
+			continue
+		}
+
 		data, err := s.CreateChatMessageService(context.Background(), msg, c)
 
 		if err != nil {
@@ -96,17 +112,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			Name:           c.Name,
 			ProfilePicture: c.ProfilePicture,
 			CreatedAt:      data.CreatedAt,
-		}
-
-		if _, ok := hub.Rooms[msg.RoomId]; !ok {
-			var room Room
-			room, err = s.GetRoomService(context.Background(), msg.RoomId)
-
-			if err != nil {
-				log.Println("error in get room service")
-				continue
-			}
-			hub.Rooms[msg.RoomId] = &room
 		}
 
 		hub.Broadcast <- outgoingMessage

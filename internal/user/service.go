@@ -43,6 +43,12 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest)
 		return CreateUserResponse{}, errors.New("email already exists")
 	}
 
+	_, err = s.InterfaceService.GetProfileByIdRepository(ctx, data.ProfileId)
+
+	if err != nil {
+		return CreateUserResponse{}, err
+	}
+
 	hashedPassword, err := crypt.HashPassword(data.Password)
 
 	if err != nil {

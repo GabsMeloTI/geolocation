@@ -75,6 +75,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
+	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
