@@ -50,6 +50,8 @@ type ContainerDI struct {
 	LoginRepository         *login.Repository
 	GoogleToken             *sso.GoogleToken
 	PasetoMaker             *token.Maker
+	WsRepository            *ws.Repository
+	WsService               *ws.Service
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -91,6 +93,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
+	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -103,6 +106,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
+	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -116,7 +120,7 @@ func (c *ContainerDI) buildHandler() {
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	c.LoginHandler = login.NewHandler(c.LoginService)
 	hub := ws.NewHub()
-	c.WsHandler = ws.NewWsHandler(hub)
+	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()
 
 }

@@ -58,6 +58,29 @@ type Balanca struct {
 	Uf             string `json:"uf"`
 }
 
+type ChatMessage struct {
+	ID        int64         `json:"id"`
+	RoomID    sql.NullInt64 `json:"room_id"`
+	UserID    sql.NullInt64 `json:"user_id"`
+	Content   string        `json:"content"`
+	Status    bool          `json:"status"`
+	ReplyID   sql.NullInt64 `json:"reply_id"`
+	ReadAt    sql.NullTime  `json:"read_at"`
+	IsRead    sql.NullBool  `json:"is_read"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt sql.NullTime  `json:"updated_at"`
+}
+
+type ChatRoom struct {
+	ID                  int64        `json:"id"`
+	AdvertisementID     int64        `json:"advertisement_id"`
+	AdvertisementUserID int64        `json:"advertisement_user_id"`
+	InterestedUserID    int64        `json:"interested_user_id"`
+	Status              bool         `json:"status"`
+	CreatedAt           time.Time    `json:"created_at"`
+	UpdatedAt           sql.NullTime `json:"updated_at"`
+}
+
 type Driver struct {
 	ID                    int64          `json:"id"`
 	UserID                int64          `json:"user_id"`
