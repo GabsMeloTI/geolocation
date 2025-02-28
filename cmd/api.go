@@ -61,16 +61,21 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
-	user := e.Group("/user", _midlleware.CheckUserAuthorization)
-	user.PUT("/delete", container.UserHandler.DeleteUser)
-	user.PUT("/update", container.UserHandler.UpdateUser)
-	user.PUT("/create", container.UserHandler.CreateUser)
-	user.POST("/login", container.UserHandler.UserLogin)
-
 	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-	e.GET("/ws", container.WsHandler.HandleWs)
+
+	e.POST("/create-user", container.UserHandler.CreateUser)
+	e.POST("/login", container.UserHandler.UserLogin)
+
+	user := e.Group("/user", _midlleware.CheckUserAuthorization)
+	user.PUT("/delete", container.UserHandler.DeleteUser)
+	user.PUT("/update", container.UserHandler.UpdateUser)
+
+	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+
+	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
+	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

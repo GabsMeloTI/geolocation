@@ -16,6 +16,7 @@ type CreateUserRequest struct {
 	GoogleID        string `json:"google_id"`
 	Phone           string `json:"phone" validate:"required"`
 	Document        string `json:"document" validate:"required"`
+	ProfileId       int64  `json:"profile_id" validate:"required"`
 }
 
 func (u CreateUserRequest) ParseToCreateUserParams(hash string) db.CreateUserParams {
@@ -41,6 +42,10 @@ func (u CreateUserRequest) ParseToCreateUserParams(hash string) db.CreateUserPar
 		Document: sql.NullString{
 			String: u.Document,
 			Valid:  true,
+		},
+		ProfileID: sql.NullInt64{
+			Int64: u.ProfileId,
+			Valid: true,
 		},
 	}
 }

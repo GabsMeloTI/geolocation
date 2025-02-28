@@ -42,6 +42,8 @@ type ContainerDI struct {
 	UserService             *user.Service
 	UserRepository          *user.Repository
 	WsHandler               *ws.Handler
+	WsRepository            *ws.Repository
+	WsService               *ws.Service
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -75,6 +77,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
+	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -86,6 +89,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -98,7 +102,7 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	hub := ws.NewHub()
-	c.WsHandler = ws.NewWsHandler(hub)
+	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()
 
 }

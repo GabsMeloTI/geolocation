@@ -1,10 +1,12 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"geolocation/internal/get_token"
 	"github.com/gorilla/websocket"
 	"log"
+	"time"
 )
 
 type Client struct {
@@ -17,10 +19,18 @@ type Client struct {
 }
 
 type Message struct {
-	MessageId      int64  `json:"message_id"`
-	ChatId         int64  `json:"chat_id"`
-	Name           string `json:"name"`
-	ProfilePicture string `json:"profile_picture"`
+	RoomId  int64  `json:"room_id"`
+	Content string `json:"content"`
+}
+
+type OutgoingMessage struct {
+	MessageId      int64     `json:"message_id"`
+	RoomId         int64     `json:"room_id"`
+	UserId         int64     `json:"user_id"`
+	Content        string    `json:"content"`
+	Name           string    `json:"name"`
+	ProfilePicture string    `json:"profile_picture"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 func (c *Client) writeMessage() {
@@ -44,7 +54,7 @@ func (c *Client) writeMessage() {
 	}
 }
 
-func (c *Client) readMessage(hub *Hub) {
+func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 	defer func() {
 		hub.Unregister <- c
 		err := c.Conn.Close()
@@ -71,10 +81,34 @@ func (c *Client) readMessage(hub *Hub) {
 			continue
 		}
 
-		if _, ok := hub.Rooms[msg.ChatId]; !ok {
+		data, err := s.CreateChatMessageService(context.Background(), msg, c)
 
+		if err != nil {
+			log.Println("error in create chat message service")
+			continue
 		}
 
-		hub.Broadcast <- msg
+		outgoingMessage := &OutgoingMessage{
+			MessageId:      data.ID,
+			RoomId:         msg.RoomId,
+			UserId:         c.UserId,
+			Content:        msg.Content,
+			Name:           c.Name,
+			ProfilePicture: c.ProfilePicture,
+			CreatedAt:      data.CreatedAt,
+		}
+
+		if _, ok := hub.Rooms[msg.RoomId]; !ok {
+			var room Room
+			room, err = s.GetRoomService(context.Background(), msg.RoomId)
+
+			if err != nil {
+				log.Println("error in get room service")
+				continue
+			}
+			hub.Rooms[msg.RoomId] = &room
+		}
+
+		hub.Broadcast <- outgoingMessage
 	}
 }

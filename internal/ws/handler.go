@@ -9,12 +9,14 @@ import (
 )
 
 type Handler struct {
-	hub *Hub
+	InterfaceService InterfaceService
+	hub              *Hub
 }
 
-func NewWsHandler(hub *Hub) *Handler {
+func NewWsHandler(hub *Hub, InterfaceService InterfaceService) *Handler {
 	return &Handler{
-		hub: hub,
+		hub:              hub,
+		InterfaceService: InterfaceService,
 	}
 }
 
@@ -51,7 +53,25 @@ func (h *Handler) HandleWs(c echo.Context) error {
 
 	go cl.writeMessage()
 
-	cl.readMessage(h.hub)
+	cl.readMessage(h.hub, h.InterfaceService)
 
 	return nil
+}
+
+func (h *Handler) CreateChatRoom(c echo.Context) error {
+	var req CreateChatRoomRequest
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+
+	res, err := h.InterfaceService.CreateChatRoomService(c.Request().Context(), req, payload.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
