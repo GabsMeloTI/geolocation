@@ -1,4 +1,4 @@
-package announcement
+package advertisement
 
 import (
 	"database/sql"
@@ -12,29 +12,29 @@ type Handler struct {
 	InterfaceService InterfaceService
 }
 
-func NewAnnouncementHandler(InterfaceService InterfaceService) *Handler {
+func NewAdvertisementHandler(InterfaceService InterfaceService) *Handler {
 	return &Handler{InterfaceService}
 }
 
-// CreateAnnouncementHandler godoc
-// @Summary Create a Announcement.
-// @Description Create a Announcement.
-// @Tags Announcement
+// CreateAdvertisementHandler godoc
+// @Summary Create a Advertisement.
+// @Description Create a Advertisement.
+// @Tags Advertisement
 // @Accept json
 // @Produce json
-// @Param request body CreateAnnouncementRequest true "Announcement Request"
-// @Success 200 {object} AnnouncementResponse "Announcement Info"
+// @Param request body CreateAdvertisementRequest true "Advertisement Request"
+// @Success 200 {object} AdvertisementResponse "Advertisement Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /trailer/create [post]
 // @Security ApiKeyAuth
-func (p *Handler) CreateAnnouncementHandler(c echo.Context) error {
-	var request CreateAnnouncementRequest
+func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
+	var request CreateAdvertisementRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.CreateAnnouncementService(c.Request().Context(), request)
+	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -42,25 +42,25 @@ func (p *Handler) CreateAnnouncementHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-// UpdateAnnouncementHandler godoc
-// @Summary Update a Announcement.
-// @Description Update a Announcement.
-// @Tags Announcement
+// UpdateAdvertisementHandler godoc
+// @Summary Update a Advertisement.
+// @Description Update a Advertisement.
+// @Tags Advertisement
 // @Accept json
 // @Produce json
-// @Param user body UpdateAnnouncementRequest true "Announcement Request"
-// @Success 200 {object} AnnouncementResponse "Announcement Info"
+// @Param user body UpdateAdvertisementRequest true "Advertisement Request"
+// @Success 200 {object} AdvertisementResponse "Advertisement Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /trailer/update [put]
 // @Security ApiKeyAuth
-func (p *Handler) UpdateAnnouncementHandler(c echo.Context) error {
-	var request UpdateAnnouncementRequest
+func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
+	var request UpdateAdvertisementRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.UpdateAnnouncementService(c.Request().Context(), request)
+	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -68,18 +68,18 @@ func (p *Handler) UpdateAnnouncementHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-// DeleteAnnouncementHandler godoc
-// @Summary Delete Announcement.
-// @Description Delete Announcement.
-// @Tags Announcement
+// DeleteAdvertisementHandler godoc
+// @Summary Delete Advertisement.
+// @Description Delete Advertisement.
+// @Tags Advertisement
 // @Accept json
 // @Produce json
-// @Param id path string true "Announcement id"
+// @Param id path string true "Advertisement id"
 // @Success 200
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /trailer/delete/{id} [put]
-func (p *Handler) DeleteAnnouncementHandler(c echo.Context) error {
+func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
 	if err != nil {
@@ -87,14 +87,14 @@ func (p *Handler) DeleteAnnouncementHandler(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
-	data := DeleteAnnouncementRequest{
+	data := DeleteAdvertisementRequest{
 		ID: id,
 		UpdatedWho: sql.NullString{
 			String: payload.Name,
 			Valid:  true,
 		},
 	}
-	err = p.InterfaceService.DeleteAnnouncementService(c.Request().Context(), data)
+	err = p.InterfaceService.DeleteAdvertisementService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

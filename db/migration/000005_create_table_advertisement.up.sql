@@ -1,4 +1,4 @@
-CREATE TABLE announcement (
+CREATE TABLE advertisement (
                               id BIGSERIAL PRIMARY KEY,
                               user_id BIGINT not null,
                               destination VARCHAR(255) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE announcement (
                               updated_who VARCHAR NULL
 );
 
-ALTER TABLE announcement
+ALTER TABLE advertisement
     ADD CONSTRAINT "fk_user"
     FOREIGN KEY ("user_id")
     REFERENCES users ("id");

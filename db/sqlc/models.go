@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Announcement struct {
+type Advertisement struct {
 	ID               int64          `json:"id"`
 	UserID           int64          `json:"user_id"`
 	Destination      string         `json:"destination"`

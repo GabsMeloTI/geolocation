@@ -1,4 +1,4 @@
-package announcement
+package advertisement
 
 import (
 	"database/sql"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type CreateAnnouncementRequest struct {
+type CreateAdvertisementRequest struct {
 	UserID           int64     `json:"user_id"`
 	Destination      string    `json:"destination"`
 	Origin           string    `json:"origin"`
@@ -36,7 +36,7 @@ type CreateAnnouncementRequest struct {
 	CreatedWho       string    `json:"created_who"`
 }
 
-type UpdateAnnouncementRequest struct {
+type UpdateAdvertisementRequest struct {
 	UserID           int64          `json:"user_id"`
 	Destination      string         `json:"destination"`
 	Origin           string         `json:"origin"`
@@ -67,12 +67,12 @@ type UpdateAnnouncementRequest struct {
 	ID               int64          `json:"id"`
 }
 
-type DeleteAnnouncementRequest struct {
+type DeleteAdvertisementRequest struct {
 	ID         int64          `json:"id"`
 	UpdatedWho sql.NullString `json:"updated_who"`
 }
 
-type AnnouncementResponse struct {
+type AdvertisementResponse struct {
 	ID               int64      `json:"id"`
 	UserID           int64      `json:"user_id"`
 	Destination      string     `json:"destination"`
@@ -104,11 +104,79 @@ type AnnouncementResponse struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`
 	CreatedWho       string     `json:"created_who"`
-	UpdatedWho       string     `json:"updated_who"`
+	UpdatedWho       *string    `json:"updated_who"`
 }
 
-func (p *CreateAnnouncementRequest) ParseCreateToAnnouncement() db.CreateAnnouncementParams {
-	arg := db.CreateAnnouncementParams{
+type AdvertisementResponseAll struct {
+	ID               int64      `json:"id"`
+	UserID           int64      `json:"user_id"`
+	UserName         string     `json:"user_name"`
+	ActiveThere      time.Time  `json:"active_there"`
+	ActiveDuration   string     `json:"active_duration"`
+	UserCity         string     `json:"user_city"`
+	UserState        string     `json:"user_state"`
+	UserPhone        string     `json:"user_phone"`
+	UserEmail        string     `json:"user_email"`
+	Destination      string     `json:"destination"`
+	Origin           string     `json:"origin"`
+	DestinationLat   string     `json:"destination_lat"`
+	DestinationLng   string     `json:"destination_lng"`
+	OriginLat        string     `json:"origin_lat"`
+	OriginLng        string     `json:"origin_lng"`
+	Distance         int64      `json:"distance"`
+	PickupDate       time.Time  `json:"pickup_date"`
+	DeliveryDate     time.Time  `json:"delivery_date"`
+	ExpirationDate   time.Time  `json:"expiration_date"`
+	Title            string     `json:"title"`
+	CargoType        string     `json:"cargo_type"`
+	CargoSpecies     string     `json:"cargo_species"`
+	CargoVolume      string     `json:"cargo_volume"`
+	CargoWeight      string     `json:"cargo_weight"`
+	VehiclesAccepted string     `json:"vehicles_accepted"`
+	Trailer          string     `json:"trailer"`
+	RequiresTarp     bool       `json:"requires_tarp"`
+	Tracking         bool       `json:"tracking"`
+	Agency           bool       `json:"agency"`
+	Description      string     `json:"description"`
+	PaymentType      string     `json:"payment_type"`
+	Advance          string     `json:"advance"`
+	Toll             bool       `json:"toll"`
+	Situation        string     `json:"situation"`
+	ActiveFreight    int64      `json:"active_freight"`
+	Status           bool       `json:"status"`
+	CreatedAt        time.Time  `json:"created_at"`
+	CreatedWho       string     `json:"created_who"`
+	UpdatedAt        *time.Time `json:"updated_at,omitempty"`
+	UpdatedWho       *string    `json:"updated_who,omitempty"`
+}
+
+type AdvertisementResponseNoUser struct {
+	ID               int64     `json:"id"`
+	Destination      string    `json:"destination"`
+	Origin           string    `json:"origin"`
+	PickupDate       time.Time `json:"pickup_date"`
+	DeliveryDate     time.Time `json:"delivery_date"`
+	ExpirationDate   time.Time `json:"expiration_date"`
+	Title            string    `json:"title"`
+	CargoType        string    `json:"cargo_type"`
+	CargoSpecies     string    `json:"cargo_species"`
+	CargoVolume      string    `json:"cargo_volume"`
+	CargoWeight      float64   `json:"cargo_weight"`
+	VehiclesAccepted string    `json:"vehicles_accepted"`
+	Trailer          string    `json:"trailer"`
+	RequiresTarp     bool      `json:"requires_tarp"`
+	Tracking         bool      `json:"tracking"`
+	Agency           bool      `json:"agency"`
+	Description      string    `json:"description"`
+	PaymentType      string    `json:"payment_type"`
+	Advance          string    `json:"advance"`
+	Toll             bool      `json:"toll"`
+	Situation        string    `json:"situation"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+func (p *CreateAdvertisementRequest) ParseCreateToAdvertisement() db.CreateAdvertisementParams {
+	arg := db.CreateAdvertisementParams{
 		UserID:           p.UserID,
 		Destination:      p.Destination,
 		Origin:           p.Origin,
@@ -140,8 +208,8 @@ func (p *CreateAnnouncementRequest) ParseCreateToAnnouncement() db.CreateAnnounc
 	return arg
 }
 
-func (p *UpdateAnnouncementRequest) ParseUpdateToAnnouncement() db.UpdateAnnouncementParams {
-	arg := db.UpdateAnnouncementParams{
+func (p *UpdateAdvertisementRequest) ParseUpdateToAdvertisement() db.UpdateAdvertisementParams {
+	arg := db.UpdateAdvertisementParams{
 		ID:               p.ID,
 		UserID:           p.UserID,
 		Destination:      p.Destination,
@@ -174,15 +242,15 @@ func (p *UpdateAnnouncementRequest) ParseUpdateToAnnouncement() db.UpdateAnnounc
 	return arg
 }
 
-func (p *DeleteAnnouncementRequest) ParseDeleteToAnnouncement() db.DeleteAnnouncementParams {
-	arg := db.DeleteAnnouncementParams{
+func (p *DeleteAdvertisementRequest) ParseDeleteToAdvertisement() db.DeleteAdvertisementParams {
+	arg := db.DeleteAdvertisementParams{
 		ID:         p.ID,
 		UpdatedWho: p.UpdatedWho,
 	}
 	return arg
 }
 
-func (p *AnnouncementResponse) ParseFromAnnouncementObject(result db.Announcement) {
+func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertisement) {
 	p.ID = result.ID
 	p.Destination = result.Destination
 	p.Origin = result.Origin
@@ -215,5 +283,51 @@ func (p *AnnouncementResponse) ParseFromAnnouncementObject(result db.Announcemen
 		p.UpdatedAt = &result.UpdatedAt.Time
 	}
 	p.CreatedWho = result.CreatedWho
-	p.UpdatedWho = result.UpdatedWho.String
+	if result.UpdatedWho.Valid {
+		p.UpdatedWho = &result.UpdatedWho.String
+	}
+}
+
+func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAllAdvertisementUsersRow) {
+	p.ID = result.ID
+	p.UserID = result.UserID
+	p.UserName = result.UserName
+	p.ActiveThere = result.ActiveThere.Time
+	p.UserCity = result.UserCity.String
+	p.UserState = result.UserState.String
+	p.UserPhone = result.UserPhone.String
+	p.UserEmail = result.UserEmail
+	p.Destination = result.Destination
+	p.Origin = result.Origin
+	p.DestinationLat = result.DestinationLat
+	p.DestinationLng = result.DestinationLng
+	p.OriginLat = result.OriginLat
+	p.OriginLng = result.OriginLng
+	p.Distance = result.Distance
+	p.PickupDate = result.PickupDate
+	p.DeliveryDate = result.DeliveryDate
+	p.ExpirationDate = result.ExpirationDate
+	p.Title = result.Title
+	p.CargoType = result.CargoType
+	p.CargoSpecies = result.CargoSpecies
+	p.CargoVolume = result.CargoVolume
+	p.CargoWeight = result.CargoWeight
+	p.VehiclesAccepted = result.VehiclesAccepted
+	p.Trailer = result.Trailer
+	p.RequiresTarp = result.RequiresTarp
+	p.Tracking = result.Tracking
+	p.Agency = result.Agency
+	p.Description = result.Description
+	p.PaymentType = result.PaymentType
+	p.Advance = result.Advance
+	p.Toll = result.Toll
+	p.Situation = result.Situation
+	p.CreatedAt = result.CreatedAt
+	p.CreatedWho = result.CreatedWho
+	if result.UpdatedAt.Valid {
+		p.UpdatedAt = &result.UpdatedAt.Time
+	}
+	if result.UpdatedWho.Valid {
+		p.UpdatedWho = &result.UpdatedWho.String
+	}
 }
