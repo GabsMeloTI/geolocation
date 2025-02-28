@@ -1,6 +1,8 @@
 # include
 include .env
 
+#migrate create -ext sql -dir db/migration -seq
+
 # Swagger
 swag:
 	@echo "$(YELLOW) Generating $(CYAN) Swagger $(GREEN). $(NC)"

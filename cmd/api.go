@@ -70,5 +70,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.GET("/ws", container.WsHandler.HandleWs)
 
+	appointment := e.Group("/appointment")
+	appointment.POST("/create", container.HandlerAppointment.CreateAppointmentHandler)
+	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
+	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
+	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
+
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

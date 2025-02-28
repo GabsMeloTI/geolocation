@@ -182,7 +182,7 @@ func (p *DeleteAnnouncementRequest) ParseDeleteToAnnouncement() db.DeleteAnnounc
 	return arg
 }
 
-func (p *AnnouncementResponse) ParseFromAnnouncementObject(result db.Announcement) {
+func (p *AnnouncementResponse) ParseFromAnnouncementObject(result db.Advertisement) {
 	p.ID = result.ID
 	p.Destination = result.Destination
 	p.Origin = result.Origin

@@ -1,4 +1,4 @@
-CREATE TABLE announcement (
+CREATE TABLE advertisement (
                               id BIGSERIAL PRIMARY KEY,
                               user_id BIGINT not null,
                               destination VARCHAR(255) NOT NULL,

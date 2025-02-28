@@ -5,6 +5,7 @@ import (
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/internal/announcement"
+	"geolocation/internal/appointments"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	new_routes "geolocation/internal/new_routes"
@@ -42,6 +43,9 @@ type ContainerDI struct {
 	UserService            *user.Service
 	UserRepository         *user.Repository
 	WsHandler              *ws.Handler
+	HandlerAppointment     *appointments.Handler
+	ServiceAppointment     *appointments.Service
+	RepositoryAppointment  *appointments.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -75,6 +79,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAnnouncement = announcement.NewAnnouncementsRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
+	c.RepositoryAppointment = appointments.NewAppointmentsRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -86,6 +91,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAnnouncement = announcement.NewAnnouncementsService(c.RepositoryAnnouncement)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -100,5 +106,6 @@ func (c *ContainerDI) buildHandler() {
 	hub := ws.NewHub()
 	c.WsHandler = ws.NewWsHandler(hub)
 	go hub.Run()
+	c.HandlerAppointment = appointments.NewAppointmentHandler(c.ServiceAppointment)
 
 }
