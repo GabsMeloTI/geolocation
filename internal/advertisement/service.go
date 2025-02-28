@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"geolocation/validation"
 	"strings"
 )
@@ -31,15 +30,12 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	}
 
 	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
-	fmt.Println(idProfile)
-	fmt.Println(resultProfile)
-	fmt.Println(resultProfile.ID, " - ", resultProfile.Name)
 	if errProfile != nil {
 		return AdvertisementResponse{}, errProfile
 	}
 
 	if resultProfile.Name == "Driver" {
-		return AdvertisementResponse{}, errors.New("Driver advertises are currently not supported")
+		return AdvertisementResponse{}, errors.New("motoristas não podem criar anúncios")
 	}
 
 	arg := data.ParseCreateToAdvertisement()
@@ -73,7 +69,7 @@ func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdv
 	}
 
 	if resultProfile.Name == "Driver" {
-		return AdvertisementResponse{}, errors.New("driver advertises are currently not supported")
+		return AdvertisementResponse{}, errors.New("motoristas não podem criar anúncios")
 	}
 
 	arg := data.ParseUpdateToAdvertisement()

@@ -2,7 +2,6 @@ package advertisement
 
 import (
 	"database/sql"
-	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
@@ -36,7 +35,6 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
-	fmt.Println(payload)
 	request.CreatedWho = payload.Name
 	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request, payload.ProfileID)
 	if err != nil {
