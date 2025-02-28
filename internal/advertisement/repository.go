@@ -14,6 +14,7 @@ type InterfaceRepository interface {
 	GetAllAdvertisementUsers(ctx context.Context) ([]db.GetAllAdvertisementUsersRow, error)
 	GetAllAdvertisementPublic(ctx context.Context) ([]db.GetAllAdvertisementPublicRow, error)
 	CountAdvertisementByUserID(ctx context.Context, arg int64) (int64, error)
+	GetProfileById(ctx context.Context, arg int64) (db.Profile, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -52,4 +53,7 @@ func (r *Repository) GetAllAdvertisementPublic(ctx context.Context) ([]db.GetAll
 }
 func (r *Repository) CountAdvertisementByUserID(ctx context.Context, arg int64) (int64, error) {
 	return r.Queries.CountAdvertisementByUserID(ctx, arg)
+}
+func (r *Repository) GetProfileById(ctx context.Context, arg int64) (db.Profile, error) {
+	return r.Queries.GetProfileById(ctx, arg)
 }

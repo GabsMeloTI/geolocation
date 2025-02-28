@@ -34,6 +34,8 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
+	payload := get_token.GetUserPayloadToken(c)
+	request.CreatedWho = payload.Name
 	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -60,6 +62,11 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
+	payload := get_token.GetUserPayloadToken(c)
+	request.UpdatedWho = sql.NullString{
+		String: payload.Name,
+		Valid:  true,
+	}
 	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -99,4 +106,22 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, "Success")
+}
+
+// GetAllAdvertisementHandler godoc
+// @Summary Get All Advertisement
+// @Description Retrieve all Advertisement
+// @TagsAdvertisement
+// @Accept json
+// @Produce json
+// @Success 200 {object} []AdvertisementResponseAll "List of Advertisement"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /advertisement/list [get]
+func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
+	result, err := p.InterfaceService.GetAllAdvertisementUser(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

@@ -38,10 +38,10 @@ type CreateAdvertisementParams struct {
 	UserID           int64     `json:"user_id"`
 	Destination      string    `json:"destination"`
 	Origin           string    `json:"origin"`
-	DestinationLat   string    `json:"destination_lat"`
-	DestinationLng   string    `json:"destination_lng"`
-	OriginLat        string    `json:"origin_lat"`
-	OriginLng        string    `json:"origin_lng"`
+	DestinationLat   float64   `json:"destination_lat"`
+	DestinationLng   float64   `json:"destination_lng"`
+	OriginLat        float64   `json:"origin_lat"`
+	OriginLng        float64   `json:"origin_lng"`
 	Distance         int64     `json:"distance"`
 	PickupDate       time.Time `json:"pickup_date"`
 	DeliveryDate     time.Time `json:"delivery_date"`
@@ -50,7 +50,7 @@ type CreateAdvertisementParams struct {
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
 	CargoVolume      string    `json:"cargo_volume"`
-	CargoWeight      string    `json:"cargo_weight"`
+	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
 	RequiresTarp     bool      `json:"requires_tarp"`
@@ -61,7 +61,7 @@ type CreateAdvertisementParams struct {
 	Advance          string    `json:"advance"`
 	Toll             bool      `json:"toll"`
 	Situation        string    `json:"situation"`
-	Price            string    `json:"price"`
+	Price            float64   `json:"price"`
 	CreatedWho       string    `json:"created_who"`
 }
 
@@ -216,7 +216,7 @@ type GetAllAdvertisementPublicRow struct {
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
 	CargoVolume      string    `json:"cargo_volume"`
-	CargoWeight      string    `json:"cargo_weight"`
+	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
 	RequiresTarp     bool      `json:"requires_tarp"`
@@ -296,10 +296,10 @@ type GetAllAdvertisementUsersRow struct {
 	UserProfilePicture sql.NullString `json:"user_profile_picture"`
 	Destination        string         `json:"destination"`
 	Origin             string         `json:"origin"`
-	DestinationLat     string         `json:"destination_lat"`
-	DestinationLng     string         `json:"destination_lng"`
-	OriginLat          string         `json:"origin_lat"`
-	OriginLng          string         `json:"origin_lng"`
+	DestinationLat     float64        `json:"destination_lat"`
+	DestinationLng     float64        `json:"destination_lng"`
+	OriginLat          float64        `json:"origin_lat"`
+	OriginLng          float64        `json:"origin_lng"`
 	Distance           int64          `json:"distance"`
 	PickupDate         time.Time      `json:"pickup_date"`
 	DeliveryDate       time.Time      `json:"delivery_date"`
@@ -308,7 +308,7 @@ type GetAllAdvertisementUsersRow struct {
 	CargoType          string         `json:"cargo_type"`
 	CargoSpecies       string         `json:"cargo_species"`
 	CargoVolume        string         `json:"cargo_volume"`
-	CargoWeight        string         `json:"cargo_weight"`
+	CargoWeight        float64        `json:"cargo_weight"`
 	VehiclesAccepted   string         `json:"vehicles_accepted"`
 	Trailer            string         `json:"trailer"`
 	RequiresTarp       bool           `json:"requires_tarp"`
@@ -399,10 +399,10 @@ type UpdateAdvertisementParams struct {
 	UserID           int64          `json:"user_id"`
 	Destination      string         `json:"destination"`
 	Origin           string         `json:"origin"`
-	DestinationLat   string         `json:"destination_lat"`
-	DestinationLng   string         `json:"destination_lng"`
-	OriginLat        string         `json:"origin_lat"`
-	OriginLng        string         `json:"origin_lng"`
+	DestinationLat   float64        `json:"destination_lat"`
+	DestinationLng   float64        `json:"destination_lng"`
+	OriginLat        float64        `json:"origin_lat"`
+	OriginLng        float64        `json:"origin_lng"`
 	Distance         int64          `json:"distance"`
 	PickupDate       time.Time      `json:"pickup_date"`
 	DeliveryDate     time.Time      `json:"delivery_date"`
@@ -411,7 +411,7 @@ type UpdateAdvertisementParams struct {
 	CargoType        string         `json:"cargo_type"`
 	CargoSpecies     string         `json:"cargo_species"`
 	CargoVolume      string         `json:"cargo_volume"`
-	CargoWeight      string         `json:"cargo_weight"`
+	CargoWeight      float64        `json:"cargo_weight"`
 	VehiclesAccepted string         `json:"vehicles_accepted"`
 	Trailer          string         `json:"trailer"`
 	RequiresTarp     bool           `json:"requires_tarp"`
@@ -422,7 +422,7 @@ type UpdateAdvertisementParams struct {
 	Advance          string         `json:"advance"`
 	Toll             bool           `json:"toll"`
 	Situation        string         `json:"situation"`
-	Price            string         `json:"price"`
+	Price            float64        `json:"price"`
 	UpdatedWho       sql.NullString `json:"updated_who"`
 	ID               int64          `json:"id"`
 }

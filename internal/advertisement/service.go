@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"geolocation/validation"
+	"strings"
 )
 
 type InterfaceService interface {
@@ -28,7 +29,7 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	}
 
 	arg := data.ParseCreateToAdvertisement()
-
+	arg.Situation = strings.ToLower(data.Situation)
 	result, err := p.InterfaceService.CreateAdvertisement(ctx, arg)
 	if err != nil {
 		return AdvertisementResponse{}, err
@@ -54,7 +55,7 @@ func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdv
 	}
 
 	arg := data.ParseUpdateToAdvertisement()
-
+	arg.Situation = strings.ToLower(data.Situation)
 	result, err := p.InterfaceService.UpdateAdvertisement(ctx, arg)
 	if err != nil {
 		return AdvertisementResponse{}, err
@@ -98,10 +99,9 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 		}
 
 		var response AdvertisementResponseAll
-		response.ParseFromAdvertisementObject(result)
-
 		response.ActiveFreight = totalFreights
 		response.ActiveDuration = validation.FormatActiveDuration(response.ActiveThere)
+		response.ParseFromAdvertisementObject(result)
 
 		announcementResponses = append(announcementResponses, response)
 	}
