@@ -16,6 +16,8 @@ type InterfaceService interface {
 	UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error)
 	DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error
 	UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error)
+	UpdateUserPersonalInfoService(ctx context.Context, data UpdateUserPersonalInfoRequest) (UpdateUserPersonalInfoResponse, error)
+	UpdateUserAddressService(ctx context.Context, data UpdateUserAddressRequest) (UpdateUserAddressResponse, error)
 }
 
 type Service struct {
@@ -65,6 +67,7 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest)
 
 	return res, nil
 }
+
 func (s *Service) UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error) {
 	result, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 	if err != nil {
@@ -102,6 +105,7 @@ func (s *Service) UserLoginService(ctx context.Context, data LoginRequest) (Logi
 		Token:          tokenStr,
 	}, nil
 }
+
 func (s *Service) DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error {
 	err := s.InterfaceService.DeleteUserByIdRepository(ctx, payload.ID)
 	if err != nil {
@@ -109,6 +113,7 @@ func (s *Service) DeleteUserService(ctx context.Context, payload get_token.Paylo
 	}
 	return nil
 }
+
 func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error) {
 	u, err := s.InterfaceService.UpdateUserByIdRepository(ctx, data.ParseToUpdateUserByIdParams())
 
@@ -117,4 +122,46 @@ func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (Up
 	}
 
 	return data.ParseToUpdateUserResponse(u), nil
+}
+
+func (p *Service) UpdateUserPersonalInfoService(ctx context.Context, data UpdateUserPersonalInfoRequest) (UpdateUserPersonalInfoResponse, error) {
+	_, err := p.InterfaceService.GetUserById(ctx, data.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return UpdateUserPersonalInfoResponse{}, errors.New("user not found")
+	}
+	if err != nil {
+		return UpdateUserPersonalInfoResponse{}, err
+	}
+
+	arg := data.ParseToUpdateUserPersonalInfoParams()
+
+	result, err := p.InterfaceService.UpdateUserPersonalInfo(ctx, arg)
+	if err != nil {
+		return UpdateUserPersonalInfoResponse{}, err
+	}
+
+	updateUserService := UpdateUserPersonalInfoResponse{}.ParseToUpdateUserPersonalInfoResponse(result)
+
+	return updateUserService, nil
+}
+
+func (p *Service) UpdateUserAddressService(ctx context.Context, data UpdateUserAddressRequest) (UpdateUserAddressResponse, error) {
+	_, err := p.InterfaceService.GetUserById(ctx, data.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return UpdateUserAddressResponse{}, errors.New("user not found")
+	}
+	if err != nil {
+		return UpdateUserAddressResponse{}, err
+	}
+
+	arg := data.ParseToUpdateUserAddressParams()
+
+	result, err := p.InterfaceService.UpdateUserAddress(ctx, arg)
+	if err != nil {
+		return UpdateUserAddressResponse{}, err
+	}
+
+	updateUserService := UpdateUserAddressResponse{}.ParseToUpdateUserAddressResponse(result)
+
+	return updateUserService, nil
 }

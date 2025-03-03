@@ -111,7 +111,7 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 // GetAllAdvertisementHandler godoc
 // @Summary Get All Advertisement
 // @Description Retrieve all Advertisement
-// @TagsAdvertisement
+// @Tags Advertisement
 // @Accept json
 // @Produce json
 // @Success 200 {object} []AdvertisementResponseAll "List of Advertisement"
@@ -129,7 +129,7 @@ func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 // GetAllAdvertisementPublicHandler godoc
 // @Summary Get All Advertisement
 // @Description Retrieve all Advertisement
-// @TagsAdvertisement
+// @Tags Advertisement
 // @Accept json
 // @Produce json
 // @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"

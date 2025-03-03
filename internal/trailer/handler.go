@@ -17,7 +17,7 @@ func NewTrailersHandler(InterfaceService InterfaceService) *Handler {
 // CreateTrailerHandler godoc
 // @Summary Create a Trailer.
 // @Description Create a Trailer.
-// @Tags Trailers
+// @Tags Trailer
 // @Accept json
 // @Produce json
 // @Param request body CreateTrailerRequest true "Trailer Request"
@@ -69,7 +69,7 @@ func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
 // DeleteTrailerHandler godoc
 // @Summary Delete Trailer.
 // @Description Delete Trailer.
-// @Tags Trailers
+// @Tags Trailer
 // @Accept json
 // @Produce json
 // @Param id path string true "Trailer id"

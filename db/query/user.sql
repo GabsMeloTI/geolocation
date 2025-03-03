@@ -21,7 +21,6 @@ SET name = $1,
     street_number = $7,
     phone = $8,
     updated_at = now()
-
 WHERE id = $9
     RETURNING *;
 
@@ -32,4 +31,18 @@ SET password = $1
 WHERE id = $2;
 
 
--- name: GetProfile
+-- name: UpdateUserPersonalInfo :one
+UPDATE users
+SET name=$1, "document" = $2, email = $3, phone = $4, updated_at = now()
+WHERE id = $5
+    RETURNING *;
+
+-- name: UpdateUserAddress :one
+UPDATE users
+SET complement=$1, state = $2, city = $3, neighborhood = $4, street = $5, street_number=$6, cep = $7, updated_at = now()
+WHERE id = $8
+    RETURNING *;
+
+-- name: GetUserById :one
+SELECT * FROM users WHERE id = $1;
+

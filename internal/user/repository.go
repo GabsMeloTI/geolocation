@@ -13,6 +13,9 @@ type InterfaceRepository interface {
 	UpdateUserByIdRepository(ctx context.Context, arg db.UpdateUserByIdParams) (db.User, error)
 	UpdateUserPasswordRepository(ctx context.Context, arg db.UpdateUserPasswordParams) error
 	GetProfileByIdRepository(ctx context.Context, id int64) (db.Profile, error)
+	UpdateUserPersonalInfo(ctx context.Context, arg db.UpdateUserPersonalInfoParams) (db.User, error)
+	UpdateUserAddress(ctx context.Context, arg db.UpdateUserAddressParams) (db.User, error)
+	GetUserById(ctx context.Context, arg int64) (db.User, error)
 }
 
 type Repository struct {
@@ -49,6 +52,15 @@ func (r *Repository) UpdateUserByIdRepository(ctx context.Context, arg db.Update
 }
 func (r *Repository) UpdateUserPasswordRepository(ctx context.Context, arg db.UpdateUserPasswordParams) error {
 	return r.Queries.UpdateUserPassword(ctx, arg)
+}
+func (r *Repository) UpdateUserPersonalInfo(ctx context.Context, arg db.UpdateUserPersonalInfoParams) (db.User, error) {
+	return r.Queries.UpdateUserPersonalInfo(ctx, arg)
+}
+func (r *Repository) UpdateUserAddress(ctx context.Context, arg db.UpdateUserAddressParams) (db.User, error) {
+	return r.Queries.UpdateUserAddress(ctx, arg)
+}
+func (r *Repository) GetUserById(ctx context.Context, arg int64) (db.User, error) {
+	return r.Queries.GetUserById(ctx, arg)
 }
 
 func (r *Repository) GetProfileByIdRepository(ctx context.Context, id int64) (db.Profile, error) {

@@ -14,7 +14,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users
 (name, email, password, google_id, profile_picture, status, phone, document, profile_id)
 VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8)
-RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
+RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
 `
 
 type CreateUserParams struct {
@@ -58,6 +58,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.Cep,
+		&i.Complement,
 	)
 	return i, err
 }
@@ -72,7 +74,7 @@ func (q *Queries) DeleteUserById(ctx context.Context, id int64) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status FROM users WHERE email = $1
+SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -96,6 +98,93 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.Cep,
+		&i.Complement,
+	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
+		&i.Cep,
+		&i.Complement,
+	)
+	return i, err
+}
+
+const updateUserAddress = `-- name: UpdateUserAddress :one
+UPDATE users
+SET complement=$1, state = $2, city = $3, neighborhood = $4, street = $5, street_number=$6, cep = $7, updated_at = now()
+WHERE id = $8
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+`
+
+type UpdateUserAddressParams struct {
+	Complement   sql.NullString `json:"complement"`
+	State        sql.NullString `json:"state"`
+	City         sql.NullString `json:"city"`
+	Neighborhood sql.NullString `json:"neighborhood"`
+	Street       sql.NullString `json:"street"`
+	StreetNumber sql.NullString `json:"street_number"`
+	Cep          sql.NullString `json:"cep"`
+	ID           int64          `json:"id"`
+}
+
+func (q *Queries) UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserAddress,
+		arg.Complement,
+		arg.State,
+		arg.City,
+		arg.Neighborhood,
+		arg.Street,
+		arg.StreetNumber,
+		arg.Cep,
+		arg.ID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
+		&i.Cep,
+		&i.Complement,
 	)
 	return i, err
 }
@@ -111,9 +200,8 @@ SET name = $1,
     street_number = $7,
     phone = $8,
     updated_at = now()
-
 WHERE id = $9
-    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
 `
 
 type UpdateUserByIdParams struct {
@@ -159,6 +247,8 @@ func (q *Queries) UpdateUserById(ctx context.Context, arg UpdateUserByIdParams) 
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.Cep,
+		&i.Complement,
 	)
 	return i, err
 }
@@ -177,4 +267,52 @@ type UpdateUserPasswordParams struct {
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.ID)
 	return err
+}
+
+const updateUserPersonalInfo = `-- name: UpdateUserPersonalInfo :one
+UPDATE users
+SET name=$1, "document" = $2, email = $3, phone = $4, updated_at = now()
+WHERE id = $5
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+`
+
+type UpdateUserPersonalInfoParams struct {
+	Name     string         `json:"name"`
+	Document sql.NullString `json:"document"`
+	Email    string         `json:"email"`
+	Phone    sql.NullString `json:"phone"`
+	ID       int64          `json:"id"`
+}
+
+func (q *Queries) UpdateUserPersonalInfo(ctx context.Context, arg UpdateUserPersonalInfoParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserPersonalInfo,
+		arg.Name,
+		arg.Document,
+		arg.Email,
+		arg.Phone,
+		arg.ID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
+		&i.Cep,
+		&i.Complement,
+	)
+	return i, err
 }
