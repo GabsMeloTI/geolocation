@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"fmt"
 	"geolocation/internal/get_token"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -33,7 +32,6 @@ var upgrade = websocket.Upgrader{
 func (h *Handler) HandleWs(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
 
-	fmt.Println(payload.ID)
 	conn, err := upgrade.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
