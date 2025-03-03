@@ -80,7 +80,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 
-	e.GET("/ws", container.WsHandler.HandleWs)
+	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
