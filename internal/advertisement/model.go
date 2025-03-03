@@ -21,7 +21,6 @@ type CreateAdvertisementRequest struct {
 	Title            string    `json:"title"`
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
-	CargoVolume      string    `json:"cargo_volume"`
 	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
@@ -51,7 +50,6 @@ type UpdateAdvertisementRequest struct {
 	Title            string         `json:"title"`
 	CargoType        string         `json:"cargo_type"`
 	CargoSpecies     string         `json:"cargo_species"`
-	CargoVolume      string         `json:"cargo_volume"`
 	CargoWeight      float64        `json:"cargo_weight"`
 	VehiclesAccepted string         `json:"vehicles_accepted"`
 	Trailer          string         `json:"trailer"`
@@ -88,7 +86,6 @@ type AdvertisementResponse struct {
 	Title            string     `json:"title"`
 	CargoType        string     `json:"cargo_type"`
 	CargoSpecies     string     `json:"cargo_species"`
-	CargoVolume      string     `json:"cargo_volume"`
 	CargoWeight      float64    `json:"cargo_weight"`
 	VehiclesAccepted string     `json:"vehicles_accepted"`
 	Trailer          string     `json:"trailer"`
@@ -130,7 +127,6 @@ type AdvertisementResponseAll struct {
 	Title            string     `json:"title"`
 	CargoType        string     `json:"cargo_type"`
 	CargoSpecies     string     `json:"cargo_species"`
-	CargoVolume      string     `json:"cargo_volume"`
 	CargoWeight      float64    `json:"cargo_weight"`
 	VehiclesAccepted string     `json:"vehicles_accepted"`
 	Trailer          string     `json:"trailer"`
@@ -159,7 +155,6 @@ type AdvertisementResponseNoUser struct {
 	Title            string    `json:"title"`
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
-	CargoVolume      string    `json:"cargo_volume"`
 	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
@@ -190,7 +185,6 @@ func (p *CreateAdvertisementRequest) ParseCreateToAdvertisement() db.CreateAdver
 		Title:            p.Title,
 		CargoType:        p.CargoType,
 		CargoSpecies:     p.CargoSpecies,
-		CargoVolume:      p.CargoVolume,
 		CargoWeight:      p.CargoWeight,
 		VehiclesAccepted: p.VehiclesAccepted,
 		Trailer:          p.Trailer,
@@ -224,7 +218,6 @@ func (p *UpdateAdvertisementRequest) ParseUpdateToAdvertisement() db.UpdateAdver
 		Title:            p.Title,
 		CargoType:        p.CargoType,
 		CargoSpecies:     p.CargoSpecies,
-		CargoVolume:      p.CargoVolume,
 		CargoWeight:      p.CargoWeight,
 		VehiclesAccepted: p.VehiclesAccepted,
 		Trailer:          p.Trailer,
@@ -266,7 +259,6 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	p.CargoType = result.CargoType
 	p.CargoWeight = result.CargoWeight
 	p.CargoSpecies = result.CargoSpecies
-	p.CargoVolume = result.CargoVolume
 	p.VehiclesAccepted = result.VehiclesAccepted
 	p.Trailer = result.Trailer
 	p.RequiresTarp = result.RequiresTarp
@@ -310,7 +302,6 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	p.Title = result.Title
 	p.CargoType = result.CargoType
 	p.CargoSpecies = result.CargoSpecies
-	p.CargoVolume = result.CargoVolume
 	p.CargoWeight = result.CargoWeight
 	p.VehiclesAccepted = result.VehiclesAccepted
 	p.Trailer = result.Trailer
@@ -342,7 +333,6 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.Title = result.Title
 	p.CargoType = result.CargoType
 	p.CargoSpecies = result.CargoSpecies
-	p.CargoVolume = result.CargoVolume
 	p.CargoWeight = result.CargoWeight
 	p.VehiclesAccepted = result.VehiclesAccepted
 	p.Trailer = result.Trailer

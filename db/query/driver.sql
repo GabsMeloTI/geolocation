@@ -1,13 +1,13 @@
 -- name: CreateDriver :one
 INSERT INTO public.driver
-(id, user_id, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, status, created_at)
+(id, user_id, name, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, cep, complement, status, created_at)
 VALUES(nextval('driver_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-       $12, true, now())
+       $12, $13, $14, $15,true, now())
     RETURNING *;
 
 -- name: UpdateDriver :one
 UPDATE public.driver
-SET user_id=$2, birth_date=$3, license_category=$4, license_expiration_date=$5, state=$6, city=$7, neighborhood=$8, street=$9, street_number=$10, phone=$11, updated_at=now()
+SET user_id=$2, birth_date=$3, license_category=$4, license_expiration_date=$5, state=$6, city=$7, neighborhood=$8, street=$9, street_number=$10, phone=$11, cep=$12, complement=$13, updated_at=now()
 WHERE id=$1
     RETURNING *;
 
@@ -20,3 +20,5 @@ WHERE id=$1;
 SELECT *
 FROM public.driver
 WHERE id=$1;
+
+
