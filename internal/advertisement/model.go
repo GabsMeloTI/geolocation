@@ -21,7 +21,6 @@ type CreateAdvertisementRequest struct {
 	Title            string    `json:"title"`
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
-	CargoVolume      string    `json:"cargo_volume"`
 	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
@@ -51,7 +50,6 @@ type UpdateAdvertisementRequest struct {
 	Title            string         `json:"title"`
 	CargoType        string         `json:"cargo_type"`
 	CargoSpecies     string         `json:"cargo_species"`
-	CargoVolume      string         `json:"cargo_volume"`
 	CargoWeight      float64        `json:"cargo_weight"`
 	VehiclesAccepted string         `json:"vehicles_accepted"`
 	Trailer          string         `json:"trailer"`
@@ -88,7 +86,6 @@ type AdvertisementResponse struct {
 	Title            string     `json:"title"`
 	CargoType        string     `json:"cargo_type"`
 	CargoSpecies     string     `json:"cargo_species"`
-	CargoVolume      string     `json:"cargo_volume"`
 	CargoWeight      float64    `json:"cargo_weight"`
 	VehiclesAccepted string     `json:"vehicles_accepted"`
 	Trailer          string     `json:"trailer"`
@@ -130,7 +127,6 @@ type AdvertisementResponseAll struct {
 	Title            string     `json:"title"`
 	CargoType        string     `json:"cargo_type"`
 	CargoSpecies     string     `json:"cargo_species"`
-	CargoVolume      string     `json:"cargo_volume"`
 	CargoWeight      float64    `json:"cargo_weight"`
 	VehiclesAccepted string     `json:"vehicles_accepted"`
 	Trailer          string     `json:"trailer"`
@@ -159,7 +155,6 @@ type AdvertisementResponseNoUser struct {
 	Title            string    `json:"title"`
 	CargoType        string    `json:"cargo_type"`
 	CargoSpecies     string    `json:"cargo_species"`
-	CargoVolume      string    `json:"cargo_volume"`
 	CargoWeight      float64   `json:"cargo_weight"`
 	VehiclesAccepted string    `json:"vehicles_accepted"`
 	Trailer          string    `json:"trailer"`
@@ -190,7 +185,6 @@ func (p *CreateAdvertisementRequest) ParseCreateToAdvertisement() db.CreateAdver
 		Title:            p.Title,
 		CargoType:        p.CargoType,
 		CargoSpecies:     p.CargoSpecies,
-		CargoVolume:      p.CargoVolume,
 		CargoWeight:      p.CargoWeight,
 		VehiclesAccepted: p.VehiclesAccepted,
 		Trailer:          p.Trailer,
@@ -224,7 +218,6 @@ func (p *UpdateAdvertisementRequest) ParseUpdateToAdvertisement() db.UpdateAdver
 		Title:            p.Title,
 		CargoType:        p.CargoType,
 		CargoSpecies:     p.CargoSpecies,
-		CargoVolume:      p.CargoVolume,
 		CargoWeight:      p.CargoWeight,
 		VehiclesAccepted: p.VehiclesAccepted,
 		Trailer:          p.Trailer,
@@ -266,7 +259,6 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	p.CargoType = result.CargoType
 	p.CargoWeight = result.CargoWeight
 	p.CargoSpecies = result.CargoSpecies
-	p.CargoVolume = result.CargoVolume
 	p.VehiclesAccepted = result.VehiclesAccepted
 	p.Trailer = result.Trailer
 	p.RequiresTarp = result.RequiresTarp
@@ -310,7 +302,6 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	p.Title = result.Title
 	p.CargoType = result.CargoType
 	p.CargoSpecies = result.CargoSpecies
-	p.CargoVolume = result.CargoVolume
 	p.CargoWeight = result.CargoWeight
 	p.VehiclesAccepted = result.VehiclesAccepted
 	p.Trailer = result.Trailer
@@ -330,4 +321,28 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	if result.UpdatedWho.Valid {
 		p.UpdatedWho = &result.UpdatedWho.String
 	}
+}
+
+func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.GetAllAdvertisementPublicRow) {
+	p.ID = result.ID
+	p.Destination = result.Destination
+	p.Origin = result.Origin
+	p.PickupDate = result.PickupDate
+	p.DeliveryDate = result.DeliveryDate
+	p.ExpirationDate = result.ExpirationDate
+	p.Title = result.Title
+	p.CargoType = result.CargoType
+	p.CargoSpecies = result.CargoSpecies
+	p.CargoWeight = result.CargoWeight
+	p.VehiclesAccepted = result.VehiclesAccepted
+	p.Trailer = result.Trailer
+	p.RequiresTarp = result.RequiresTarp
+	p.Tracking = result.Tracking
+	p.Agency = result.Agency
+	p.Description = result.Description
+	p.PaymentType = result.PaymentType
+	p.Advance = result.Advance
+	p.Toll = result.Toll
+	p.Situation = result.Situation
+	p.CreatedAt = result.CreatedAt
 }

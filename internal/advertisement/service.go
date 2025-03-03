@@ -9,10 +9,11 @@ import (
 )
 
 type InterfaceService interface {
-	CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest) (AdvertisementResponse, error)
-	UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest) (AdvertisementResponse, error)
+	CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error)
+	UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error)
 	DeleteAdvertisementService(ctx context.Context, data DeleteAdvertisementRequest) error
 	GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementResponseAll, error)
+	GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error)
 }
 
 type Service struct {
@@ -23,9 +24,18 @@ func NewAdvertisementsService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest) (AdvertisementResponse, error) {
+func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error) {
 	if err := data.ValidateCreate(); err != nil {
 		return AdvertisementResponse{}, err
+	}
+
+	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
+	if errProfile != nil {
+		return AdvertisementResponse{}, errProfile
+	}
+
+	if resultProfile.Name == "Driver" {
+		return AdvertisementResponse{}, errors.New("motoristas não podem criar anúncios")
 	}
 
 	arg := data.ParseCreateToAdvertisement()
@@ -41,7 +51,7 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	return response, nil
 }
 
-func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest) (AdvertisementResponse, error) {
+func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error) {
 	_, err := p.InterfaceService.GetAdvertisementById(ctx, data.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return AdvertisementResponse{}, errors.New("anúncio não encontrado")
@@ -52,6 +62,14 @@ func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdv
 
 	if err := data.ValidateUpdate(); err != nil {
 		return AdvertisementResponse{}, err
+	}
+	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
+	if errProfile != nil {
+		return AdvertisementResponse{}, errProfile
+	}
+
+	if resultProfile.Name == "Driver" {
+		return AdvertisementResponse{}, errors.New("motoristas não podem criar anúncios")
 	}
 
 	arg := data.ParseUpdateToAdvertisement()
@@ -101,6 +119,23 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 		var response AdvertisementResponseAll
 		response.ActiveFreight = totalFreights
 		response.ActiveDuration = validation.FormatActiveDuration(response.ActiveThere)
+		response.ParseFromAdvertisementObject(result)
+
+		announcementResponses = append(announcementResponses, response)
+	}
+	return announcementResponses, nil
+}
+
+func (p *Service) GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error) {
+	results, err := p.InterfaceService.GetAllAdvertisementPublic(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var announcementResponses []AdvertisementResponseNoUser
+	for _, result := range results {
+
+		var response AdvertisementResponseNoUser
 		response.ParseFromAdvertisementObject(result)
 
 		announcementResponses = append(announcementResponses, response)

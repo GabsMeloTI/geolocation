@@ -24,6 +24,7 @@ type Config struct {
 	SignatureTokenSimp string
 	RedisUrl           string
 	GoogleClientId     string
+	AwsBucketName      string
 }
 
 func NewConfig() Config {
@@ -52,5 +53,6 @@ func NewConfig() Config {
 		GoogleMapsKey:      os.Getenv("GOOGLE_MAPS_KEY"),
 		RedisUrl:           os.Getenv("REDIS_URL"),
 		GoogleClientId:     os.Getenv("GOOGLE_CLIENT_ID"),
+		AwsBucketName:      os.Getenv("AWS_BUCKET_NAME"),
 	}
 }

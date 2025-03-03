@@ -26,7 +26,7 @@ func NewAdvertisementHandler(InterfaceService InterfaceService) *Handler {
 // @Success 200 {object} AdvertisementResponse "Advertisement Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /trailer/create [post]
+// @Router /advertisement/create [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 	var request CreateAdvertisementRequest
@@ -36,7 +36,7 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 
 	payload := get_token.GetUserPayloadToken(c)
 	request.CreatedWho = payload.Name
-	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request)
+	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -54,7 +54,7 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 // @Success 200 {object} AdvertisementResponse "Advertisement Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /trailer/update [put]
+// @Router /advertisement/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 	var request UpdateAdvertisementRequest
@@ -67,7 +67,7 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 		String: payload.Name,
 		Valid:  true,
 	}
-	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), request)
+	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), request, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -85,7 +85,7 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 // @Success 200
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /trailer/delete/{id} [put]
+// @Router /advertisement/delete/{id} [put]
 func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
@@ -119,6 +119,24 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 // @Router /advertisement/list [get]
 func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 	result, err := p.InterfaceService.GetAllAdvertisementUser(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+// GetAllAdvertisementPublicHandler godoc
+// @Summary Get All Advertisement
+// @Description Retrieve all Advertisement
+// @TagsAdvertisement
+// @Accept json
+// @Produce json
+// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /advertisement/list/public [get]
+func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
+	result, err := p.InterfaceService.GetAllAdvertisementPublic(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

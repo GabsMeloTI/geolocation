@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	driver := e.Group("/driver")
+	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
 	driver.POST("/create", container.HandlerDriver.CreateDriverHandler)
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
@@ -58,6 +59,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
 	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
 	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
@@ -66,16 +68,25 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.POST("/create-user", container.UserHandler.CreateUser)
 	e.POST("/login", container.UserHandler.UserLogin)
+	e.POST("/v2/login", container.LoginHandler.Login)
+	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
 
-	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 
+	e.GET("/ws", container.WsHandler.HandleWs)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 
+	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)
+	e.PUT("/attach/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+
+	log.Printf("Server started")
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
