@@ -23,14 +23,14 @@ type HomeResponse struct {
 }
 
 type RoomResponse struct {
-	RoomId              int64           `json:"room_id"`
-	Title               string          `json:"title"`
-	Origin              string          `json:"origin"`
-	Destination         string          `json:"destination"`
-	AdvertisementUserId int64           `json:"advertisement_user_id"`
-	AdvertisementId     int64           `json:"advertisement_id"`
-	Distance            int64           `json:"distance"`
-	LastMessage         MessageResponse `json:"last_message"`
+	RoomId              int64            `json:"room_id"`
+	Title               string           `json:"title"`
+	Origin              string           `json:"origin"`
+	Destination         string           `json:"destination"`
+	AdvertisementUserId int64            `json:"advertisement_user_id"`
+	AdvertisementId     int64            `json:"advertisement_id"`
+	Distance            int64            `json:"distance"`
+	LastMessage         *MessageResponse `json:"last_message,omitempty"`
 }
 
 type MessageResponse struct {

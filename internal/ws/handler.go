@@ -36,6 +36,7 @@ func (h *Handler) HandleWs(c echo.Context) error {
 	if err != nil {
 		log.Println(err)
 	}
+
 	defer func(conn *websocket.Conn) {
 		err = conn.Close()
 		if err != nil {
