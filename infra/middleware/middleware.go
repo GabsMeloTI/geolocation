@@ -97,6 +97,7 @@ func CheckUserWsAuthorization(handlerFunc echo.HandlerFunc) echo.HandlerFunc {
 		tokenStr := c.QueryParam("token")
 
 		maker, err := token.NewPasetoMaker(os.Getenv("SIGNATURE_STRING"))
+
 		if err != nil {
 			return c.JSON(http.StatusBadGateway, err.Error())
 		}

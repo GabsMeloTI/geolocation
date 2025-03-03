@@ -121,6 +121,10 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 	}
 
 	for _, i := range interestedChatRooms {
+		var lastMessage *MessageResponse
+		if l, ok := lastMessagesMap[i.RoomID]; ok {
+			lastMessage = &l
+		}
 		res.Interested = append(res.Interested, RoomResponse{
 			RoomId:              i.RoomID,
 			Title:               i.Title,
@@ -129,7 +133,7 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 			AdvertisementUserId: i.AdvertisementUserID,
 			AdvertisementId:     i.AdvertisementID,
 			Distance:            i.Distance,
-			LastMessage:         lastMessagesMap[i.RoomID],
+			LastMessage:         lastMessage,
 		})
 	}
 
@@ -140,6 +144,10 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 	}
 
 	for _, a := range advertisementChatRooms {
+		var lastMessage *MessageResponse
+		if l, ok := lastMessagesMap[a.RoomID]; ok {
+			lastMessage = &l
+		}
 		res.Advertisement = append(res.Advertisement, RoomResponse{
 			RoomId:              a.RoomID,
 			Title:               a.Title,
@@ -148,7 +156,7 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 			AdvertisementUserId: a.AdvertisementUserID,
 			AdvertisementId:     a.AdvertisementID,
 			Distance:            a.Distance,
-			LastMessage:         lastMessagesMap[a.RoomID],
+			LastMessage:         lastMessage,
 		})
 	}
 
