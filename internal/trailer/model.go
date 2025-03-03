@@ -15,6 +15,9 @@ type CreateTrailerRequest struct {
 	Length       float64 `json:"length"`
 	Width        float64 `json:"width"`
 	Height       float64 `json:"height"`
+	State        string  `json:"state"`
+	Renavan      string  `json:"renavan"`
+	Axles        int64   `json:"axles"`
 }
 
 type UpdateTrailerRequest struct {
@@ -27,6 +30,9 @@ type UpdateTrailerRequest struct {
 	Length       float64 `json:"length"`
 	Width        float64 `json:"width"`
 	Height       float64 `json:"height"`
+	State        string  `json:"state"`
+	Renavan      string  `json:"renavan"`
+	Axles        int64   `json:"axles"`
 }
 
 type TrailerResponse struct {
@@ -39,6 +45,9 @@ type TrailerResponse struct {
 	Length       float64    `json:"length"`
 	Width        float64    `json:"width"`
 	Height       float64    `json:"height"`
+	State        string     `json:"state"`
+	Renavan      string     `json:"renavan"`
+	Axles        int64      `json:"axles"`
 	Status       bool       `json:"status"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    *time.Time `json:"updated_at"`
@@ -46,8 +55,8 @@ type TrailerResponse struct {
 
 func (p *CreateTrailerRequest) ParseCreateToTrailer() db.CreateTrailerParams {
 	arg := db.CreateTrailerParams{
-		UserID:       p.UserId,
 		LicensePlate: p.LicensePlate,
+		UserID:       p.UserId,
 		Chassis:      p.Chassis,
 		BodyType: sql.NullString{
 			String: p.BodyType,
@@ -69,14 +78,15 @@ func (p *CreateTrailerRequest) ParseCreateToTrailer() db.CreateTrailerParams {
 			Float64: p.Width,
 			Valid:   true,
 		},
+		Axles:   p.Axles,
+		State:   p.State,
+		Renavan: p.Renavan,
 	}
 	return arg
 }
 
 func (p *UpdateTrailerRequest) ParseUpdateToTrailer() db.UpdateTrailerParams {
 	arg := db.UpdateTrailerParams{
-		ID:           p.ID,
-		UserID:       p.UserId,
 		LicensePlate: p.LicensePlate,
 		Chassis:      p.Chassis,
 		BodyType: sql.NullString{
@@ -99,6 +109,11 @@ func (p *UpdateTrailerRequest) ParseUpdateToTrailer() db.UpdateTrailerParams {
 			Float64: p.Width,
 			Valid:   true,
 		},
+		Axles:   p.Axles,
+		UserID:  p.UserId,
+		State:   p.State,
+		Renavan: p.Renavan,
+		ID:      p.ID,
 	}
 	return arg
 }
@@ -113,6 +128,9 @@ func (p *TrailerResponse) ParseFromTrailerObject(result db.Trailer) {
 	p.Length = result.Length.Float64
 	p.Width = result.Width.Float64
 	p.Height = result.Height.Float64
+	p.Axles = result.Axles
+	p.State = result.State
+	p.Renavan = result.Renavan
 	p.Status = result.Status
 	p.CreatedAt = result.CreatedAt
 	if result.UpdatedAt.Valid {

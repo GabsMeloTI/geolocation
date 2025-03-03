@@ -26,9 +26,6 @@ func (data *CreateAdvertisementRequest) ValidateCreate() error {
 	if data.CargoSpecies == "" {
 		return errors.New("a espécie da carga é obrigatória")
 	}
-	if data.CargoVolume == "" {
-		return errors.New("o volume da carga é obrigatório")
-	}
 	if data.Description == "" {
 		return errors.New("a descrição é obrigatória")
 	}
@@ -72,9 +69,6 @@ func (data *UpdateAdvertisementRequest) ValidateUpdate() error {
 	}
 	if data.CargoSpecies == "" {
 		return errors.New("a espécie da carga é obrigatória")
-	}
-	if data.CargoVolume == "" {
-		return errors.New("o volume da carga é obrigatório")
 	}
 	if data.Description == "" {
 		return errors.New("a descrição é obrigatória")

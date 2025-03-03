@@ -83,6 +83,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 
+	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)
+	e.PUT("/attach/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+
 	log.Printf("Server started")
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }

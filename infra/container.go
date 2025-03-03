@@ -6,6 +6,7 @@ import (
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
 	"geolocation/internal/advertisement"
+	"geolocation/internal/attachment"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	"geolocation/internal/login"
@@ -41,6 +42,9 @@ type ContainerDI struct {
 	HandlerAdvertisement    *advertisement.Handler
 	ServiceAdvertisement    *advertisement.Service
 	RepositoryAdvertisement *advertisement.Repository
+	HandlerAttachment       *attachment.Handler
+	ServiceAttachment       *attachment.Service
+	RepositoryAttachment    *attachment.Repository
 	UserHandler             *user.Handler
 	UserService             *user.Service
 	UserRepository          *user.Repository
@@ -91,6 +95,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
+	c.RepositoryAttachment = attachment.NewAttachmentRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
@@ -104,6 +109,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
+	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
@@ -117,6 +123,7 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerTractorUnit = tractor_unit.NewTractorUnitsHandler(c.ServiceTractorUnit)
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
 	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
+	c.HandlerAttachment = attachment.NewAttachmentHandler(c.ServiceAttachment)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	c.LoginHandler = login.NewHandler(c.LoginService)
 	hub := ws.NewHub()
