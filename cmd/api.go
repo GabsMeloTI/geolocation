@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
+	"os"
 	"time"
 )
 
@@ -82,10 +83,22 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/ws", container.WsHandler.HandleWs)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
+	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 
 	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)
 	e.PUT("/attach/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
 
 	log.Printf("Server started")
-	e.Logger.Fatal(e.Start(container.Config.ServerPort))
+
+	certFile := "fullchain.pem"
+	keyFile := "privkey.pem"
+
+	if _, err := os.Stat(certFile); os.IsNotExist(err) {
+		log.Fatalf("Certificado não encontrado: %v", err)
+	}
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		log.Fatalf("Chave privada não encontrada: %v", err)
+	}
+
+	e.Logger.Fatal(e.StartTLS(container.Config.ServerPort, certFile, keyFile))
 }

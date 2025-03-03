@@ -10,7 +10,10 @@ type InterfaceRepository interface {
 	CreateChatRoomRepository(ctx context.Context, params db.CreateChatRoomParams) (db.ChatRoom, error)
 	CreateChatMessageRepository(ctx context.Context, params db.CreateChatMessageParams) (db.ChatMessage, error)
 	GetChatRoomByIdRepository(ctx context.Context, id int64) (db.GetChatRoomByIdRow, error)
-	GetDriverChatRoomsRepository(ctx context.Context, id int64) ([]db.GetDriverChatRoomsRow, error)
+	GetInterestedChatRoomsRepository(ctx context.Context, id int64) ([]db.GetInterestedChatRoomsRow, error)
+	GetAdvertisementChatRoomsRepository(ctx context.Context, arg int64) ([]db.GetAdvertisementChatRoomsRow, error)
+	GetChatMessagesByRoomIdRepository(ctx context.Context, arg db.GetChatMessagesByRoomIdParams) ([]db.GetChatMessagesByRoomIdRow, error)
+	GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error)
 }
 
 type Repository struct {
@@ -42,6 +45,18 @@ func (r *Repository) GetChatRoomByIdRepository(ctx context.Context, id int64) (d
 	return r.Queries.GetChatRoomById(ctx, id)
 }
 
-func (r *Repository) GetDriverChatRoomsRepository(ctx context.Context, id int64) ([]db.GetDriverChatRoomsRow, error) {
-	return r.Queries.GetDriverChatRooms(ctx, id)
+func (r *Repository) GetInterestedChatRoomsRepository(ctx context.Context, id int64) ([]db.GetInterestedChatRoomsRow, error) {
+	return r.Queries.GetInterestedChatRooms(ctx, id)
+}
+
+func (r *Repository) GetAdvertisementChatRoomsRepository(ctx context.Context, arg int64) ([]db.GetAdvertisementChatRoomsRow, error) {
+	return r.Queries.GetAdvertisementChatRooms(ctx, arg)
+}
+
+func (r *Repository) GetChatMessagesByRoomIdRepository(ctx context.Context, arg db.GetChatMessagesByRoomIdParams) ([]db.GetChatMessagesByRoomIdRow, error) {
+	return r.Queries.GetChatMessagesByRoomId(ctx, arg)
+}
+
+func (r *Repository) GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error) {
+	return r.Queries.GetLastMessageByRoomId(ctx, userId)
 }

@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
@@ -40,4 +41,127 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getChatMessagesByRoomId = `-- name: GetChatMessagesByRoomId :many
+SELECT m.id, m.room_id, m.user_id, m.content, m.status, m.reply_id, m.read_at, m.is_read, m.created_at, m.updated_at, u.name, u.profile_picture
+FROM public.chat_messages m JOIN users u on m.user_id = u.id
+JOIN chat_rooms r on r.id = m.room_id AND (r.advertisement_user_id = $2 OR r.interested_user_id = $2)
+WHERE m.room_id = $1
+ORDER BY m.created_at ASC
+`
+
+type GetChatMessagesByRoomIdParams struct {
+	RoomID sql.NullInt64 `json:"room_id"`
+	UserID int64         `json:"user_id"`
+}
+
+type GetChatMessagesByRoomIdRow struct {
+	ID             int64          `json:"id"`
+	RoomID         sql.NullInt64  `json:"room_id"`
+	UserID         sql.NullInt64  `json:"user_id"`
+	Content        string         `json:"content"`
+	Status         bool           `json:"status"`
+	ReplyID        sql.NullInt64  `json:"reply_id"`
+	ReadAt         sql.NullTime   `json:"read_at"`
+	IsRead         sql.NullBool   `json:"is_read"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      sql.NullTime   `json:"updated_at"`
+	Name           string         `json:"name"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
+}
+
+func (q *Queries) GetChatMessagesByRoomId(ctx context.Context, arg GetChatMessagesByRoomIdParams) ([]GetChatMessagesByRoomIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatMessagesByRoomId, arg.RoomID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChatMessagesByRoomIdRow
+	for rows.Next() {
+		var i GetChatMessagesByRoomIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomID,
+			&i.UserID,
+			&i.Content,
+			&i.Status,
+			&i.ReplyID,
+			&i.ReadAt,
+			&i.IsRead,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.ProfilePicture,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLastMessageByRoomId = `-- name: GetLastMessageByRoomId :many
+SELECT m.id, m.room_id, m.user_id, m.content, m.status, m.reply_id, m.read_at, m.is_read, m.created_at, m.updated_at, u.name, u.profile_picture from chat_messages m
+JOIN users u on m.user_id = u.id
+JOIN chat_rooms r on r.id = m.room_id AND (r.advertisement_user_id = $1 OR r.interested_user_id = $1)
+ORDER BY m.created_at DESC
+LIMIT 1
+`
+
+type GetLastMessageByRoomIdRow struct {
+	ID             int64          `json:"id"`
+	RoomID         sql.NullInt64  `json:"room_id"`
+	UserID         sql.NullInt64  `json:"user_id"`
+	Content        string         `json:"content"`
+	Status         bool           `json:"status"`
+	ReplyID        sql.NullInt64  `json:"reply_id"`
+	ReadAt         sql.NullTime   `json:"read_at"`
+	IsRead         sql.NullBool   `json:"is_read"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      sql.NullTime   `json:"updated_at"`
+	Name           string         `json:"name"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
+}
+
+func (q *Queries) GetLastMessageByRoomId(ctx context.Context, userID int64) ([]GetLastMessageByRoomIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getLastMessageByRoomId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLastMessageByRoomIdRow
+	for rows.Next() {
+		var i GetLastMessageByRoomIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomID,
+			&i.UserID,
+			&i.Content,
+			&i.Status,
+			&i.ReplyID,
+			&i.ReadAt,
+			&i.IsRead,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.ProfilePicture,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
