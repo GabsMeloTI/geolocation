@@ -405,7 +405,8 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+			newCount := existingRoute.NumberRequest + 1
+			_, err = s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
 				IDUser:      idTokenHist,
 				Origin:      origin,
 				Destination: destination,
@@ -415,7 +416,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 				},
 				Response:      responseJSON,
 				IsPublic:      isPublic,
-				NumberRequest: 1,
+				NumberRequest: newCount,
 			})
 			if err != nil {
 				if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
