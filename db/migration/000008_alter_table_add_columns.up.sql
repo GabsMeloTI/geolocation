@@ -14,4 +14,7 @@ ALTER TABLE trailer ADD COLUMN renavan VARCHAR(11) NOT NULL;
 
 ALTER TABLE advertisement DROP COLUMN cargo_volume;
 
+ALTER TABLE users ADD COLUMN cep VARCHAR(8);
+ALTER TABLE users ADD COLUMN complement VARCHAR(100);
+
 

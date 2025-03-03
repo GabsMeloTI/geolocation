@@ -2,14 +2,27 @@ package cmd
 
 import (
 	"context"
+	_ "geolocation/docs"
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"log"
 	"time"
 )
+
+// @title GO-auth-service
+// @description Document API
+// @version 1.0
+// @schemes https http
+// @contact.name API Support
+// @contact.url https://simpplify.com.br/contact
+// @contact.email support@swagger.io
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
@@ -31,9 +44,10 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-		AllowMethods: middleware.DefaultCORSConfig.AllowMethods,
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
 	}))
 
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
@@ -71,9 +85,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/v2/login", container.LoginHandler.Login)
 	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
-	user := e.Group("/user", _midlleware.CheckUserAuthorization)
+	user := e.Group("/user")
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
+	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
+	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 
 	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"geolocation/cmd"
+	_ "geolocation/docs"
 	"geolocation/infra"
 	"geolocation/pkg"
 	"os/signal"

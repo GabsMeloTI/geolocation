@@ -19,45 +19,6 @@ type CreateUserRequest struct {
 	ProfileId       int64  `json:"profile_id" validate:"required"`
 }
 
-func (u CreateUserRequest) ParseToCreateUserParams(hash string) db.CreateUserParams {
-	return db.CreateUserParams{
-		Name:  u.Name,
-		Email: u.Email,
-		Password: sql.NullString{
-			String: hash,
-			Valid:  u.Provider != "google",
-		},
-		GoogleID: sql.NullString{
-			String: u.GoogleID,
-			Valid:  u.Provider == "google",
-		},
-		ProfilePicture: sql.NullString{
-			String: u.ProfilePicture,
-			Valid:  u.Provider == "google",
-		},
-		Phone: sql.NullString{
-			String: u.Phone,
-			Valid:  true,
-		},
-		Document: sql.NullString{
-			String: u.Document,
-			Valid:  true,
-		},
-		ProfileID: sql.NullInt64{
-			Int64: u.ProfileId,
-			Valid: true,
-		},
-	}
-}
-
-func (u CreateUserRequest) ParseToCreateUserResponse(user db.User) CreateUserResponse {
-	return CreateUserResponse{
-		Name:  user.Name,
-		Email: user.Email,
-		ID:    user.ID,
-	}
-}
-
 type CreateUserResponse struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -112,6 +73,83 @@ type UpdateUserResponse struct {
 	ProfilePicture string `json:"profile_picture,omitempty"`
 }
 
+type UpdateUserAddressRequest struct {
+	Complement   string `json:"complement"`
+	State        string `json:"state"`
+	City         string `json:"city"`
+	Neighborhood string `json:"neighborhood"`
+	Street       string `json:"street"`
+	StreetNumber string `json:"street_number"`
+	Cep          string `json:"cep"`
+	ID           int64  `json:"id"`
+}
+
+type UpdateUserPersonalInfoRequest struct {
+	Name     string `json:"name"`
+	Document string `json:"document"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	ID       int64  `json:"id"`
+}
+
+type UpdateUserPersonalInfoResponse struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Document string `json:"document"`
+	Phone    string `json:"phone"`
+}
+
+type UpdateUserAddressResponse struct {
+	ID           int64  `json:"id"`
+	State        string `json:"state"`
+	City         string `json:"city"`
+	Neighborhood string `json:"neighborhood"`
+	Street       string `json:"street"`
+	StreetNumber string `json:"street_number"`
+	Cep          string `json:"cep"`
+	Complement   string `json:"complement"`
+}
+
+func (u CreateUserRequest) ParseToCreateUserParams(hash string) db.CreateUserParams {
+	return db.CreateUserParams{
+		Name:  u.Name,
+		Email: u.Email,
+		Password: sql.NullString{
+			String: hash,
+			Valid:  u.Provider != "google",
+		},
+		GoogleID: sql.NullString{
+			String: u.GoogleID,
+			Valid:  u.Provider == "google",
+		},
+		ProfilePicture: sql.NullString{
+			String: u.ProfilePicture,
+			Valid:  u.Provider == "google",
+		},
+		Phone: sql.NullString{
+			String: u.Phone,
+			Valid:  true,
+		},
+		Document: sql.NullString{
+			String: u.Document,
+			Valid:  true,
+		},
+		ProfileID: sql.NullInt64{
+			Int64: u.ProfileId,
+			Valid: true,
+		},
+	}
+}
+
+func (u CreateUserRequest) ParseToCreateUserResponse(user db.User) CreateUserResponse {
+	return CreateUserResponse{
+		Name:  user.Name,
+		Email: user.Email,
+		ID:    user.ID,
+	}
+}
+
 func (u UpdateUserDTO) ParseToUpdateUserByIdParams() db.UpdateUserByIdParams {
 	return db.UpdateUserByIdParams{
 		Name: u.Request.Name,
@@ -148,6 +186,58 @@ func (u UpdateUserDTO) ParseToUpdateUserByIdParams() db.UpdateUserByIdParams {
 
 }
 
+func (u UpdateUserAddressRequest) ParseToUpdateUserAddressParams() db.UpdateUserAddressParams {
+	return db.UpdateUserAddressParams{
+		Complement: sql.NullString{
+			String: u.Complement,
+			Valid:  true,
+		},
+		State: sql.NullString{
+			String: u.State,
+			Valid:  true,
+		},
+		City: sql.NullString{
+			String: u.City,
+			Valid:  true,
+		},
+		Neighborhood: sql.NullString{
+			String: u.Neighborhood,
+			Valid:  true,
+		},
+		Street: sql.NullString{
+			String: u.Street,
+			Valid:  true,
+		},
+		Cep: sql.NullString{
+			String: u.Cep,
+			Valid:  true,
+		},
+		ID: u.ID,
+		StreetNumber: sql.NullString{
+			String: u.StreetNumber,
+			Valid:  true,
+		},
+	}
+
+}
+
+func (u UpdateUserPersonalInfoRequest) ParseToUpdateUserPersonalInfoParams() db.UpdateUserPersonalInfoParams {
+	return db.UpdateUserPersonalInfoParams{
+		Name: u.Name,
+		Document: sql.NullString{
+			String: u.Document,
+			Valid:  true,
+		},
+		Email: u.Email,
+		Phone: sql.NullString{
+			String: u.Phone,
+			Valid:  true,
+		},
+		ID: u.ID,
+	}
+
+}
+
 func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserResponse {
 	return UpdateUserResponse{
 		ID:             user.ID,
@@ -163,5 +253,28 @@ func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserRespons
 		Phone:          user.Phone.String,
 		GoogleID:       user.GoogleID.String,
 		ProfilePicture: user.ProfilePicture.String,
+	}
+}
+
+func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(user db.User) UpdateUserPersonalInfoResponse {
+	return UpdateUserPersonalInfoResponse{
+		ID:       user.ID,
+		Name:     user.Name,
+		Email:    user.Email,
+		Document: user.Document.String,
+		Phone:    user.Phone.String,
+	}
+}
+
+func (u UpdateUserAddressResponse) ParseToUpdateUserAddressResponse(user db.User) UpdateUserAddressResponse {
+	return UpdateUserAddressResponse{
+		ID:           user.ID,
+		State:        user.State.String,
+		City:         user.City.String,
+		Neighborhood: user.Neighborhood.String,
+		Street:       user.Street.String,
+		StreetNumber: user.StreetNumber.String,
+		Cep:          user.Cep.String,
+		Complement:   user.Complement.String,
 	}
 }
