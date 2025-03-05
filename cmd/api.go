@@ -78,16 +78,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
 	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
+	//easyfrete no user
 	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
-
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
-	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
-	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-
-	e.POST("/create-user", container.UserHandler.CreateUser)
-	e.POST("/login", container.UserHandler.UserLogin)
-	e.POST("/v2/login", container.LoginHandler.Login)
-	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	user := e.Group("/user")
 	user.PUT("/delete", container.UserHandler.DeleteUser)
@@ -96,17 +88,29 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler, _midlleware.CheckUserAuthorization)
 
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
-	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
-	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-
-	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 
-	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)
-	e.PUT("/attach/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
+	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
+	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+
+	route := e.Group("/route", _midlleware.CheckUserAuthorization)
+	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
+	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
+
+	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+	//simpplify
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	//easyfrete
+	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	e.POST("/create-user", container.UserHandler.CreateUser)
+	e.POST("/login", container.UserHandler.UserLogin)
+	e.POST("/v2/login", container.LoginHandler.Login)
+	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	log.Printf("Server started")
 

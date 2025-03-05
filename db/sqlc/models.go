@@ -121,8 +121,9 @@ type FavoriteRoute struct {
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
 	Response    json.RawMessage `json:"response"`
-	CreatedWho  string          `json:"created_who"`
+	Status      bool            `json:"status"`
 	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   sql.NullTime    `json:"updated_at"`
 }
 
 type FreightLoad struct {

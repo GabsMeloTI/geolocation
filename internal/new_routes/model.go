@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	db "geolocation/db/sqlc"
 	"time"
 )
@@ -212,4 +213,24 @@ func (p *FreightLoad) ParseFromFreightObject(result db.FreightLoad) {
 	p.ThreeAxes = result.ThreeAxes.String
 	p.Name = result.Name.String
 	p.Description = result.Description.String
+}
+
+type FavoriteRouteResponse struct {
+	ID          int64           `json:"id"`
+	IDUser      int64           `json:"id_user"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   string          `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	CreatedAt   time.Time       `json:"created_at"`
+}
+
+func (p *FavoriteRouteResponse) ParseFromFavoriteRouteObject(result db.FavoriteRoute) {
+	p.ID = result.ID
+	p.IDUser = result.IDUser
+	p.Origin = result.Origin
+	p.Destination = result.Destination
+	p.Waypoints = result.Waypoints.String
+	p.Response = result.Response
+	p.CreatedAt = result.CreatedAt
 }

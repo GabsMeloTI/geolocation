@@ -105,7 +105,8 @@ create table favorite_route (
                                 destination TEXT NOT NULL,
                                 waypoints TEXT NULL,
                                 response JSONB NOT NULL,
-                                created_who varchar not null,
-                                created_at timestamp not null default now()
+                                status BOOLEAN NOT NULL,
+                                created_at timestamp not null default now(),
+                                updated_at timestamp null
 );
 

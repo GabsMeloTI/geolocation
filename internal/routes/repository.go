@@ -24,6 +24,8 @@ type InterfaceRepository interface {
 	GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error)
 	GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error)
 	UpdateNumberOfRequestRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
+	GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.FavoriteRoute, error)
+	RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error
 }
 
 type Repository struct {
@@ -90,4 +92,10 @@ func (r *Repository) UpdateNumberOfRequestRequest(ctx context.Context, arg db.Up
 }
 func (r *Repository) GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error) {
 	return r.Queries.GetRouteHistByUnique(ctx, arg)
+}
+func (r *Repository) GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.FavoriteRoute, error) {
+	return r.Queries.GetFavoriteByUserId(ctx, arg)
+}
+func (r *Repository) RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error {
+	return r.Queries.RemoveFavorite(ctx, arg)
 }
