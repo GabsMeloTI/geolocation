@@ -121,8 +121,9 @@ type FavoriteRoute struct {
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
 	Response    json.RawMessage `json:"response"`
-	CreatedWho  string          `json:"created_who"`
+	Status      bool            `json:"status"`
 	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   sql.NullTime    `json:"updated_at"`
 }
 
 type FreightLoad struct {
@@ -149,11 +150,10 @@ type GasStation struct {
 }
 
 type Plan struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Price    string `json:"price"`
-	Duration string `json:"duration"`
-	Annual   bool   `json:"annual"`
+	ID       int64   `json:"id"`
+	Name     string  `json:"name"`
+	Price    float64 `json:"price"`
+	Duration string  `json:"duration"`
 }
 
 type Profile struct {
@@ -294,10 +294,11 @@ type User struct {
 }
 
 type UserPlan struct {
-	ID             int64         `json:"id"`
-	IDUser         sql.NullInt64 `json:"id_user"`
-	IDPlan         sql.NullInt64 `json:"id_plan"`
-	Active         bool          `json:"active"`
-	ActiveDate     time.Time     `json:"active_date"`
-	ExpirationDate time.Time     `json:"expiration_date"`
+	ID             int64     `json:"id"`
+	IDUser         int64     `json:"id_user"`
+	IDPlan         int64     `json:"id_plan"`
+	Annual         bool      `json:"annual"`
+	Active         bool      `json:"active"`
+	ActiveDate     time.Time `json:"active_date"`
+	ExpirationDate time.Time `json:"expiration_date"`
 }

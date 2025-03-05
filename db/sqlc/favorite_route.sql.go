@@ -13,9 +13,9 @@ import (
 
 const createFavoriteRoute = `-- name: CreateFavoriteRoute :one
 INSERT INTO public.favorite_route
-(id, id_user, origin, destination, waypoints, response, created_who, created_at)
-VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, $6, now())
-    RETURNING id, id_user, origin, destination, waypoints, response, created_who, created_at
+(id, id_user, origin, destination, waypoints, response, created_at, status)
+VALUES(nextval('favorite_route_id_seq'::regclass), $1, $2, $3, $4, $5, now(), true)
+    RETURNING id, id_user, origin, destination, waypoints, response, status, created_at, updated_at
 `
 
 type CreateFavoriteRouteParams struct {
@@ -24,7 +24,6 @@ type CreateFavoriteRouteParams struct {
 	Destination string          `json:"destination"`
 	Waypoints   sql.NullString  `json:"waypoints"`
 	Response    json.RawMessage `json:"response"`
-	CreatedWho  string          `json:"created_who"`
 }
 
 func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRouteParams) (FavoriteRoute, error) {
@@ -34,7 +33,6 @@ func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRou
 		arg.Destination,
 		arg.Waypoints,
 		arg.Response,
-		arg.CreatedWho,
 	)
 	var i FavoriteRoute
 	err := row.Scan(
@@ -44,17 +42,58 @@ func (q *Queries) CreateFavoriteRoute(ctx context.Context, arg CreateFavoriteRou
 		&i.Destination,
 		&i.Waypoints,
 		&i.Response,
-		&i.CreatedWho,
+		&i.Status,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const removeFavorite = `-- name: RemoveFavorite :exec
-DELETE
+const getFavoriteByUserId = `-- name: GetFavoriteByUserId :many
+SELECT id, id_user, origin, destination, waypoints, response, status, created_at, updated_at
 FROM public.favorite_route
+WHERE id_user = $1 AND
+      status=true
+`
+
+func (q *Queries) GetFavoriteByUserId(ctx context.Context, idUser int64) ([]FavoriteRoute, error) {
+	rows, err := q.db.QueryContext(ctx, getFavoriteByUserId, idUser)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FavoriteRoute
+	for rows.Next() {
+		var i FavoriteRoute
+		if err := rows.Scan(
+			&i.ID,
+			&i.IDUser,
+			&i.Origin,
+			&i.Destination,
+			&i.Waypoints,
+			&i.Response,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const removeFavorite = `-- name: RemoveFavorite :exec
+UPDATE public.favorite_route
+SET status=false, updated_at=now()
 WHERE id = $1 AND
-    id_user = $2
+      id_user = $2
 `
 
 type RemoveFavoriteParams struct {

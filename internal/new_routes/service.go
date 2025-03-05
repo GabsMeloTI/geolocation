@@ -25,6 +25,8 @@ import (
 
 type InterfaceService interface {
 	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
+	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
+	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
 }
 
 type Service struct {
@@ -1121,5 +1123,33 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 	if err != nil {
 		return fmt.Errorf("falha ao atualizar número de requisições: %w", err)
 	}
+	return nil
+}
+
+func (s *Service) GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error) {
+	result, err := s.InterfaceService.GetFavoriteByUserId(ctx, id)
+	if err != nil {
+		return []FavoriteRouteResponse{}, err
+	}
+
+	var getAllFavoriteRoute []FavoriteRouteResponse
+	for _, trailer := range result {
+		getFavoriteRouteResponse := FavoriteRouteResponse{}
+		getFavoriteRouteResponse.ParseFromFavoriteRouteObject(trailer)
+		getAllFavoriteRoute = append(getAllFavoriteRoute, getFavoriteRouteResponse)
+	}
+
+	return getAllFavoriteRoute, nil
+}
+
+func (s *Service) RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error {
+	err := s.InterfaceService.RemoveFavorite(ctx, db.RemoveFavoriteParams{
+		ID:     id,
+		IDUser: idUser,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

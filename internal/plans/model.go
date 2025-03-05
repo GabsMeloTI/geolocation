@@ -5,60 +5,39 @@ import (
 	"time"
 )
 
-type CreatePlansRequest struct {
-	Name           string    `json:"name"`
-	Price          string    `json:"price"`
-	Duration       string    `json:"duration"`
+type CreateUserPlanRequest struct {
+	IDUser         int64     `json:"id_user"`
+	IDPlan         int64     `json:"id_plan"`
 	Annual         bool      `json:"annual"`
-	Active         bool      `json:"active"`
 	ExpirationDate time.Time `json:"expiration_date"`
+	Price          float64   `json:"price"`
 }
 
-type UpdatePlansRequest struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Price    string `json:"price"`
-	Duration string `json:"duration"`
-	Annual   bool   `json:"annual"`
-}
-
-type PlansResponse struct {
+type UserPlanResponse struct {
 	ID             int64     `json:"id"`
-	Name           string    `json:"name"`
-	Price          string    `json:"price"`
-	Duration       string    `json:"duration"`
+	IDUser         int64     `json:"id_user"`
+	IDPlan         int64     `json:"id_plan"`
 	Annual         bool      `json:"annual"`
 	Active         bool      `json:"active"`
 	ActiveDate     time.Time `json:"active_date"`
 	ExpirationDate time.Time `json:"expiration_date"`
+	Price          float64   `json:"price"`
 }
 
-func (p *CreatePlansRequest) ParseCreateToPlans() db.CreatePlansParams {
-	return db.CreatePlansParams{
-		Name:           p.Name,
-		Price:          p.Price,
-		Duration:       p.Duration,
+func (p *CreateUserPlanRequest) ParseCreateToUserPlan() db.CreateUserPlansParams {
+	arg := db.CreateUserPlansParams{
+		IDUser:         p.IDUser,
+		IDPlan:         p.IDPlan,
 		Annual:         p.Annual,
-		Active:         p.Active,
 		ExpirationDate: p.ExpirationDate,
 	}
+	return arg
 }
 
-func (p *UpdatePlansRequest) ParseUpdateToPlans() db.UpdatePlansParams {
-	return db.UpdatePlansParams{
-		ID:       p.ID,
-		Name:     p.Name,
-		Price:    p.Price,
-		Duration: p.Duration,
-		Annual:   p.Annual,
-	}
-}
-
-func (p *PlansResponse) ParseFromPlansObject(result db.Plan) {
+func (p *UserPlanResponse) ParseFromPlansObject(result db.UserPlan) {
 	p.ID = result.ID
-	p.Name = result.Name
-	p.Price = result.Price
-	p.Duration = result.Duration
+	p.IDUser = result.IDUser
+	p.IDPlan = result.IDPlan
 	p.Annual = result.Annual
 	p.Active = result.Active
 	p.ActiveDate = result.ActiveDate
