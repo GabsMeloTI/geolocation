@@ -57,6 +57,11 @@
         },
         "/advertisement/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Advertisement.",
                 "consumes": [
                     "application/json"
@@ -98,6 +103,11 @@
         },
         "/advertisement/list": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieve all Advertisement",
                 "consumes": [
                     "application/json"
@@ -387,6 +397,11 @@
         },
         "/driver/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -530,6 +545,11 @@
         },
         "/tractor-unit/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete TractorUnit.",
                 "consumes": [
                     "application/json"
@@ -673,6 +693,11 @@
         },
         "/trailer/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Trailer.",
                 "consumes": [
                     "application/json"

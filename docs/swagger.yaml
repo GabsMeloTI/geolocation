@@ -780,6 +780,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete Advertisement.
       tags:
       - Advertisement
@@ -801,6 +803,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get All Advertisement
       tags:
       - Advertisement
@@ -994,6 +998,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete Driver.
       tags:
       - Drivers
@@ -1085,6 +1091,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete TractorUnit.
       tags:
       - TractorUnits
@@ -1176,6 +1184,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete Trailer.
       tags:
       - Trailer

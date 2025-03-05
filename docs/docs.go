@@ -68,6 +68,11 @@ const docTemplate = `{
         },
         "/advertisement/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Advertisement.",
                 "consumes": [
                     "application/json"
@@ -109,6 +114,11 @@ const docTemplate = `{
         },
         "/advertisement/list": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieve all Advertisement",
                 "consumes": [
                     "application/json"
@@ -398,6 +408,11 @@ const docTemplate = `{
         },
         "/driver/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -541,6 +556,11 @@ const docTemplate = `{
         },
         "/tractor-unit/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete TractorUnit.",
                 "consumes": [
                     "application/json"
@@ -684,6 +704,11 @@ const docTemplate = `{
         },
         "/trailer/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Trailer.",
                 "consumes": [
                     "application/json"
