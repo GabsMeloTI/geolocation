@@ -7,9 +7,10 @@ import (
 )
 
 type InterfaceRepository interface {
-	CreatePlans(ctx context.Context, arg db.CreatePlansParams) (db.Plan, error)
-	UpdatePlans(ctx context.Context, arg db.UpdatePlansParams) (db.Plan, error)
 	CreateUserPlans(ctx context.Context, arg db.CreateUserPlansParams) (db.UserPlan, error)
+	GetPlansById(ctx context.Context, arg int64) (db.Plan, error)
+	GetUserPlanByIdUser(ctx context.Context, arg db.GetUserPlanByIdUserParams) (db.UserPlan, error)
+	UpdateUserPlan(ctx context.Context, arg db.UpdateUserPlanParams) error
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -18,7 +19,7 @@ type Repository struct {
 	SqlConn *sql.DB
 }
 
-func NewPlansRepository(Conn *sql.DB) *Repository {
+func NewUserPlanRepository(Conn *sql.DB) *Repository {
 	q := db.New(Conn)
 	return &Repository{
 		Conn:    Conn,
@@ -28,12 +29,15 @@ func NewPlansRepository(Conn *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) CreatePlans(ctx context.Context, arg db.CreatePlansParams) (db.Plan, error) {
-	return r.Queries.CreatePlans(ctx, arg)
-}
-func (r *Repository) UpdatePlans(ctx context.Context, arg db.UpdatePlansParams) (db.Plan, error) {
-	return r.Queries.UpdatePlans(ctx, arg)
-}
 func (r *Repository) CreateUserPlans(ctx context.Context, arg db.CreateUserPlansParams) (db.UserPlan, error) {
 	return r.Queries.CreateUserPlans(ctx, arg)
+}
+func (r *Repository) GetPlansById(ctx context.Context, arg int64) (db.Plan, error) {
+	return r.Queries.GetPlansById(ctx, arg)
+}
+func (r *Repository) GetUserPlanByIdUser(ctx context.Context, arg db.GetUserPlanByIdUserParams) (db.UserPlan, error) {
+	return r.Queries.GetUserPlanByIdUser(ctx, arg)
+}
+func (r *Repository) UpdateUserPlan(ctx context.Context, arg db.UpdateUserPlanParams) error {
+	return r.Queries.UpdateUserPlan(ctx, arg)
 }

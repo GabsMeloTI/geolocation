@@ -11,6 +11,7 @@ import (
 	"geolocation/internal/hist"
 	"geolocation/internal/login"
 	new_routes "geolocation/internal/new_routes"
+	"geolocation/internal/plans"
 	"geolocation/internal/routes"
 	"geolocation/internal/tractor_unit"
 	"geolocation/internal/trailer"
@@ -42,6 +43,9 @@ type ContainerDI struct {
 	HandlerAdvertisement    *advertisement.Handler
 	ServiceAdvertisement    *advertisement.Service
 	RepositoryAdvertisement *advertisement.Repository
+	HandlerUserPlan         *plans.Handler
+	ServiceUserPlan         *plans.Service
+	RepositoryUserPlan      *plans.Repository
 	HandlerAttachment       *attachment.Handler
 	ServiceAttachment       *attachment.Service
 	RepositoryAttachment    *attachment.Repository
@@ -97,6 +101,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.RepositoryAttachment = attachment.NewAttachmentRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
+	c.RepositoryUserPlan = plans.NewUserPlanRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 }
@@ -111,6 +116,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 }
@@ -125,6 +131,7 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.HandlerAttachment = attachment.NewAttachmentHandler(c.ServiceAttachment)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
+	c.HandlerUserPlan = plans.NewUserPlanHandler(c.ServiceUserPlan)
 	c.LoginHandler = login.NewHandler(c.LoginService)
 	hub := ws.NewHub()
 	c.WsHandler = ws.NewWsHandler(hub, c.WsService)

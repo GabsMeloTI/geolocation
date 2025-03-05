@@ -9,3 +9,8 @@ DELETE
 FROM public.favorite_route
 WHERE id = $1 AND
     id_user = $2;
+
+-- name: GetFavoriteByUserId :one
+SELECT
+FROM public.favorite_route
+WHERE id_user = $1;
