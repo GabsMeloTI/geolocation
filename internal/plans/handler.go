@@ -21,7 +21,7 @@ func NewUserPlanHandler(InterfaceService InterfaceService) *Handler {
 // @Accept json
 // @Produce json
 // @Param id path int true "Plan ID"
-// @Success 200 {object} PlansResponse "User Plan Info"
+// @Success 200 {object} UserPlanResponse "User Plan Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/plan [post]

@@ -362,7 +362,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Plan.",
+                "description": "Create a Driver.",
                 "consumes": [
                     "application/json"
                 ],
@@ -370,25 +370,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Plans"
+                    "Drivers"
                 ],
-                "summary": "Create a Plan.",
+                "summary": "Create a Driver.",
                 "parameters": [
                     {
-                        "description": "Plan Request",
+                        "description": "Driver Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/plans.CreatePlansRequest"
+                            "$ref": "#/definitions/drivers.CreateDriverRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plan Info",
+                        "description": "Driver Info",
                         "schema": {
-                            "$ref": "#/definitions/plans.PlansResponse"
+                            "$ref": "#/definitions/drivers.DriverResponse"
                         }
                     },
                     "400": {
@@ -408,11 +408,6 @@ const docTemplate = `{
         },
         "/driver/delete/{id}": {
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -505,7 +500,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a Plan.",
+                "description": "Update a Driver.",
                 "consumes": [
                     "application/json"
                 ],
@@ -513,26 +508,118 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Plans"
+                    "Drivers"
                 ],
-                "summary": "Update a Plan.",
+                "summary": "Update a Driver.",
                 "parameters": [
                     {
-                        "description": "Plan Request",
+                        "description": "Driver Request",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/plans.UpdatePlansRequest"
+                            "$ref": "#/definitions/drivers.UpdateDriverRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plan Info",
+                        "description": "Driver Info",
                         "schema": {
-                            "$ref": "#/definitions/plans.PlansResponse"
+                            "$ref": "#/definitions/drivers.DriverResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/favorite/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get FavoriteRoute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FavoriteRoutes"
+                ],
+                "summary": "Get FavoriteRoute.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/favorite/remove/:id": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get FavoriteRoute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FavoriteRoutes"
+                ],
+                "summary": "Get FavoriteRoute.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1214,6 +1301,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/plan": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Assigns a user to a selected plan.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User Plans"
+                ],
+                "summary": "Create a User Plan.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User Plan Info",
+                        "schema": {
+                            "$ref": "#/definitions/plans.UserPlanResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/user/update": {
             "put": {
                 "security": [
@@ -1285,6 +1421,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1315,6 +1460,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1330,14 +1478,26 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
                     "type": "string"
                 },
+                "state": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "boolean"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"
@@ -1392,6 +1552,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1422,6 +1591,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1437,10 +1609,22 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1502,6 +1686,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1520,6 +1713,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1533,6 +1729,15 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1570,6 +1775,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_who": {
                     "type": "string"
                 },
@@ -1594,6 +1808,9 @@ const docTemplate = `{
                 "expiration_date": {
                     "type": "string"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1609,10 +1826,22 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1817,30 +2046,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plans.CreatePlansRequest": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "annual": {
-                    "type": "boolean"
-                },
-                "duration": {
-                    "type": "string"
-                },
-                "expiration_date": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "string"
-                }
-            }
-        },
-        "plans.PlansResponse": {
+        "plans.UserPlanResponse": {
             "type": "object",
             "properties": {
                 "active": {
@@ -1852,40 +2058,20 @@ const docTemplate = `{
                 "annual": {
                     "type": "boolean"
                 },
-                "duration": {
-                    "type": "string"
-                },
                 "expiration_date": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "string"
-                }
-            }
-        },
-        "plans.UpdatePlansRequest": {
-            "type": "object",
-            "properties": {
-                "annual": {
-                    "type": "boolean"
-                },
-                "duration": {
-                    "type": "string"
-                },
-                "id": {
+                "id_plan": {
                     "type": "integer"
                 },
-                "name": {
-                    "type": "string"
+                "id_user": {
+                    "type": "integer"
                 },
                 "price": {
-                    "type": "string"
+                    "type": "number"
                 }
             }
         },
