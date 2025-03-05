@@ -32,7 +32,15 @@ type CreateAdvertisementRequest struct {
 	Advance          string    `json:"advance"`
 	Toll             bool      `json:"toll"`
 	Situation        string    `json:"situation"`
+	Price            float64   `json:"price"`
 	CreatedWho       string    `json:"created_who"`
+	State            string    `json:"state"`
+	City             string    `json:"city"`
+	Complement       string    `json:"complement"`
+	Neighborhood     string    `json:"neighborhood"`
+	Street           string    `json:"street"`
+	StreetNumber     string    `json:"street_number"`
+	CEP              string    `json:"cep"`
 }
 
 type UpdateAdvertisementRequest struct {
@@ -61,8 +69,16 @@ type UpdateAdvertisementRequest struct {
 	Advance          string         `json:"advance"`
 	Toll             bool           `json:"toll"`
 	Situation        string         `json:"situation"`
+	Price            float64        `json:"price"`
 	UpdatedWho       sql.NullString `json:"updated_who"`
 	ID               int64          `json:"id"`
+	State            string         `json:"state"`
+	City             string         `json:"city"`
+	Complement       string         `json:"complement"`
+	Neighborhood     string         `json:"neighborhood"`
+	Street           string         `json:"street"`
+	StreetNumber     string         `json:"street_number"`
+	CEP              string         `json:"cep"`
 }
 
 type DeleteAdvertisementRequest struct {
@@ -97,6 +113,14 @@ type AdvertisementResponse struct {
 	Advance          string     `json:"advance"`
 	Toll             bool       `json:"toll"`
 	Situation        string     `json:"situation"`
+	Price            float64    `json:"price"`
+	State            string     `json:"state"`
+	City             string     `json:"city"`
+	Complement       string     `json:"complement"`
+	Neighborhood     string     `json:"neighborhood"`
+	Street           string     `json:"street"`
+	StreetNumber     string     `json:"street_number"`
+	CEP              string     `json:"cep"`
 	Status           bool       `json:"status"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`
@@ -139,6 +163,14 @@ type AdvertisementResponseAll struct {
 	Toll             bool       `json:"toll"`
 	Situation        string     `json:"situation"`
 	ActiveFreight    int64      `json:"active_freight"`
+	Price            float64    `json:"price"`
+	State            string     `json:"state"`
+	City             string     `json:"city"`
+	Complement       string     `json:"complement"`
+	Neighborhood     string     `json:"neighborhood"`
+	Street           string     `json:"street"`
+	StreetNumber     string     `json:"street_number"`
+	CEP              string     `json:"cep"`
 	CreatedAt        time.Time  `json:"created_at"`
 	CreatedWho       string     `json:"created_who"`
 	UpdatedAt        *time.Time `json:"updated_at,omitempty"`
@@ -166,6 +198,13 @@ type AdvertisementResponseNoUser struct {
 	Advance          string    `json:"advance"`
 	Toll             bool      `json:"toll"`
 	Situation        string    `json:"situation"`
+	State            string    `json:"state"`
+	City             string    `json:"city"`
+	Complement       string    `json:"complement"`
+	Neighborhood     string    `json:"neighborhood"`
+	Street           string    `json:"street"`
+	StreetNumber     string    `json:"street_number"`
+	CEP              string    `json:"cep"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
@@ -196,6 +235,14 @@ func (p *CreateAdvertisementRequest) ParseCreateToAdvertisement() db.CreateAdver
 		Advance:          p.Advance,
 		Toll:             p.Toll,
 		Situation:        p.Situation,
+		Price:            p.Price,
+		State:            p.State,
+		City:             p.City,
+		Complement:       p.Complement,
+		Neighborhood:     p.Neighborhood,
+		Street:           p.Street,
+		StreetNumber:     p.StreetNumber,
+		Cep:              p.CEP,
 		CreatedWho:       p.CreatedWho,
 	}
 	return arg
@@ -229,6 +276,14 @@ func (p *UpdateAdvertisementRequest) ParseUpdateToAdvertisement() db.UpdateAdver
 		Advance:          p.Advance,
 		Toll:             p.Toll,
 		Situation:        p.Situation,
+		Price:            p.Price,
+		State:            p.State,
+		City:             p.City,
+		Complement:       p.Complement,
+		Neighborhood:     p.Neighborhood,
+		Street:           p.Street,
+		StreetNumber:     p.StreetNumber,
+		Cep:              p.CEP,
 		UpdatedWho:       p.UpdatedWho,
 	}
 	return arg
@@ -269,6 +324,14 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	p.Advance = result.Advance
 	p.Toll = result.Toll
 	p.Situation = result.Situation
+	p.Price = result.Price
+	p.State = result.State
+	p.City = result.City
+	p.Complement = result.Complement
+	p.Neighborhood = result.Neighborhood
+	p.Street = result.Street
+	p.StreetNumber = result.StreetNumber
+	p.CEP = result.Cep
 	p.Status = result.Status
 	p.CreatedAt = result.CreatedAt
 	if result.UpdatedAt.Valid {
@@ -313,6 +376,14 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	p.Advance = result.Advance
 	p.Toll = result.Toll
 	p.Situation = result.Situation
+	p.Price = result.Price
+	p.State = result.State
+	p.City = result.City
+	p.Complement = result.Complement
+	p.Neighborhood = result.Neighborhood
+	p.Street = result.Street
+	p.StreetNumber = result.StreetNumber
+	p.CEP = result.Cep
 	p.CreatedAt = result.CreatedAt
 	p.CreatedWho = result.CreatedWho
 	if result.UpdatedAt.Valid {
@@ -343,6 +414,13 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.PaymentType = result.PaymentType
 	p.Advance = result.Advance
 	p.Toll = result.Toll
+	p.State = result.State
+	p.City = result.City
+	p.Complement = result.Complement
+	p.Neighborhood = result.Neighborhood
+	p.Street = result.Street
+	p.StreetNumber = result.StreetNumber
+	p.CEP = result.Cep
 	p.Situation = result.Situation
 	p.CreatedAt = result.CreatedAt
 }
