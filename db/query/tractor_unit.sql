@@ -20,7 +20,7 @@ SELECT *
 FROM public.tractor_unit
 WHERE id=$1;
 
--- name: GetTractorUnitByUserId :one
+-- name: GetTractorUnitByUserId :many
 SELECT *
 FROM public.tractor_unit
 WHERE user_id=$1;

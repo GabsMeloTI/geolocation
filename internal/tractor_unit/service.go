@@ -10,7 +10,7 @@ type InterfaceService interface {
 	CreateTractorUnitService(ctx context.Context, data CreateTractorUnitRequest) (TractorUnitResponse, error)
 	UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitRequest) (TractorUnitResponse, error)
 	DeleteTractorUnitService(ctx context.Context, id int64) error
-	GetTractorUnitService(ctx context.Context, id int64) (TractorUnitResponse, error)
+	GetTractorUnitService(ctx context.Context, id int64) ([]TractorUnitResponse, error)
 }
 
 type Service struct {
@@ -70,17 +70,18 @@ func (p *Service) DeleteTractorUnitService(ctx context.Context, id int64) error 
 	return nil
 }
 
-func (p *Service) GetTractorUnitService(ctx context.Context, id int64) (TractorUnitResponse, error) {
+func (p *Service) GetTractorUnitService(ctx context.Context, id int64) ([]TractorUnitResponse, error) {
 	result, err := p.InterfaceService.GetTractorUnitByUserId(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return TractorUnitResponse{}, errors.New("driver not found")
-	}
 	if err != nil {
-		return TractorUnitResponse{}, err
+		return []TractorUnitResponse{}, err
 	}
 
-	getTractorUnitService := TractorUnitResponse{}
-	getTractorUnitService.ParseFromTractorUnitObject(result)
+	var getAllTractorUnit []TractorUnitResponse
+	for _, trailer := range result {
+		getTractorUnitResponse := TractorUnitResponse{}
+		getTractorUnitResponse.ParseFromTractorUnitObject(trailer)
+		getAllTractorUnit = append(getAllTractorUnit, getTractorUnitResponse)
+	}
 
-	return getTractorUnitService, nil
+	return getAllTractorUnit, nil
 }

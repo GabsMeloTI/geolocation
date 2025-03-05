@@ -106,33 +106,49 @@ func (q *Queries) GetTrailerById(ctx context.Context, id int64) (Trailer, error)
 	return i, err
 }
 
-const getTrailerByUserId = `-- name: GetTrailerByUserId :one
+const getTrailerByUserId = `-- name: GetTrailerByUserId :many
 SELECT id, license_plate, user_id, chassis, body_type, load_capacity, length, width, height, axles, status, created_at, updated_at, state, renavan
 FROM public.trailer
 WHERE user_id=$1
 `
 
-func (q *Queries) GetTrailerByUserId(ctx context.Context, userID int64) (Trailer, error) {
-	row := q.db.QueryRowContext(ctx, getTrailerByUserId, userID)
-	var i Trailer
-	err := row.Scan(
-		&i.ID,
-		&i.LicensePlate,
-		&i.UserID,
-		&i.Chassis,
-		&i.BodyType,
-		&i.LoadCapacity,
-		&i.Length,
-		&i.Width,
-		&i.Height,
-		&i.Axles,
-		&i.Status,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.State,
-		&i.Renavan,
-	)
-	return i, err
+func (q *Queries) GetTrailerByUserId(ctx context.Context, userID int64) ([]Trailer, error) {
+	rows, err := q.db.QueryContext(ctx, getTrailerByUserId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Trailer
+	for rows.Next() {
+		var i Trailer
+		if err := rows.Scan(
+			&i.ID,
+			&i.LicensePlate,
+			&i.UserID,
+			&i.Chassis,
+			&i.BodyType,
+			&i.LoadCapacity,
+			&i.Length,
+			&i.Width,
+			&i.Height,
+			&i.Axles,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.State,
+			&i.Renavan,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateTrailer = `-- name: UpdateTrailer :one

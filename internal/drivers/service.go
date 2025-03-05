@@ -10,7 +10,7 @@ type InterfaceService interface {
 	CreateDriverService(ctx context.Context, data CreateDriverRequest) (DriverResponse, error)
 	UpdateDriverService(ctx context.Context, data UpdateDriverRequest) (DriverResponse, error)
 	DeleteDriverService(ctx context.Context, id int64) error
-	GetDriverService(ctx context.Context, id int64) (DriverResponse, error)
+	GetDriverService(ctx context.Context, id int64) ([]DriverResponse, error)
 }
 
 type Service struct {
@@ -73,14 +73,18 @@ func (p *Service) DeleteDriverService(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (p *Service) GetDriverService(ctx context.Context, id int64) (DriverResponse, error) {
+func (p *Service) GetDriverService(ctx context.Context, id int64) ([]DriverResponse, error) {
 	result, err := p.InterfaceService.GetDriverByUserId(ctx, id)
 	if err != nil {
-		return DriverResponse{}, err
+		return []DriverResponse{}, err
 	}
 
-	getDriverService := DriverResponse{}
-	getDriverService.ParseFromDriverObject(result)
+	var getAllDriver []DriverResponse
+	for _, trailer := range result {
+		getDriverResponse := DriverResponse{}
+		getDriverResponse.ParseFromDriverObject(trailer)
+		getAllDriver = append(getAllDriver, getDriverResponse)
+	}
 
-	return getDriverService, nil
+	return getAllDriver, nil
 }
