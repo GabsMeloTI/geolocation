@@ -22,7 +22,7 @@ type CreateTrailerRequest struct {
 
 type UpdateTrailerRequest struct {
 	ID           int64   `json:"id"`
-	UserId       int64   `json:"userId"`
+	UserId       int64   `json:"user_id"`
 	LicensePlate string  `json:"license_plate"`
 	Chassis      string  `json:"chassis"`
 	BodyType     string  `json:"body_type" validate:"oneof=open chest bulk_carrier sider"`
@@ -37,7 +37,7 @@ type UpdateTrailerRequest struct {
 
 type TrailerResponse struct {
 	ID           int64      `json:"id"`
-	UserId       int64      `json:"userId"`
+	UserId       int64      `json:"user_id"`
 	LicensePlate string     `json:"license_plate"`
 	Chassis      string     `json:"chassis"`
 	BodyType     string     `json:"body_type"`
