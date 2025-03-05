@@ -6,7 +6,6 @@ import (
 	_ "geolocation/docs"
 	"geolocation/infra"
 	"geolocation/pkg"
-
 	"os/signal"
 	"syscall"
 )
@@ -20,5 +19,4 @@ func main() {
 
 	pkg.InitRedis(loadingEnv.Environment)
 	cmd.StartAPI(ctx, container)
-
 }

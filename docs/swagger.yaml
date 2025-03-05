@@ -366,6 +366,53 @@ definitions:
       user_id:
         type: integer
     type: object
+  plans.CreatePlansRequest:
+    properties:
+      active:
+        type: boolean
+      annual:
+        type: boolean
+      duration:
+        type: string
+      expiration_date:
+        type: string
+      name:
+        type: string
+      price:
+        type: string
+    type: object
+  plans.PlansResponse:
+    properties:
+      active:
+        type: boolean
+      active_date:
+        type: string
+      annual:
+        type: boolean
+      duration:
+        type: string
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: string
+    type: object
+  plans.UpdatePlansRequest:
+    properties:
+      annual:
+        type: boolean
+      duration:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: string
+    type: object
   tractor_unit.CreateTractorUnitRequest:
     properties:
       brand:
@@ -613,6 +660,41 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+    type: object
+  user.GetUserResponse:
+    properties:
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      created_at:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      profile_id:
+        type: integer
+      profile_picture:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+      updated_at:
         type: string
     type: object
   user.LoginRequest:
@@ -946,21 +1028,21 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a Driver.
+      description: Create a Plan.
       parameters:
-      - description: Driver Request
+      - description: Plan Request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/drivers.CreateDriverRequest'
+          $ref: '#/definitions/plans.CreatePlansRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Driver Info
+          description: Plan Info
           schema:
-            $ref: '#/definitions/drivers.DriverResponse'
+            $ref: '#/definitions/plans.PlansResponse'
         "400":
           description: Bad Request
           schema:
@@ -971,9 +1053,9 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Create a Driver.
+      summary: Create a Plan.
       tags:
-      - Drivers
+      - Plans
   /driver/delete/{id}:
     put:
       consumes:
@@ -1003,25 +1085,22 @@ paths:
       summary: Delete Driver.
       tags:
       - Drivers
-  /driver/update:
+  /driver/list:
     put:
       consumes:
       - application/json
-      description: Update a Driver.
+      description: Get Driver.
       parameters:
-      - description: Driver Request
-        in: body
-        name: user
+      - description: Driver id
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/drivers.UpdateDriverRequest'
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Driver Info
-          schema:
-            $ref: '#/definitions/drivers.DriverResponse'
+          description: OK
         "400":
           description: Bad Request
           schema:
@@ -1032,9 +1111,41 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update a Driver.
+      summary: Get Driver.
       tags:
       - Drivers
+  /driver/update:
+    put:
+      consumes:
+      - application/json
+      description: Update a Plan.
+      parameters:
+      - description: Plan Request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/plans.UpdatePlansRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Plan Info
+          schema:
+            $ref: '#/definitions/plans.PlansResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Update a Plan.
+      tags:
+      - Plans
   /tractor-unit/create:
     post:
       consumes:
@@ -1094,6 +1205,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Delete TractorUnit.
+      tags:
+      - TractorUnits
+  /tractor-unit/list:
+    put:
+      consumes:
+      - application/json
+      description: Get Tractor Unit.
+      parameters:
+      - description: TractorUnit id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get Tractor Unit.
       tags:
       - TractorUnits
   /tractor-unit/update:
@@ -1187,6 +1327,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Delete Trailer.
+      tags:
+      - Trailer
+  /trailer/list:
+    put:
+      consumes:
+      - application/json
+      description: Get Trailer.
+      parameters:
+      - description: Trailer id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get Trailer.
       tags:
       - Trailer
   /trailer/update:
@@ -1304,6 +1473,31 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Delete a User.
+      tags:
+      - Users
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all user data.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Get User '
+          schema:
+            $ref: '#/definitions/user.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get User Info.
       tags:
       - Users
   /user/login:

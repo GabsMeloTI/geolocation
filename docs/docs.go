@@ -362,7 +362,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Driver.",
+                "description": "Create a Plan.",
                 "consumes": [
                     "application/json"
                 ],
@@ -370,25 +370,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Drivers"
+                    "Plans"
                 ],
-                "summary": "Create a Driver.",
+                "summary": "Create a Plan.",
                 "parameters": [
                     {
-                        "description": "Driver Request",
+                        "description": "Plan Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/drivers.CreateDriverRequest"
+                            "$ref": "#/definitions/plans.CreatePlansRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Driver Info",
+                        "description": "Plan Info",
                         "schema": {
-                            "$ref": "#/definitions/drivers.DriverResponse"
+                            "$ref": "#/definitions/plans.PlansResponse"
                         }
                     },
                     "400": {
@@ -452,14 +452,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/driver/update": {
+        "/driver/list": {
             "put": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a Driver.",
+                "description": "Get Driver.",
                 "consumes": [
                     "application/json"
                 ],
@@ -469,23 +469,69 @@ const docTemplate = `{
                 "tags": [
                     "Drivers"
                 ],
-                "summary": "Update a Driver.",
+                "summary": "Get Driver.",
                 "parameters": [
                     {
-                        "description": "Driver Request",
+                        "type": "string",
+                        "description": "Driver id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/update": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a Plan.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plans"
+                ],
+                "summary": "Update a Plan.",
+                "parameters": [
+                    {
+                        "description": "Plan Request",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/drivers.UpdateDriverRequest"
+                            "$ref": "#/definitions/plans.UpdatePlansRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Driver Info",
+                        "description": "Plan Info",
                         "schema": {
-                            "$ref": "#/definitions/drivers.DriverResponse"
+                            "$ref": "#/definitions/plans.PlansResponse"
                         }
                     },
                     "400": {
@@ -572,6 +618,52 @@ const docTemplate = `{
                     "TractorUnits"
                 ],
                 "summary": "Delete TractorUnit.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TractorUnit id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tractor-unit/list": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get Tractor Unit.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TractorUnits"
+                ],
+                "summary": "Get Tractor Unit.",
                 "parameters": [
                     {
                         "type": "string",
@@ -720,6 +812,52 @@ const docTemplate = `{
                     "Trailer"
                 ],
                 "summary": "Delete Trailer.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trailer id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/trailer/list": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get Trailer.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Trailer"
+                ],
+                "summary": "Get Trailer.",
                 "parameters": [
                     {
                         "type": "string",
@@ -922,6 +1060,46 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieve all user data.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get User Info.",
+                "responses": {
+                    "200": {
+                        "description": "Get User ",
+                        "schema": {
+                            "$ref": "#/definitions/user.GetUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -1639,6 +1817,78 @@ const docTemplate = `{
                 }
             }
         },
+        "plans.CreatePlansRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "annual": {
+                    "type": "boolean"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "expiration_date": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                }
+            }
+        },
+        "plans.PlansResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "active_date": {
+                    "type": "string"
+                },
+                "annual": {
+                    "type": "boolean"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "expiration_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                }
+            }
+        },
+        "plans.UpdatePlansRequest": {
+            "type": "object",
+            "properties": {
+                "annual": {
+                    "type": "boolean"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                }
+            }
+        },
         "tractor_unit.CreateTractorUnitRequest": {
             "type": "object",
             "properties": {
@@ -2008,6 +2258,59 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.GetUserResponse": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "neighborhood": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "profile_id": {
+                    "type": "integer"
+                },
+                "profile_picture": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
