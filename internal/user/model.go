@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	db "geolocation/db/sqlc"
 	"geolocation/internal/get_token"
+	"time"
 )
 
 type CreateUserRequest struct {
@@ -276,5 +277,45 @@ func (u UpdateUserAddressResponse) ParseToUpdateUserAddressResponse(user db.User
 		StreetNumber: user.StreetNumber.String,
 		Cep:          user.Cep.String,
 		Complement:   user.Complement.String,
+	}
+}
+
+type GetUserResponse struct {
+	ID             int64     `json:"id"`
+	Name           string    `json:"name"`
+	Email          string    `json:"email"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	ProfileID      int64     `json:"profile_id"`
+	Document       string    `json:"document"`
+	State          string    `json:"state"`
+	City           string    `json:"city"`
+	Neighborhood   string    `json:"neighborhood"`
+	Street         string    `json:"street"`
+	StreetNumber   string    `json:"street_number"`
+	Phone          string    `json:"phone"`
+	ProfilePicture string    `json:"profile_picture"`
+	Cep            string    `json:"cep"`
+	Complement     string    `json:"complement"`
+}
+
+func (u GetUserResponse) ParseFromDbUser(user db.User) GetUserResponse {
+	return GetUserResponse{
+		ID:             user.ID,
+		Name:           user.Name,
+		Email:          user.Email,
+		CreatedAt:      user.CreatedAt.Time,
+		UpdatedAt:      user.UpdatedAt.Time,
+		ProfileID:      user.ProfileID.Int64,
+		Document:       user.Document.String,
+		State:          user.State.String,
+		City:           user.City.String,
+		Neighborhood:   user.Neighborhood.String,
+		Street:         user.Street.String,
+		StreetNumber:   user.StreetNumber.String,
+		Phone:          user.Phone.String,
+		ProfilePicture: user.ProfilePicture.String,
+		Cep:            user.Cep.String,
+		Complement:     user.Complement.String,
 	}
 }

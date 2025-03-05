@@ -804,7 +804,13 @@ definitions:
         type: string
     type: object
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: https://simpplify.com.br/contact
+  description: Document API
+  title: GO-auth-service
+  version: "1.0"
 paths:
   /advertisement/create:
     post:
@@ -1598,4 +1604,12 @@ paths:
       summary: Update User Information.
       tags:
       - Users
+schemes:
+- https
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

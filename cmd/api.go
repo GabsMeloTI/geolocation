@@ -81,7 +81,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	//easyfrete no user
 	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
-	user := e.Group("/user")
+	user := e.Group("/user", _midlleware.CheckUserAuthorization)
+	user.GET("/info", container.UserHandler.GetUserInfo)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)

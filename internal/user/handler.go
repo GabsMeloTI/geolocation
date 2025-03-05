@@ -235,3 +235,25 @@ func (h *Handler) UpdateUserPersonalInfo(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
+
+// GetUserInfo godoc
+// @Summary Get User Info.
+// @Description Retrieve all user data.
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Success 200 {object} GetUserResponse "Get User "
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /user/info [get]
+// @Security ApiKeyAuth
+func (h *Handler) GetUserInfo(c echo.Context) error {
+	payload := get_token.GetUserPayloadToken(c)
+	res, err := h.InterfaceService.GetUserService(c.Request().Context(), payload.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
