@@ -22,6 +22,9 @@ SELECT *
 FROM public.trailer
 WHERE id=$1;
 
-
+-- name: GetTrailerByUserId :one
+SELECT *
+FROM public.trailer
+WHERE user_id=$1;
 
 

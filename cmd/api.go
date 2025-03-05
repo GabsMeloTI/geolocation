@@ -55,6 +55,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	driver.POST("/create", container.HandlerDriver.CreateDriverHandler)
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
+	driver.GET("/list", container.HandlerDriver.GetDriverHandler)
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
@@ -62,15 +63,17 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 
-	trailer := e.Group("/trailer")
+	trailer := e.Group("/trailer", _midlleware.CheckUserAuthorization)
 	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
 	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
 	trailer.PUT("/delete/:id", container.HandlerTrailer.DeleteTrailerHandler)
+	trailer.GET("/list", container.HandlerTrailer.GetTrailerHandler)
 
-	tractorUnit := e.Group("/tractor-unit")
+	tractorUnit := e.Group("/tractor-unit", _midlleware.CheckUserAuthorization)
 	tractorUnit.POST("/create", container.HandlerTractorUnit.CreateTractorUnitHandler)
 	tractorUnit.PUT("/update", container.HandlerTractorUnit.UpdateTractorUnitHandler)
 	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
+	tractorUnit.GET("/list", container.HandlerTractorUnit.GetTractorUnitHandler)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)

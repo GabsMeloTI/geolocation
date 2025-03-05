@@ -10,6 +10,7 @@ type InterfaceService interface {
 	CreateTrailerService(ctx context.Context, data CreateTrailerRequest) (TrailerResponse, error)
 	UpdateTrailerService(ctx context.Context, data UpdateTrailerRequest) (TrailerResponse, error)
 	DeleteTrailerService(ctx context.Context, id int64) error
+	GetTrailerService(ctx context.Context, id int64) (TrailerResponse, error)
 }
 
 type Service struct {
@@ -70,4 +71,16 @@ func (p *Service) DeleteTrailerService(ctx context.Context, id int64) error {
 		return err
 	}
 	return nil
+}
+
+func (p *Service) GetTrailerService(ctx context.Context, id int64) (TrailerResponse, error) {
+	result, err := p.InterfaceService.GetTrailerByUserId(ctx, id)
+	if err != nil {
+		return TrailerResponse{}, err
+	}
+
+	getTrailerService := TrailerResponse{}
+	getTrailerService.ParseFromTrailerObject(result)
+
+	return getTrailerService, nil
 }

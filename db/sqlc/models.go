@@ -148,6 +148,14 @@ type GasStation struct {
 	SpecificPoint string `json:"specific_point"`
 }
 
+type Plan struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Price    string `json:"price"`
+	Duration string `json:"duration"`
+	Annual   bool   `json:"annual"`
+}
+
 type Profile struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
@@ -283,4 +291,13 @@ type User struct {
 	Status         bool           `json:"status"`
 	Cep            sql.NullString `json:"cep"`
 	Complement     sql.NullString `json:"complement"`
+}
+
+type UserPlan struct {
+	ID             int64         `json:"id"`
+	IDUser         sql.NullInt64 `json:"id_user"`
+	IDPlan         sql.NullInt64 `json:"id_plan"`
+	Active         bool          `json:"active"`
+	ActiveDate     time.Time     `json:"active_date"`
+	ExpirationDate time.Time     `json:"expiration_date"`
 }

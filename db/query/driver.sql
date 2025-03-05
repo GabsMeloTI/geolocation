@@ -22,3 +22,7 @@ FROM public.driver
 WHERE id=$1;
 
 
+-- name: GetDriverByUserId :one
+SELECT *
+FROM public.driver
+WHERE user_id=$1;

@@ -124,6 +124,39 @@ func (q *Queries) GetDriverById(ctx context.Context, id int64) (Driver, error) {
 	return i, err
 }
 
+const getDriverByUserId = `-- name: GetDriverByUserId :one
+SELECT id, user_id, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, status, created_at, updated_at, name, cep, complement
+FROM public.driver
+WHERE user_id=$1
+`
+
+func (q *Queries) GetDriverByUserId(ctx context.Context, userID int64) (Driver, error) {
+	row := q.db.QueryRowContext(ctx, getDriverByUserId, userID)
+	var i Driver
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.BirthDate,
+		&i.Cpf,
+		&i.LicenseNumber,
+		&i.LicenseCategory,
+		&i.LicenseExpirationDate,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Cep,
+		&i.Complement,
+	)
+	return i, err
+}
+
 const updateDriver = `-- name: UpdateDriver :one
 UPDATE public.driver
 SET user_id=$2, birth_date=$3, license_category=$4, license_expiration_date=$5, state=$6, city=$7, neighborhood=$8, street=$9, street_number=$10, phone=$11, cep=$12, complement=$13, updated_at=now()

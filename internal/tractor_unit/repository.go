@@ -11,6 +11,7 @@ type InterfaceRepository interface {
 	UpdateTractorUnit(ctx context.Context, arg db.UpdateTractorUnitParams) (db.TractorUnit, error)
 	DeleteTractorUnit(ctx context.Context, arg int64) error
 	GetTractorUnitById(ctx context.Context, arg int64) (db.TractorUnit, error)
+	GetTractorUnitByUserId(ctx context.Context, arg int64) (db.TractorUnit, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -40,4 +41,7 @@ func (r *Repository) DeleteTractorUnit(ctx context.Context, arg int64) error {
 }
 func (r *Repository) GetTractorUnitById(ctx context.Context, arg int64) (db.TractorUnit, error) {
 	return r.Queries.GetTractorUnitById(ctx, arg)
+}
+func (r *Repository) GetTractorUnitByUserId(ctx context.Context, arg int64) (db.TractorUnit, error) {
+	return r.Queries.GetTractorUnitByUserId(ctx, arg)
 }

@@ -10,6 +10,7 @@ type InterfaceService interface {
 	CreateTractorUnitService(ctx context.Context, data CreateTractorUnitRequest) (TractorUnitResponse, error)
 	UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitRequest) (TractorUnitResponse, error)
 	DeleteTractorUnitService(ctx context.Context, id int64) error
+	GetTractorUnitService(ctx context.Context, id int64) (TractorUnitResponse, error)
 }
 
 type Service struct {
@@ -58,9 +59,6 @@ func (p *Service) UpdateTractorUnitService(ctx context.Context, data UpdateTract
 
 func (p *Service) DeleteTractorUnitService(ctx context.Context, id int64) error {
 	_, err := p.InterfaceService.GetTractorUnitById(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return errors.New("driver not found")
-	}
 	if err != nil {
 		return err
 	}
@@ -70,4 +68,19 @@ func (p *Service) DeleteTractorUnitService(ctx context.Context, id int64) error 
 		return err
 	}
 	return nil
+}
+
+func (p *Service) GetTractorUnitService(ctx context.Context, id int64) (TractorUnitResponse, error) {
+	result, err := p.InterfaceService.GetTractorUnitByUserId(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TractorUnitResponse{}, errors.New("driver not found")
+	}
+	if err != nil {
+		return TractorUnitResponse{}, err
+	}
+
+	getTractorUnitService := TractorUnitResponse{}
+	getTractorUnitService.ParseFromTractorUnitObject(result)
+
+	return getTractorUnitService, nil
 }
