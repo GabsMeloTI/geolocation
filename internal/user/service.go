@@ -18,6 +18,7 @@ type InterfaceService interface {
 	UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error)
 	UpdateUserPersonalInfoService(ctx context.Context, data UpdateUserPersonalInfoRequest) (UpdateUserPersonalInfoResponse, error)
 	UpdateUserAddressService(ctx context.Context, data UpdateUserAddressRequest) (UpdateUserAddressResponse, error)
+	GetUserService(ctx context.Context, userId int64) (GetUserResponse, error)
 }
 
 type Service struct {
@@ -164,4 +165,16 @@ func (p *Service) UpdateUserAddressService(ctx context.Context, data UpdateUserA
 	updateUserService := UpdateUserAddressResponse{}.ParseToUpdateUserAddressResponse(result)
 
 	return updateUserService, nil
+}
+
+func (s *Service) GetUserService(ctx context.Context, userId int64) (GetUserResponse, error) {
+	var res GetUserResponse
+
+	user, err := s.InterfaceService.GetUserById(ctx, userId)
+
+	if err != nil {
+		return res, err
+	}
+
+	return res.ParseFromDbUser(user), nil
 }

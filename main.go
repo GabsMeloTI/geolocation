@@ -6,6 +6,7 @@ import (
 	_ "geolocation/docs"
 	"geolocation/infra"
 	"geolocation/pkg"
+
 	"os/signal"
 	"syscall"
 )
