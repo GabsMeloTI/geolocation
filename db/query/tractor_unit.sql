@@ -19,3 +19,8 @@ WHERE id=$1;
 SELECT *
 FROM public.tractor_unit
 WHERE id=$1;
+
+-- name: GetTractorUnitByUserId :one
+SELECT *
+FROM public.tractor_unit
+WHERE user_id=$1;

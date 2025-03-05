@@ -1,6 +1,7 @@
 package tractor_unit
 
 import (
+	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -90,4 +91,27 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, "Success")
+}
+
+// GetTractorUnitHandler godoc
+// @Summary Get Tractor Unit.
+// @Description Get Tractor Unit.
+// @Tags TractorUnits
+// @Accept json
+// @Produce json
+// @Param id path string true "TractorUnit id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tractor-unit/list [put]
+// @Security ApiKeyAuth
+func (p *Handler) GetTractorUnitHandler(c echo.Context) error {
+	payload := get_token.GetUserPayloadToken(c)
+
+	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), payload.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

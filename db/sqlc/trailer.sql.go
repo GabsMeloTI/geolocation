@@ -106,6 +106,35 @@ func (q *Queries) GetTrailerById(ctx context.Context, id int64) (Trailer, error)
 	return i, err
 }
 
+const getTrailerByUserId = `-- name: GetTrailerByUserId :one
+SELECT id, license_plate, user_id, chassis, body_type, load_capacity, length, width, height, axles, status, created_at, updated_at, state, renavan
+FROM public.trailer
+WHERE user_id=$1
+`
+
+func (q *Queries) GetTrailerByUserId(ctx context.Context, userID int64) (Trailer, error) {
+	row := q.db.QueryRowContext(ctx, getTrailerByUserId, userID)
+	var i Trailer
+	err := row.Scan(
+		&i.ID,
+		&i.LicensePlate,
+		&i.UserID,
+		&i.Chassis,
+		&i.BodyType,
+		&i.LoadCapacity,
+		&i.Length,
+		&i.Width,
+		&i.Height,
+		&i.Axles,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.State,
+		&i.Renavan,
+	)
+	return i, err
+}
+
 const updateTrailer = `-- name: UpdateTrailer :one
 UPDATE public.trailer
 SET license_plate=$1, chassis=$2, body_type=$3, load_capacity=$4, length=$5, width=$6, height=$7, axles=$8, user_id=$9, state=$10, renavan=$11, updated_at=now()

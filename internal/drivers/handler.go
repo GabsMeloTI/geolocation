@@ -111,3 +111,26 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, "Success")
 }
+
+// GetDriverHandler godoc
+// @Summary Get Driver.
+// @Description Get Driver.
+// @Tags Drivers
+// @Accept json
+// @Produce json
+// @Param id path string true "Driver id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /driver/list [put]
+// @Security ApiKeyAuth
+func (p *Handler) GetDriverHandler(c echo.Context) error {
+	payload := get_token.GetUserPayloadToken(c)
+
+	result, err := p.InterfaceService.GetDriverService(c.Request().Context(), payload.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
