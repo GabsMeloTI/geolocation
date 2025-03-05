@@ -11,7 +11,7 @@ type InterfaceRepository interface {
 	UpdateDriver(ctx context.Context, arg db.UpdateDriverParams) (db.Driver, error)
 	DeleteDriver(ctx context.Context, arg int64) error
 	GetDriverById(ctx context.Context, arg int64) (db.Driver, error)
-	GetDriverByUserId(ctx context.Context, arg int64) (db.Driver, error)
+	GetDriverByUserId(ctx context.Context, arg int64) ([]db.Driver, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -42,6 +42,6 @@ func (r *Repository) DeleteDriver(ctx context.Context, arg int64) error {
 func (r *Repository) GetDriverById(ctx context.Context, arg int64) (db.Driver, error) {
 	return r.Queries.GetDriverById(ctx, arg)
 }
-func (r *Repository) GetDriverByUserId(ctx context.Context, arg int64) (db.Driver, error) {
+func (r *Repository) GetDriverByUserId(ctx context.Context, arg int64) ([]db.Driver, error) {
 	return r.Queries.GetDriverByUserId(ctx, arg)
 }

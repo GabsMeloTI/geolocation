@@ -124,37 +124,53 @@ func (q *Queries) GetDriverById(ctx context.Context, id int64) (Driver, error) {
 	return i, err
 }
 
-const getDriverByUserId = `-- name: GetDriverByUserId :one
+const getDriverByUserId = `-- name: GetDriverByUserId :many
 SELECT id, user_id, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, status, created_at, updated_at, name, cep, complement
 FROM public.driver
 WHERE user_id=$1
 `
 
-func (q *Queries) GetDriverByUserId(ctx context.Context, userID int64) (Driver, error) {
-	row := q.db.QueryRowContext(ctx, getDriverByUserId, userID)
-	var i Driver
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.BirthDate,
-		&i.Cpf,
-		&i.LicenseNumber,
-		&i.LicenseCategory,
-		&i.LicenseExpirationDate,
-		&i.State,
-		&i.City,
-		&i.Neighborhood,
-		&i.Street,
-		&i.StreetNumber,
-		&i.Phone,
-		&i.Status,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Name,
-		&i.Cep,
-		&i.Complement,
-	)
-	return i, err
+func (q *Queries) GetDriverByUserId(ctx context.Context, userID int64) ([]Driver, error) {
+	rows, err := q.db.QueryContext(ctx, getDriverByUserId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Driver
+	for rows.Next() {
+		var i Driver
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.BirthDate,
+			&i.Cpf,
+			&i.LicenseNumber,
+			&i.LicenseCategory,
+			&i.LicenseExpirationDate,
+			&i.State,
+			&i.City,
+			&i.Neighborhood,
+			&i.Street,
+			&i.StreetNumber,
+			&i.Phone,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Cep,
+			&i.Complement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateDriver = `-- name: UpdateDriver :one
