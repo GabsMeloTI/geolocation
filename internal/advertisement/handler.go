@@ -86,6 +86,7 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /advertisement/delete/{id} [put]
+// @Security ApiKeyAuth
 func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
@@ -117,6 +118,7 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 // @Success 200 {object} []AdvertisementResponseAll "List of Advertisement"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /advertisement/list [get]
+// @Security ApiKeyAuth
 func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 	result, err := p.InterfaceService.GetAllAdvertisementUser(c.Request().Context())
 	if err != nil {

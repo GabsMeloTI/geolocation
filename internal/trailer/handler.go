@@ -77,6 +77,7 @@ func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /trailer/delete/{id} [put]
+// @Security ApiKeyAuth
 func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
