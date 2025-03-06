@@ -155,17 +155,19 @@ func (q *Queries) CreateAdvertisement(ctx context.Context, arg CreateAdvertiseme
 
 const deleteAdvertisement = `-- name: DeleteAdvertisement :exec
 UPDATE public.advertisement
-SET status=false, updated_at=now(), updated_who=$2
-WHERE id=$1
+SET status=false, updated_at=now(), updated_who=$3
+WHERE id=$1 and
+     user_id=$2
 `
 
 type DeleteAdvertisementParams struct {
 	ID         int64          `json:"id"`
+	UserID     int64          `json:"user_id"`
 	UpdatedWho sql.NullString `json:"updated_who"`
 }
 
 func (q *Queries) DeleteAdvertisement(ctx context.Context, arg DeleteAdvertisementParams) error {
-	_, err := q.db.ExecContext(ctx, deleteAdvertisement, arg.ID, arg.UpdatedWho)
+	_, err := q.db.ExecContext(ctx, deleteAdvertisement, arg.ID, arg.UserID, arg.UpdatedWho)
 	return err
 }
 
@@ -441,10 +443,11 @@ func (q *Queries) GetAllAdvertisementUsers(ctx context.Context) ([]GetAllAdverti
 
 const updateAdvertisement = `-- name: UpdateAdvertisement :one
 UPDATE public.advertisement
-SET user_id=$1, destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, distance=$8, pickup_date=$9, delivery_date=$10, expiration_date=$11, title=$12,
+SET destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, distance=$8, pickup_date=$9, delivery_date=$10, expiration_date=$11, title=$12,
     cargo_type=$13, cargo_species=$14, cargo_weight=$15, vehicles_accepted=$16, trailer=$17, requires_tarp=$18, tracking=$19, agency=$20, description=$21, payment_type=$22, advance=$23, toll=$24, situation=$25, price=$26, updated_at=now(), updated_who=$27,
     state=$28, city=$29, complement=$30, neighborhood=$31, street=$32, street_number=$33, cep=$34
-WHERE id=$35
+WHERE user_id=$1 AND
+      id=$35
     RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state, city, complement, neighborhood, street, street_number, cep, status, created_at, created_who, updated_at, updated_who
 `
 

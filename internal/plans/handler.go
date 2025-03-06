@@ -17,7 +17,7 @@ func NewUserPlanHandler(InterfaceService InterfaceService) *Handler {
 // CreateUserPlanHandler godoc
 // @Summary Create a User Plan.
 // @Description Assigns a user to a selected plan.
-// @Tags User Plans
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param id path int true "Plan ID"

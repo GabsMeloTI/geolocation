@@ -29,6 +29,17 @@ var upgrade = websocket.Upgrader{
 	},
 }
 
+// HandleWs godoc
+// @Summary Handle WebSocket connection.
+// @Description Establishes a WebSocket connection for real-time communication.
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Success 101 {string} string "Switching Protocols"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /ws [get]
+// @Security ApiKeyAuth
 func (h *Handler) HandleWs(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
 
@@ -70,6 +81,18 @@ func (h *Handler) HandleWs(c echo.Context) error {
 	return nil
 }
 
+// CreateChatRoom godoc
+// @Summary Create a new chat room.
+// @Description Creates a chat room associated with an advertisement.
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param request body CreateChatRoomRequest true "Chat Room Request"
+// @Success 200 {object} CreateChatRoomResponse "Chat Room Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /chat/create-room [post]
+// @Security ApiKeyAuth
 func (h *Handler) CreateChatRoom(c echo.Context) error {
 	var req CreateChatRoomRequest
 
@@ -88,6 +111,18 @@ func (h *Handler) CreateChatRoom(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+// GetMessagesByRoomId godoc
+// @Summary Retrieve messages from a chat room.
+// @Description Fetches chat messages by the specified room ID.
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param room_id path int true "Chat Room ID"
+// @Success 200 {array} MessageResponse "List of chat messages"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /chat/messages/:room_id [get]
+// @Security ApiKeyAuth
 func (h *Handler) GetMessagesByRoomId(c echo.Context) error {
 	roomIdStr := c.Param("room_id")
 	roomId, err := strconv.ParseInt(roomIdStr, 10, 64)

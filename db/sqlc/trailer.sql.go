@@ -69,11 +69,17 @@ func (q *Queries) CreateTrailer(ctx context.Context, arg CreateTrailerParams) (T
 const deleteTrailer = `-- name: DeleteTrailer :exec
 UPDATE public.trailer
 SET status=false, updated_at=now()
-WHERE id=$1
+WHERE id=$1 AND
+    user_id=$2
 `
 
-func (q *Queries) DeleteTrailer(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteTrailer, id)
+type DeleteTrailerParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) DeleteTrailer(ctx context.Context, arg DeleteTrailerParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTrailer, arg.ID, arg.UserID)
 	return err
 }
 
@@ -153,8 +159,9 @@ func (q *Queries) GetTrailerByUserId(ctx context.Context, userID int64) ([]Trail
 
 const updateTrailer = `-- name: UpdateTrailer :one
 UPDATE public.trailer
-SET license_plate=$1, chassis=$2, body_type=$3, load_capacity=$4, length=$5, width=$6, height=$7, axles=$8, user_id=$9, state=$10, renavan=$11, updated_at=now()
-WHERE id=$12
+SET license_plate=$1, chassis=$2, body_type=$3, load_capacity=$4, length=$5, width=$6, height=$7, axles=$8, state=$10, renavan=$11, updated_at=now()
+WHERE id=$12 and
+      user_id=$9
     RETURNING id, license_plate, user_id, chassis, body_type, load_capacity, length, width, height, axles, status, created_at, updated_at, state, renavan
 `
 

@@ -9,8 +9,8 @@ import (
 )
 
 type InterfaceService interface {
-	CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error)
-	UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error)
+	CreateAdvertisementService(ctx context.Context, data CreateAdvertisementDto, idProfile int64) (AdvertisementResponse, error)
+	UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementDto, idProfile int64) (AdvertisementResponse, error)
 	DeleteAdvertisementService(ctx context.Context, data DeleteAdvertisementRequest) error
 	GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementResponseAll, error)
 	GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error)
@@ -24,8 +24,8 @@ func NewAdvertisementsService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error) {
-	if err := data.ValidateCreate(); err != nil {
+func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdvertisementDto, idProfile int64) (AdvertisementResponse, error) {
+	if err := data.CreateAdvertisementRequest.ValidateCreate(); err != nil {
 		return AdvertisementResponse{}, err
 	}
 
@@ -39,7 +39,7 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	}
 
 	arg := data.ParseCreateToAdvertisement()
-	arg.Situation = strings.ToLower(data.Situation)
+	arg.Situation = strings.ToLower(data.CreateAdvertisementRequest.Situation)
 	result, err := p.InterfaceService.CreateAdvertisement(ctx, arg)
 	if err != nil {
 		return AdvertisementResponse{}, err
@@ -51,8 +51,8 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	return response, nil
 }
 
-func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementRequest, idProfile int64) (AdvertisementResponse, error) {
-	_, err := p.InterfaceService.GetAdvertisementById(ctx, data.ID)
+func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementDto, idProfile int64) (AdvertisementResponse, error) {
+	_, err := p.InterfaceService.GetAdvertisementById(ctx, data.UpdateAdvertisementRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return AdvertisementResponse{}, errors.New("anúncio não encontrado")
 	}
@@ -60,7 +60,7 @@ func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdv
 		return AdvertisementResponse{}, err
 	}
 
-	if err := data.ValidateUpdate(); err != nil {
+	if err := data.UpdateAdvertisementRequest.ValidateUpdate(); err != nil {
 		return AdvertisementResponse{}, err
 	}
 	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
@@ -73,7 +73,7 @@ func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdv
 	}
 
 	arg := data.ParseUpdateToAdvertisement()
-	arg.Situation = strings.ToLower(data.Situation)
+	arg.Situation = strings.ToLower(data.UpdateAdvertisementRequest.Situation)
 	result, err := p.InterfaceService.UpdateAdvertisement(ctx, arg)
 	if err != nil {
 		return AdvertisementResponse{}, err

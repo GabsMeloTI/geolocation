@@ -90,11 +90,17 @@ func (q *Queries) CreateTractorUnit(ctx context.Context, arg CreateTractorUnitPa
 const deleteTractorUnit = `-- name: DeleteTractorUnit :exec
 UPDATE public.tractor_unit
 SET status=false, updated_at=now()
-WHERE id=$1
+WHERE id=$1 AND
+      user_id=$2
 `
 
-func (q *Queries) DeleteTractorUnit(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteTractorUnit, id)
+type DeleteTractorUnitParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) DeleteTractorUnit(ctx context.Context, arg DeleteTractorUnitParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTractorUnit, arg.ID, arg.UserID)
 	return err
 }
 
@@ -188,8 +194,9 @@ func (q *Queries) GetTractorUnitByUserId(ctx context.Context, userID int64) ([]T
 
 const updateTractorUnit = `-- name: UpdateTractorUnit :one
 UPDATE public.tractor_unit
-SET license_plate=$1, driver_id=$2, chassis=$3, brand=$4, model=$5, manufacture_year=$6, engine_power=$7, unit_type=$8, height=$9, user_id=$10, axles=$11, state=$12, renavan=$13, capacity=$14, width=$15, length=$16, color=$17, updated_at=now()
-WHERE id=$18
+SET license_plate=$1, driver_id=$2, chassis=$3, brand=$4, model=$5, manufacture_year=$6, engine_power=$7, unit_type=$8, height=$9, axles=$11, state=$12, renavan=$13, capacity=$14, width=$15, length=$16, color=$17, updated_at=now()
+WHERE id=$18 and
+    user_id=$10
     RETURNING id, license_plate, driver_id, user_id, chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, height, axles, status, created_at, updated_at, state, renavan, capacity, width, length, color
 `
 

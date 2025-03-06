@@ -25,7 +25,10 @@ type CreateTractorUnitRequest struct {
 	Length          float64 `json:"length"`
 	Color           string  `json:"color"`
 }
-
+type CreateTractorUnitDto struct {
+	CreateTractorUnitRequest CreateTractorUnitRequest
+	UserID                   int64 `json:"user_id"`
+}
 type UpdateTractorUnitRequest struct {
 	ID              int64   `json:"id"`
 	LicensePlate    string  `json:"license_plate"`
@@ -44,6 +47,11 @@ type UpdateTractorUnitRequest struct {
 	Width           float64 `json:"width"`
 	Length          float64 `json:"length"`
 	Color           string  `json:"color"`
+}
+
+type UpdateTractorUnitDto struct {
+	UpdateTractorUnitRequest UpdateTractorUnitRequest
+	UserID                   int64 `json:"user_id"`
 }
 
 type TractorUnitResponse struct {
@@ -69,69 +77,69 @@ type TractorUnitResponse struct {
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
 
-func (p *CreateTractorUnitRequest) ParseCreateToTractorUnit() db.CreateTractorUnitParams {
+func (p *CreateTractorUnitDto) ParseCreateToTractorUnit() db.CreateTractorUnitParams {
 	arg := db.CreateTractorUnitParams{
-		LicensePlate: p.LicensePlate,
-		DriverID:     p.DriverID,
+		LicensePlate: p.CreateTractorUnitRequest.LicensePlate,
+		DriverID:     p.CreateTractorUnitRequest.DriverID,
 		UserID:       p.UserID,
-		Chassis:      p.Chassis,
-		Brand:        p.Brand,
-		Model:        p.Model,
+		Chassis:      p.CreateTractorUnitRequest.Chassis,
+		Brand:        p.CreateTractorUnitRequest.Brand,
+		Model:        p.CreateTractorUnitRequest.Model,
 		ManufactureYear: sql.NullInt64{
-			Int64: p.ManufactureYear,
+			Int64: p.CreateTractorUnitRequest.ManufactureYear,
 			Valid: true,
 		},
 		EnginePower: sql.NullString{
-			String: p.EnginePower,
+			String: p.CreateTractorUnitRequest.EnginePower,
 			Valid:  true,
 		},
 		UnitType: sql.NullString{
-			String: p.UnitType,
+			String: p.CreateTractorUnitRequest.UnitType,
 			Valid:  true,
 		},
 		CanCouple: sql.NullBool{
-			Bool:  p.CanCouple,
+			Bool:  p.CreateTractorUnitRequest.CanCouple,
 			Valid: true,
 		},
-		Height:   p.Height,
-		State:    p.State,
-		Renavan:  p.Renavan,
-		Capacity: p.Capacity,
-		Width:    p.Width,
-		Length:   p.Length,
-		Color:    p.Color,
+		Height:   p.CreateTractorUnitRequest.Height,
+		State:    p.CreateTractorUnitRequest.State,
+		Renavan:  p.CreateTractorUnitRequest.Renavan,
+		Capacity: p.CreateTractorUnitRequest.Capacity,
+		Width:    p.CreateTractorUnitRequest.Width,
+		Length:   p.CreateTractorUnitRequest.Length,
+		Color:    p.CreateTractorUnitRequest.Color,
 	}
 	return arg
 }
 
-func (p *UpdateTractorUnitRequest) ParseUpdateToTractorUnit() db.UpdateTractorUnitParams {
+func (p *UpdateTractorUnitDto) ParseUpdateToTractorUnit() db.UpdateTractorUnitParams {
 	arg := db.UpdateTractorUnitParams{
-		LicensePlate: p.LicensePlate,
-		DriverID:     p.DriverID,
+		LicensePlate: p.UpdateTractorUnitRequest.LicensePlate,
+		DriverID:     p.UpdateTractorUnitRequest.DriverID,
 		UserID:       p.UserID,
-		Chassis:      p.Chassis,
-		Brand:        p.Brand,
-		Model:        p.Model,
+		Chassis:      p.UpdateTractorUnitRequest.Chassis,
+		Brand:        p.UpdateTractorUnitRequest.Brand,
+		Model:        p.UpdateTractorUnitRequest.Model,
 		ManufactureYear: sql.NullInt64{
-			Int64: p.ManufactureYear,
+			Int64: p.UpdateTractorUnitRequest.ManufactureYear,
 			Valid: true,
 		},
 		EnginePower: sql.NullString{
-			String: p.EnginePower,
+			String: p.UpdateTractorUnitRequest.EnginePower,
 			Valid:  true,
 		},
 		UnitType: sql.NullString{
-			String: p.UnitType,
+			String: p.UpdateTractorUnitRequest.UnitType,
 			Valid:  true,
 		},
-		Height:   p.Height,
-		State:    p.State,
-		Renavan:  p.Renavan,
-		Capacity: p.Capacity,
-		Width:    p.Width,
-		Length:   p.Length,
-		Color:    p.Color,
-		ID:       p.ID,
+		Height:   p.UpdateTractorUnitRequest.Height,
+		State:    p.UpdateTractorUnitRequest.State,
+		Renavan:  p.UpdateTractorUnitRequest.Renavan,
+		Capacity: p.UpdateTractorUnitRequest.Capacity,
+		Width:    p.UpdateTractorUnitRequest.Width,
+		Length:   p.UpdateTractorUnitRequest.Length,
+		Color:    p.UpdateTractorUnitRequest.Color,
+		ID:       p.UpdateTractorUnitRequest.ID,
 	}
 	return arg
 }

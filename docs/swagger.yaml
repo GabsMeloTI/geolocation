@@ -306,6 +306,73 @@ definitions:
         type: string
     type: object
   advertisement.UpdateAdvertisementRequest:
+    properties:
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      distance:
+        type: integer
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      neighborhood:
+        type: string
+      origin:
+        type: string
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      price:
+        type: number
+      requires_tarp:
+        type: boolean
+      situation:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      vehicles_accepted:
+        type: string
     type: object
   drivers.CreateDriverRequest:
     properties:
@@ -343,8 +410,6 @@ definitions:
         type: string
       street_number:
         type: string
-      user_id:
-        type: integer
     type: object
   drivers.DriverResponse:
     properties:
@@ -425,8 +490,229 @@ definitions:
         type: string
       street_number:
         type: string
-      user_id:
+    type: object
+  geolocation_internal_new_routes.ArrivalResponse:
+    properties:
+      distance:
+        type: string
+      time:
+        type: string
+    type: object
+  geolocation_internal_new_routes.Costs:
+    properties:
+      axles:
         type: integer
+      cash:
+        type: number
+      fuel_in_the_city:
+        type: number
+      fuel_in_the_hwy:
+        type: number
+      maximumTollCost:
+        type: number
+      minimumTollCost:
+        type: number
+      prepaidCard:
+        type: number
+      tag:
+        type: number
+      tagAndCash:
+        type: number
+    type: object
+  geolocation_internal_new_routes.Distance:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  geolocation_internal_new_routes.Duration:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  geolocation_internal_new_routes.FrontInfo:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination:
+        type: string
+      favorite:
+        type: boolean
+      origin:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination
+    - origin
+    - type
+    type: object
+  geolocation_internal_new_routes.FuelEfficiency:
+    properties:
+      city:
+        type: number
+      fuel_unit:
+        type: string
+      hwy:
+        type: number
+      units:
+        type: string
+    type: object
+  geolocation_internal_new_routes.FuelPrice:
+    properties:
+      currency:
+        type: string
+      fuel_unit:
+        type: string
+      price:
+        type: number
+      units:
+        type: string
+    type: object
+  geolocation_internal_new_routes.GasStation:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/geolocation_internal_new_routes.Location'
+      name:
+        type: string
+    type: object
+  geolocation_internal_new_routes.Location:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  geolocation_internal_new_routes.Summary:
+    properties:
+      all_stopping_points:
+        items: {}
+        type: array
+      fuel_efficiency:
+        $ref: '#/definitions/geolocation_internal_new_routes.FuelEfficiency'
+      fuel_price:
+        $ref: '#/definitions/geolocation_internal_new_routes.FuelPrice'
+      location_destination:
+        $ref: '#/definitions/routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/routes.AddressInfo'
+    type: object
+  geolocation_internal_new_routes.Toll:
+    properties:
+      arrival:
+        $ref: '#/definitions/geolocation_internal_new_routes.ArrivalResponse'
+      cashCost:
+        type: number
+      concession:
+        type: string
+      concession_img:
+        type: string
+      country:
+        type: string
+      currency:
+        type: string
+      free_flow:
+        type: boolean
+      id:
+        type: integer
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      pay_free_flow:
+        type: string
+      prepaidCardCost:
+        type: number
+      road:
+        type: string
+      state:
+        type: string
+      tagCost:
+        type: number
+      tagImg:
+        items:
+          type: string
+        type: array
+      tagPrimary:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+  login.RequestCreateUser:
+    properties:
+      confirm_password:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      telephone:
+        type: string
+      token:
+        type: string
+      type_person:
+        type: integer
+    type: object
+  login.RequestLogin:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  login.ResponseCreateUser:
+    properties:
+      token:
+        type: string
+    type: object
+  login.ResponseLogin:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      token:
+        type: string
     type: object
   plans.UserPlanResponse:
     properties:
@@ -446,6 +732,69 @@ definitions:
         type: integer
       price:
         type: number
+    type: object
+  routes.AddressInfo:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/geolocation_internal_new_routes.Location'
+    type: object
+  routes.FinalOutput:
+    properties:
+      routes:
+        items:
+          $ref: '#/definitions/routes.RouteOutput'
+        type: array
+      summary:
+        $ref: '#/definitions/geolocation_internal_new_routes.Summary'
+    type: object
+  routes.Instruction:
+    properties:
+      img:
+        type: string
+      text:
+        type: string
+    type: object
+  routes.RouteOutput:
+    properties:
+      balances: {}
+      costs:
+        $ref: '#/definitions/geolocation_internal_new_routes.Costs'
+      freight_load:
+        additionalProperties: true
+        type: object
+      gas_stations:
+        items:
+          $ref: '#/definitions/geolocation_internal_new_routes.GasStation'
+        type: array
+      instructions:
+        items:
+          $ref: '#/definitions/routes.Instruction'
+        type: array
+      polyline:
+        type: string
+      summary:
+        $ref: '#/definitions/routes.RouteSummary'
+      tolls:
+        items:
+          $ref: '#/definitions/geolocation_internal_new_routes.Toll'
+        type: array
+    type: object
+  routes.RouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/geolocation_internal_new_routes.Distance'
+      duration:
+        $ref: '#/definitions/geolocation_internal_new_routes.Duration'
+      hasTolls:
+        type: boolean
+      route_type:
+        type: string
+      url:
+        type: string
+      url_waze:
+        type: string
     type: object
   tractor_unit.CreateTractorUnitRequest:
     properties:
@@ -588,8 +937,6 @@ definitions:
         type: string
       state:
         type: string
-      user_id:
-        type: integer
       width:
         type: number
     type: object
@@ -621,7 +968,7 @@ definitions:
         type: boolean
       updated_at:
         type: string
-      userId:
+      user_id:
         type: integer
       width:
         type: number
@@ -653,48 +1000,8 @@ definitions:
         type: string
       state:
         type: string
-      userId:
-        type: integer
       width:
         type: number
-    type: object
-  user.CreateUserRequest:
-    properties:
-      confirm_password:
-        type: string
-      document:
-        type: string
-      email:
-        type: string
-      google_id:
-        type: string
-      name:
-        type: string
-      password:
-        type: string
-      phone:
-        type: string
-      profile_id:
-        type: integer
-      profile_picture:
-        type: string
-      provider:
-        type: string
-    required:
-    - document
-    - email
-    - name
-    - phone
-    - profile_id
-    type: object
-  user.CreateUserResponse:
-    properties:
-      email:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
     type: object
   user.GetUserResponse:
     properties:
@@ -729,32 +1036,6 @@ definitions:
       street_number:
         type: string
       updated_at:
-        type: string
-    type: object
-  user.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-      provider:
-        type: string
-    type: object
-  user.LoginUserResponse:
-    properties:
-      document:
-        type: string
-      email:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      profile_id:
-        type: integer
-      profile_picture:
-        type: string
-      token:
         type: string
     type: object
   user.UpdateUserAddressRequest:
@@ -836,6 +1117,41 @@ definitions:
         type: string
       street_number:
         type: string
+    type: object
+  ws.CreateChatRoomRequest:
+    properties:
+      advertisement_id:
+        type: integer
+    type: object
+  ws.CreateChatRoomResponse:
+    properties:
+      advertisement_id:
+        type: integer
+      advertisement_user_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      interested_user_id:
+        type: integer
+    type: object
+  ws.MessageResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      message_id:
+        type: integer
+      name:
+        type: string
+      profile_picture:
+        type: string
+      room_id:
+        type: integer
+      user_id:
+        type: integer
     type: object
 info:
   contact: {}
@@ -924,27 +1240,6 @@ paths:
       summary: Get All Advertisement
       tags:
       - Advertisement
-  /advertisement/list/public:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve all Advertisement
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of Advertisement
-          schema:
-            items:
-              $ref: '#/definitions/advertisement.AdvertisementResponseNoUser'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get All Advertisement
-      tags:
-      - Advertisement
   /advertisement/update:
     put:
       consumes:
@@ -978,7 +1273,7 @@ paths:
       tags:
       - Advertisement
   /attach/delete/{id}:
-    delete:
+    put:
       consumes:
       - application/json
       description: Delete an attachment logically (update status and remove file from
@@ -1058,6 +1353,71 @@ paths:
       summary: Create Attach.
       tags:
       - Attach
+  /chat/create-room:
+    post:
+      consumes:
+      - application/json
+      description: Creates a chat room associated with an advertisement.
+      parameters:
+      - description: Chat Room Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ws.CreateChatRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat Room Info
+          schema:
+            $ref: '#/definitions/ws.CreateChatRoomResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new chat room.
+      tags:
+      - WebSocket
+  /chat/messages/:room_id:
+    get:
+      consumes:
+      - application/json
+      description: Fetches chat messages by the specified room ID.
+      parameters:
+      - description: Chat Room ID
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chat messages
+          schema:
+            items:
+              $ref: '#/definitions/ws.MessageResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Retrieve messages from a chat room.
+      tags:
+      - WebSocket
   /driver/create:
     post:
       consumes:
@@ -1132,7 +1492,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Driver Info
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
         "400":
           description: Bad Request
           schema:
@@ -1178,6 +1540,63 @@ paths:
       summary: Update a Driver.
       tags:
       - Drivers
+  /public/advertisement/list:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all Advertisement
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of Advertisement
+          schema:
+            items:
+              $ref: '#/definitions/advertisement.AdvertisementResponseNoUser'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get All Advertisement
+      tags:
+      - Advertisement
+  /public/check-route-tolls:
+    post:
+      consumes:
+      - application/json
+      description: Calculates the best routes based on provided information.
+      parameters:
+      - description: Route calculation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/geolocation_internal_new_routes.FrontInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Calculated Routes Info
+          schema:
+            $ref: '#/definitions/routes.FinalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calculate possible routes.
+      tags:
+      - Routes
   /route/favorite/list:
     get:
       consumes:
@@ -1193,7 +1612,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Favorite Route Info
+          schema:
+            type: string
         "400":
           description: Bad Request
           schema:
@@ -1208,7 +1629,7 @@ paths:
       tags:
       - FavoriteRoutes
   /route/favorite/remove/:id:
-    get:
+    put:
       consumes:
       - application/json
       description: Get FavoriteRoute.
@@ -1480,7 +1901,7 @@ paths:
       summary: Update a Trailer.
       tags:
       - Trailer
-  /user/address:
+  /user/address/update:
     put:
       consumes:
       - application/json
@@ -1510,36 +1931,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update User Address.
-      tags:
-      - Users
-  /user/create:
-    post:
-      consumes:
-      - application/json
-      description: Create a new user with email, password, and profile details.
-      parameters:
-      - description: User Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User Info
-          schema:
-            $ref: '#/definitions/user.CreateUserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create a User.
       tags:
       - Users
   /user/delete:
@@ -1590,41 +1981,7 @@ paths:
       summary: Get User Info.
       tags:
       - Users
-  /user/login:
-    post:
-      consumes:
-      - application/json
-      description: Login a user with email and password or Google authentication.
-      parameters:
-      - description: User Login Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User Info with Token
-          schema:
-            $ref: '#/definitions/user.LoginUserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: User login.
-      tags:
-      - Users
-  /user/personal-info:
+  /user/personal/update:
     put:
       consumes:
       - application/json
@@ -1686,7 +2043,7 @@ paths:
       - ApiKeyAuth: []
       summary: Create a User Plan.
       tags:
-      - User Plans
+      - Users
   /user/update:
     put:
       consumes:
@@ -1719,4 +2076,93 @@ paths:
       summary: Update User Information.
       tags:
       - Users
+  /v2/create:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user in the system.
+      parameters:
+      - description: User Creation Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created User Info
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new user.
+      tags:
+      - Users
+  /v2/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user by email and password.
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authenticated User Info
+          schema:
+            $ref: '#/definitions/login.ResponseLogin'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Authenticate a user.
+      tags:
+      - Users
+  /ws:
+    get:
+      consumes:
+      - application/json
+      description: Establishes a WebSocket connection for real-time communication.
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Handle WebSocket connection.
+      tags:
+      - WebSocket
 swagger: "2.0"

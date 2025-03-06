@@ -33,7 +33,13 @@ func (p *Handler) CreateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.CreateTractorUnitService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+	data := CreateTractorUnitDto{
+		CreateTractorUnitRequest: request,
+		UserID:                   payload.ID,
+	}
+
+	result, err := p.InterfaceService.CreateTractorUnitService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -59,7 +65,13 @@ func (p *Handler) UpdateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.UpdateTractorUnitService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+	data := UpdateTractorUnitDto{
+		UpdateTractorUnitRequest: request,
+		UserID:                   payload.ID,
+	}
+
+	result, err := p.InterfaceService.UpdateTractorUnitService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -86,7 +98,8 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id)
+	payload := get_token.GetUserPayloadToken(c)
+	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id, payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

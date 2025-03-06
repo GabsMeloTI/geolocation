@@ -16,6 +16,19 @@ func NewRoutesNewHandler(InterfaceService InterfaceService) *Handler {
 	return &Handler{InterfaceService}
 }
 
+// CalculateRoutes godoc
+// @Summary Calculate possible routes.
+// @Description Calculates the best routes based on provided information.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfo true "Route calculation request"
+// @Success 200 {object} FinalOutput "Calculated Routes Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /public/check-route-tolls [post]
+// @Security ApiKeyAuth
 func (h *Handler) CalculateRoutes(e echo.Context) error {
 	var frontInfo FrontInfo
 	if err := e.Bind(&frontInfo); err != nil {
@@ -48,7 +61,7 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "FavoriteRoute id"
-// @Success 200
+// @Success 200 {string} json.RawMessage "Favorite Route Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /route/favorite/list [get]
@@ -74,7 +87,7 @@ func (h *Handler) GetFavoriteRouteHandler(c echo.Context) error {
 // @Success 200
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /route/favorite/remove/:id [get]
+// @Router /route/favorite/remove/:id [put]
 // @Security ApiKeyAuth
 func (h *Handler) RemoveFavoriteRouteHandler(c echo.Context) error {
 	idStr := c.Param("id")

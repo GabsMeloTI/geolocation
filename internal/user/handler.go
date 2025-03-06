@@ -20,17 +20,6 @@ func NewUserHandler(InterfaceService InterfaceService, GoogleClientId string) *H
 	return &Handler{InterfaceService, GoogleClientId}
 }
 
-// CreateUser godoc
-// @Summary Create a User.
-// @Description Create a new user with email, password, and profile details.
-// @Tags Users
-// @Accept json
-// @Produce json
-// @Param request body CreateUserRequest true "User Request"
-// @Success 200 {object} CreateUserResponse "User Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/create [post]
 func (h *Handler) CreateUser(c echo.Context) error {
 	var req CreateUserRequest
 
@@ -83,18 +72,6 @@ func (h *Handler) CreateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-// UserLogin godoc
-// @Summary User login.
-// @Description Login a user with email and password or Google authentication.
-// @Tags Users
-// @Accept json
-// @Produce json
-// @Param request body LoginRequest true "User Login Request"
-// @Success 200 {object} LoginUserResponse "User Info with Token"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/login [post]
 func (h *Handler) UserLogin(c echo.Context) error {
 	var req LoginRequest
 
@@ -194,7 +171,7 @@ func (h *Handler) UpdateUser(c echo.Context) error {
 // @Success 200 {object} UpdateUserResponse "Updated Address Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /user/address [put]
+// @Router /user/address/update [put]
 // @Security ApiKeyAuth
 func (h *Handler) UpdateUserAddress(c echo.Context) error {
 	var req UpdateUserAddressRequest
@@ -220,7 +197,7 @@ func (h *Handler) UpdateUserAddress(c echo.Context) error {
 // @Success 200 {object} UpdateUserResponse "Updated Personal Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /user/personal-info [put]
+// @Router /user/personal/update [put]
 // @Security ApiKeyAuth
 func (h *Handler) UpdateUserPersonalInfo(c echo.Context) error {
 	var req UpdateUserPersonalInfoRequest

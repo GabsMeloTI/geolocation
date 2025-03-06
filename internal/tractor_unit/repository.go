@@ -9,7 +9,7 @@ import (
 type InterfaceRepository interface {
 	CreateTractorUnit(ctx context.Context, arg db.CreateTractorUnitParams) (db.TractorUnit, error)
 	UpdateTractorUnit(ctx context.Context, arg db.UpdateTractorUnitParams) (db.TractorUnit, error)
-	DeleteTractorUnit(ctx context.Context, arg int64) error
+	DeleteTractorUnit(ctx context.Context, arg db.DeleteTractorUnitParams) error
 	GetTractorUnitById(ctx context.Context, arg int64) (db.TractorUnit, error)
 	GetTractorUnitByUserId(ctx context.Context, arg int64) ([]db.TractorUnit, error)
 }
@@ -36,7 +36,7 @@ func (r *Repository) CreateTractorUnit(ctx context.Context, arg db.CreateTractor
 func (r *Repository) UpdateTractorUnit(ctx context.Context, arg db.UpdateTractorUnitParams) (db.TractorUnit, error) {
 	return r.Queries.UpdateTractorUnit(ctx, arg)
 }
-func (r *Repository) DeleteTractorUnit(ctx context.Context, arg int64) error {
+func (r *Repository) DeleteTractorUnit(ctx context.Context, arg db.DeleteTractorUnitParams) error {
 	return r.Queries.DeleteTractorUnit(ctx, arg)
 }
 func (r *Repository) GetTractorUnitById(ctx context.Context, arg int64) (db.TractorUnit, error) {

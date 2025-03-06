@@ -75,11 +75,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
 	tractorUnit.GET("/list", container.HandlerTractorUnit.GetTractorUnitHandler)
 
-	public := e.Group("/public")
-	public.GET("/:ip", container.HandlerHist.GetPublicToken)
-	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
-	//easyfrete no user
-	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
+	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
+	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
+	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
@@ -89,19 +87,21 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler, _midlleware.CheckUserAuthorization)
 
-	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
-	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
-	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
-
-	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
-	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
-	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+	public := e.Group("/public")
+	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
+	//easyfrete no user
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
 	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
 
+	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
+	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
+	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+
 	//simpplify
 	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	//easyfrete

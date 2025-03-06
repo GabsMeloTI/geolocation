@@ -84,11 +84,11 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar destino: %w", err)
 	}
 
-	var waypointResults []AddressInfo
+	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.Waypoints {
 		wp = strings.TrimSpace(wp)
 		if wp != "" {
-			res, err := geocodeAddress(wp)
+			res, err := s.getGeocodeAddress(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, fmt.Errorf("erro ao geocodificar waypoint (%s): %w", wp, err)
 			}

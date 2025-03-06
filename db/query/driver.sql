@@ -7,14 +7,16 @@ VALUES(nextval('driver_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9, $
 
 -- name: UpdateDriver :one
 UPDATE public.driver
-SET user_id=$2, birth_date=$3, license_category=$4, license_expiration_date=$5, state=$6, city=$7, neighborhood=$8, street=$9, street_number=$10, phone=$11, cep=$12, complement=$13, updated_at=now()
-WHERE id=$1
+SET birth_date=$3, license_category=$4, license_expiration_date=$5, state=$6, city=$7, neighborhood=$8, street=$9, street_number=$10, phone=$11, cep=$12, complement=$13, updated_at=now()
+WHERE id=$1 and
+    user_id=$2
     RETURNING *;
 
 -- name: DeleteDriver :exec
 UPDATE public.driver
 SET status=false, updated_at=now()
-WHERE id=$1;
+WHERE id=$1 AND
+      user_id=$2;
 
 -- name: GetDriverById :one
 SELECT *

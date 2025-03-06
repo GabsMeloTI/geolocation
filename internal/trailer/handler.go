@@ -33,7 +33,13 @@ func (p *Handler) CreateTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.CreateTrailerService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+	data := CreateTrailerDto{
+		CreateTrailerRequest: request,
+		UserID:               payload.ID,
+	}
+
+	result, err := p.InterfaceService.CreateTrailerService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -59,7 +65,13 @@ func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := p.InterfaceService.UpdateTrailerService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+	data := UpdateTrailerDto{
+		UpdateTrailerRequest: request,
+		UserID:               payload.ID,
+	}
+
+	result, err := p.InterfaceService.UpdateTrailerService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -86,7 +98,8 @@ func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = p.InterfaceService.DeleteTrailerService(c.Request().Context(), id)
+	payload := get_token.GetUserPayloadToken(c)
+	err = p.InterfaceService.DeleteTrailerService(c.Request().Context(), id, payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
