@@ -25,7 +25,7 @@ WHERE user_id=$1 AND
 UPDATE public.advertisement
 SET status=false, updated_at=now(), updated_who=$3
 WHERE id=$1 and
-     user_id=$2;
+    user_id=$2;
 
 -- name: GetAdvertisementById :one
 SELECT *
@@ -58,3 +58,8 @@ SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, tit
 FROM public.advertisement
 WHERE status=true
 ORDER BY expiration_date;
+
+-- name: UpdateAdvertisementSituation :exec
+UPDATE public.advertisement
+SET situation=$1, updated_at=now(), updated_who=$2
+WHERE id=$3;

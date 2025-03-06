@@ -22,7 +22,7 @@ FROM appointments
 WHERE id=$1;
 
 -- name: GetListAppointmentByUserID :many
-SELECT *
+SELECT DISTINCT ON (ap.id) *
 FROM appointments ap
          LEFT JOIN users u ON u.id IN (ap.advertisement_user_id, ap.interested_user_id) AND u.status = true
          LEFT JOIN advertisement ad ON ad.id = ap.advertisement_id AND ad.status = true
