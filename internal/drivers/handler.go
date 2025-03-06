@@ -46,9 +46,12 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
-	request.UserID = payload.ID
+	data := CreateDriverDto{
+		CreateDriverRequest: request,
+		UserID:              payload.ID,
+	}
 
-	result, err := p.InterfaceService.CreateDriverService(c.Request().Context(), request)
+	result, err := p.InterfaceService.CreateDriverService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -78,7 +81,13 @@ func (p *Handler) UpdateDriverHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Telefone inválido")
 	}
 
-	result, err := p.InterfaceService.UpdateDriverService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+	data := UpdateDriverDto{
+		UpdateDriverRequest: request,
+		UserID:              payload.ID,
+	}
+
+	result, err := p.InterfaceService.UpdateDriverService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -97,7 +106,6 @@ func (p *Handler) UpdateDriverHandler(c echo.Context) error {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /driver/delete/{id} [put]
-// @Security ApiKeyAuth
 func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
@@ -105,7 +113,8 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = p.InterfaceService.DeleteDriverService(c.Request().Context(), id)
+	payload := get_token.GetUserPayloadToken(c)
+	err = p.InterfaceService.DeleteDriverService(c.Request().Context(), id, payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -119,7 +128,7 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Driver id"
-// @Success 200
+// @Success 200 {object} DriverResponse "Driver Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /driver/list [put]

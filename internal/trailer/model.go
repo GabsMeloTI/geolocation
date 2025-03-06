@@ -7,7 +7,6 @@ import (
 )
 
 type CreateTrailerRequest struct {
-	UserId       int64   `json:"user_id"`
 	LicensePlate string  `json:"license_plate"`
 	Chassis      string  `json:"chassis"`
 	BodyType     string  `json:"body_type"`
@@ -20,9 +19,13 @@ type CreateTrailerRequest struct {
 	Axles        int64   `json:"axles"`
 }
 
+type CreateTrailerDto struct {
+	CreateTrailerRequest CreateTrailerRequest
+	UserID               int64 `json:"user_id"`
+}
+
 type UpdateTrailerRequest struct {
 	ID           int64   `json:"id"`
-	UserId       int64   `json:"userId"`
 	LicensePlate string  `json:"license_plate"`
 	Chassis      string  `json:"chassis"`
 	BodyType     string  `json:"body_type" validate:"oneof=open chest bulk_carrier sider"`
@@ -35,9 +38,14 @@ type UpdateTrailerRequest struct {
 	Axles        int64   `json:"axles"`
 }
 
+type UpdateTrailerDto struct {
+	UpdateTrailerRequest UpdateTrailerRequest
+	UserID               int64 `json:"user_id"`
+}
+
 type TrailerResponse struct {
 	ID           int64      `json:"id"`
-	UserId       int64      `json:"userId"`
+	UserId       int64      `json:"user_id"`
 	LicensePlate string     `json:"license_plate"`
 	Chassis      string     `json:"chassis"`
 	BodyType     string     `json:"body_type"`
@@ -53,67 +61,67 @@ type TrailerResponse struct {
 	UpdatedAt    *time.Time `json:"updated_at"`
 }
 
-func (p *CreateTrailerRequest) ParseCreateToTrailer() db.CreateTrailerParams {
+func (p *CreateTrailerDto) ParseCreateToTrailer() db.CreateTrailerParams {
 	arg := db.CreateTrailerParams{
-		LicensePlate: p.LicensePlate,
-		UserID:       p.UserId,
-		Chassis:      p.Chassis,
+		LicensePlate: p.CreateTrailerRequest.LicensePlate,
+		UserID:       p.UserID,
+		Chassis:      p.CreateTrailerRequest.Chassis,
 		BodyType: sql.NullString{
-			String: p.BodyType,
+			String: p.CreateTrailerRequest.BodyType,
 			Valid:  true,
 		},
 		LoadCapacity: sql.NullFloat64{
-			Float64: p.LoadCapacity,
+			Float64: p.CreateTrailerRequest.LoadCapacity,
 			Valid:   true,
 		},
 		Length: sql.NullFloat64{
-			Float64: p.Length,
+			Float64: p.CreateTrailerRequest.Length,
 			Valid:   true,
 		},
 		Width: sql.NullFloat64{
-			Float64: p.Height,
+			Float64: p.CreateTrailerRequest.Height,
 			Valid:   true,
 		},
 		Height: sql.NullFloat64{
-			Float64: p.Width,
+			Float64: p.CreateTrailerRequest.Width,
 			Valid:   true,
 		},
-		Axles:   p.Axles,
-		State:   p.State,
-		Renavan: p.Renavan,
+		Axles:   p.CreateTrailerRequest.Axles,
+		State:   p.CreateTrailerRequest.State,
+		Renavan: p.CreateTrailerRequest.Renavan,
 	}
 	return arg
 }
 
-func (p *UpdateTrailerRequest) ParseUpdateToTrailer() db.UpdateTrailerParams {
+func (p *UpdateTrailerDto) ParseUpdateToTrailer() db.UpdateTrailerParams {
 	arg := db.UpdateTrailerParams{
-		LicensePlate: p.LicensePlate,
-		Chassis:      p.Chassis,
+		LicensePlate: p.UpdateTrailerRequest.LicensePlate,
+		Chassis:      p.UpdateTrailerRequest.Chassis,
 		BodyType: sql.NullString{
-			String: p.BodyType,
+			String: p.UpdateTrailerRequest.BodyType,
 			Valid:  true,
 		},
 		LoadCapacity: sql.NullFloat64{
-			Float64: p.LoadCapacity,
+			Float64: p.UpdateTrailerRequest.LoadCapacity,
 			Valid:   true,
 		},
 		Length: sql.NullFloat64{
-			Float64: p.Length,
+			Float64: p.UpdateTrailerRequest.Length,
 			Valid:   true,
 		},
 		Width: sql.NullFloat64{
-			Float64: p.Height,
+			Float64: p.UpdateTrailerRequest.Height,
 			Valid:   true,
 		},
 		Height: sql.NullFloat64{
-			Float64: p.Width,
+			Float64: p.UpdateTrailerRequest.Width,
 			Valid:   true,
 		},
-		Axles:   p.Axles,
-		UserID:  p.UserId,
-		State:   p.State,
-		Renavan: p.Renavan,
-		ID:      p.ID,
+		Axles:   p.UpdateTrailerRequest.Axles,
+		UserID:  p.UserID,
+		State:   p.UpdateTrailerRequest.State,
+		Renavan: p.UpdateTrailerRequest.Renavan,
+		ID:      p.UpdateTrailerRequest.ID,
 	}
 	return arg
 }

@@ -7,7 +7,6 @@ import (
 )
 
 type CreateDriverRequest struct {
-	UserID                int64     `json:"user_id"`
 	Name                  string    `json:"name"`
 	BirthDate             time.Time `json:"birth_date"`
 	Cpf                   string    `json:"cpf"`
@@ -24,8 +23,12 @@ type CreateDriverRequest struct {
 	Phone                 string    `json:"phone"`
 }
 
+type CreateDriverDto struct {
+	CreateDriverRequest CreateDriverRequest
+	UserID              int64 `json:"user_id"`
+}
+
 type UpdateDriverRequest struct {
-	UserID                int64     `json:"user_id"`
 	Name                  string    `json:"name"`
 	BirthDate             time.Time `json:"birth_date"`
 	Cpf                   string    `json:"cpf"`
@@ -41,6 +44,11 @@ type UpdateDriverRequest struct {
 	Complement            string    `json:"complement"`
 	Phone                 string    `json:"phone"`
 	ID                    int64     `json:"id"`
+}
+
+type UpdateDriverDto struct {
+	UpdateDriverRequest UpdateDriverRequest
+	UserID              int64 `json:"user_id"`
 }
 
 type DriverResponse struct {
@@ -65,76 +73,76 @@ type DriverResponse struct {
 	UpdatedAt             *time.Time `json:"updated_at"`
 }
 
-func (p *CreateDriverRequest) ParseCreateToDriver() db.CreateDriverParams {
+func (p *CreateDriverDto) ParseCreateToDriver() db.CreateDriverParams {
 	arg := db.CreateDriverParams{
 		UserID:                p.UserID,
-		Name:                  p.Name,
-		BirthDate:             p.BirthDate,
-		Cpf:                   p.Cpf,
-		LicenseNumber:         p.LicenseNumber,
-		LicenseCategory:       p.LicenseCategory,
-		LicenseExpirationDate: p.LicenseExpirationDate,
+		Name:                  p.CreateDriverRequest.Name,
+		BirthDate:             p.CreateDriverRequest.BirthDate,
+		Cpf:                   p.CreateDriverRequest.Cpf,
+		LicenseNumber:         p.CreateDriverRequest.LicenseNumber,
+		LicenseCategory:       p.CreateDriverRequest.LicenseCategory,
+		LicenseExpirationDate: p.CreateDriverRequest.LicenseExpirationDate,
 		State: sql.NullString{
-			String: p.State,
+			String: p.CreateDriverRequest.State,
 			Valid:  true,
 		},
 		City: sql.NullString{
-			String: p.City,
+			String: p.CreateDriverRequest.City,
 			Valid:  true,
 		},
 		Neighborhood: sql.NullString{
-			String: p.Neighborhood,
+			String: p.CreateDriverRequest.Neighborhood,
 			Valid:  true,
 		},
 		Street: sql.NullString{
-			String: p.Street,
+			String: p.CreateDriverRequest.Street,
 			Valid:  true,
 		},
 		StreetNumber: sql.NullString{
-			String: p.StreetNumber,
+			String: p.CreateDriverRequest.StreetNumber,
 			Valid:  true,
 		},
-		Phone: p.Phone,
-		Cep:   p.CEP,
+		Phone: p.CreateDriverRequest.Phone,
+		Cep:   p.CreateDriverRequest.CEP,
 		Complement: sql.NullString{
-			String: p.Complement,
+			String: p.CreateDriverRequest.Complement,
 			Valid:  true,
 		},
 	}
 	return arg
 }
 
-func (p *UpdateDriverRequest) ParseUpdateToDriver() db.UpdateDriverParams {
+func (p *UpdateDriverDto) ParseUpdateToDriver() db.UpdateDriverParams {
 	arg := db.UpdateDriverParams{
-		ID:                    p.ID,
+		ID:                    p.UpdateDriverRequest.ID,
 		UserID:                p.UserID,
-		BirthDate:             p.BirthDate,
-		LicenseCategory:       p.LicenseCategory,
-		LicenseExpirationDate: p.LicenseExpirationDate,
+		BirthDate:             p.UpdateDriverRequest.BirthDate,
+		LicenseCategory:       p.UpdateDriverRequest.LicenseCategory,
+		LicenseExpirationDate: p.UpdateDriverRequest.LicenseExpirationDate,
 		State: sql.NullString{
-			String: p.State,
+			String: p.UpdateDriverRequest.State,
 			Valid:  true,
 		},
 		City: sql.NullString{
-			String: p.City,
+			String: p.UpdateDriverRequest.City,
 			Valid:  true,
 		},
 		Neighborhood: sql.NullString{
-			String: p.Neighborhood,
+			String: p.UpdateDriverRequest.Neighborhood,
 			Valid:  true,
 		},
 		Street: sql.NullString{
-			String: p.Street,
+			String: p.UpdateDriverRequest.Street,
 			Valid:  true,
 		},
 		StreetNumber: sql.NullString{
-			String: p.StreetNumber,
+			String: p.UpdateDriverRequest.StreetNumber,
 			Valid:  true,
 		},
-		Phone: p.Phone,
-		Cep:   p.CEP,
+		Phone: p.UpdateDriverRequest.Phone,
+		Cep:   p.UpdateDriverRequest.CEP,
 		Complement: sql.NullString{
-			String: p.Complement,
+			String: p.UpdateDriverRequest.Complement,
 			Valid:  true,
 		},
 	}

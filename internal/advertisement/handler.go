@@ -35,8 +35,13 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
-	request.CreatedWho = payload.Name
-	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), request, payload.ProfileID)
+	data := CreateAdvertisementDto{
+		CreateAdvertisementRequest: request,
+		UserID:                     payload.ID,
+		CreatedWho:                 payload.Name,
+	}
+
+	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -63,11 +68,16 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
-	request.UpdatedWho = sql.NullString{
-		String: payload.Name,
-		Valid:  true,
+	data := UpdateAdvertisementDto{
+		UpdateAdvertisementRequest: request,
+		UserID:                     payload.ID,
+		UpdatedWho: sql.NullString{
+			String: payload.Name,
+			Valid:  true,
+		},
 	}
-	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), request, payload.ProfileID)
+
+	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -96,7 +106,8 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 
 	payload := get_token.GetUserPayloadToken(c)
 	data := DeleteAdvertisementRequest{
-		ID: id,
+		ID:     id,
+		UserID: payload.ID,
 		UpdatedWho: sql.NullString{
 			String: payload.Name,
 			Valid:  true,
@@ -136,7 +147,7 @@ func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /advertisement/list/public [get]
+// @Router /public/advertisement/list [get]
 func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
 	result, err := p.InterfaceService.GetAllAdvertisementPublic(c.Request().Context())
 	if err != nil {

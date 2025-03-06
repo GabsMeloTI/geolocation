@@ -75,19 +75,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
 	tractorUnit.GET("/list", container.HandlerTractorUnit.GetTractorUnitHandler)
 
-	public := e.Group("/public")
-	public.GET("/:ip", container.HandlerHist.GetPublicToken)
-	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
-	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
-
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
-	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
-	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
-
-	e.POST("/create-user", container.UserHandler.CreateUser)
-	e.POST("/login", container.UserHandler.UserLogin)
-	e.POST("/v2/login", container.LoginHandler.Login)
-	e.POST("/v2/create", container.LoginHandler.CreateUser)
+	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
+	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
+	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
@@ -95,19 +85,34 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/update", container.UserHandler.UpdateUser)
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
+	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler, _midlleware.CheckUserAuthorization)
 
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
-	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
-	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	public := e.Group("/public")
+	public.GET("/:ip", container.HandlerHist.GetPublicToken)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
+	//easyfrete no user
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
-	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+	route := e.Group("/route", _midlleware.CheckUserAuthorization)
+	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
+	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
+
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
+	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
-	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)
-	e.PUT("/attach/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+	//simpplify
+	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	//easyfrete
+	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
+	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
+	e.POST("/create-user", container.UserHandler.CreateUser)
+	e.POST("/login", container.UserHandler.UserLogin)
+	e.POST("/v2/login", container.LoginHandler.Login)
+	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
 	log.Printf("Server started")
 

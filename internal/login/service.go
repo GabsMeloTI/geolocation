@@ -82,8 +82,14 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		return response, err
 	}
 
-	response.Token = tokenStr
-	return response, err
+	responseData := ResponseLogin{
+		ID:    result.ID,
+		Name:  result.Name,
+		Email: result.Email,
+		Token: tokenStr,
+	}
+
+	return responseData, err
 }
 
 func (s *Service) CreateUser(ctx context.Context, data RequestCreateUser) (response ResponseCreateUser, err error) {

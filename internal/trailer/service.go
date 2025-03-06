@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	db "geolocation/db/sqlc"
 )
 
 type InterfaceService interface {
-	CreateTrailerService(ctx context.Context, data CreateTrailerRequest) (TrailerResponse, error)
-	UpdateTrailerService(ctx context.Context, data UpdateTrailerRequest) (TrailerResponse, error)
-	DeleteTrailerService(ctx context.Context, id int64) error
+	CreateTrailerService(ctx context.Context, data CreateTrailerDto) (TrailerResponse, error)
+	UpdateTrailerService(ctx context.Context, data UpdateTrailerDto) (TrailerResponse, error)
+	DeleteTrailerService(ctx context.Context, id, idUser int64) error
 	GetTrailerService(ctx context.Context, id int64) ([]TrailerResponse, error)
 }
 
@@ -21,7 +22,7 @@ func NewTrailersService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateTrailerService(ctx context.Context, data CreateTrailerRequest) (TrailerResponse, error) {
+func (p *Service) CreateTrailerService(ctx context.Context, data CreateTrailerDto) (TrailerResponse, error) {
 	arg := data.ParseCreateToTrailer()
 
 	result, err := p.InterfaceService.CreateTrailer(ctx, arg)
@@ -35,8 +36,8 @@ func (p *Service) CreateTrailerService(ctx context.Context, data CreateTrailerRe
 	return createTrailerService, nil
 }
 
-func (p *Service) UpdateTrailerService(ctx context.Context, data UpdateTrailerRequest) (TrailerResponse, error) {
-	_, err := p.InterfaceService.GetTrailerById(ctx, data.ID)
+func (p *Service) UpdateTrailerService(ctx context.Context, data UpdateTrailerDto) (TrailerResponse, error) {
+	_, err := p.InterfaceService.GetTrailerById(ctx, data.UpdateTrailerRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return TrailerResponse{}, errors.New("Trailer not found")
 	}
@@ -57,7 +58,7 @@ func (p *Service) UpdateTrailerService(ctx context.Context, data UpdateTrailerRe
 	return updateTrailerService, nil
 }
 
-func (p *Service) DeleteTrailerService(ctx context.Context, id int64) error {
+func (p *Service) DeleteTrailerService(ctx context.Context, id, idUser int64) error {
 	_, err := p.InterfaceService.GetTrailerById(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("Trailer not found")
@@ -66,7 +67,10 @@ func (p *Service) DeleteTrailerService(ctx context.Context, id int64) error {
 		return err
 	}
 
-	err = p.InterfaceService.DeleteTrailer(ctx, id)
+	err = p.InterfaceService.DeleteTrailer(ctx, db.DeleteTrailerParams{
+		ID:     id,
+		UserID: idUser,
+	})
 	if err != nil {
 		return err
 	}

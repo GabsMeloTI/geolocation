@@ -149,38 +149,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/advertisement/list/public": {
-            "get": {
-                "description": "Retrieve all Advertisement",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Advertisement"
-                ],
-                "summary": "Get All Advertisement",
-                "responses": {
-                    "200": {
-                        "description": "List of Advertisement",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/advertisement.AdvertisementResponseNoUser"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/advertisement/update": {
             "put": {
                 "security": [
@@ -233,7 +201,7 @@ const docTemplate = `{
             }
         },
         "/attach/delete/{id}": {
-            "delete": {
+            "put": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -355,14 +323,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/driver/create": {
+        "/chat/create-room": {
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Plan.",
+                "description": "Creates a chat room associated with an advertisement.",
                 "consumes": [
                     "application/json"
                 ],
@@ -370,25 +338,128 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Plans"
+                    "WebSocket"
                 ],
-                "summary": "Create a Plan.",
+                "summary": "Create a new chat room.",
                 "parameters": [
                     {
-                        "description": "Plan Request",
+                        "description": "Chat Room Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/plans.CreatePlansRequest"
+                            "$ref": "#/definitions/ws.CreateChatRoomRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plan Info",
+                        "description": "Chat Room Info",
                         "schema": {
-                            "$ref": "#/definitions/plans.PlansResponse"
+                            "$ref": "#/definitions/ws.CreateChatRoomResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/messages/:room_id": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches chat messages by the specified room ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WebSocket"
+                ],
+                "summary": "Retrieve messages from a chat room.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Chat Room ID",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of chat messages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ws.MessageResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a Driver.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Create a Driver.",
+                "parameters": [
+                    {
+                        "description": "Driver Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/drivers.CreateDriverRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Driver Info",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
                         }
                     },
                     "400": {
@@ -408,11 +479,6 @@ const docTemplate = `{
         },
         "/driver/delete/{id}": {
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -481,7 +547,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Driver Info",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -505,7 +574,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a Plan.",
+                "description": "Update a Driver.",
                 "consumes": [
                     "application/json"
                 ],
@@ -513,26 +582,210 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Plans"
+                    "Drivers"
                 ],
-                "summary": "Update a Plan.",
+                "summary": "Update a Driver.",
                 "parameters": [
                     {
-                        "description": "Plan Request",
+                        "description": "Driver Request",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/plans.UpdatePlansRequest"
+                            "$ref": "#/definitions/drivers.UpdateDriverRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plan Info",
+                        "description": "Driver Info",
                         "schema": {
-                            "$ref": "#/definitions/plans.PlansResponse"
+                            "$ref": "#/definitions/drivers.DriverResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/advertisement/list": {
+            "get": {
+                "description": "Retrieve all Advertisement",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Advertisement"
+                ],
+                "summary": "Get All Advertisement",
+                "responses": {
+                    "200": {
+                        "description": "List of Advertisement",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/advertisement.AdvertisementResponseNoUser"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/check-route-tolls": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Calculates the best routes based on provided information.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calculate possible routes.",
+                "parameters": [
+                    {
+                        "description": "Route calculation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/geolocation_internal_new_routes.FrontInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Calculated Routes Info",
+                        "schema": {
+                            "$ref": "#/definitions/routes.FinalOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/favorite/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get FavoriteRoute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FavoriteRoutes"
+                ],
+                "summary": "Get FavoriteRoute.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Favorite Route Info",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/favorite/remove/:id": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get FavoriteRoute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FavoriteRoutes"
+                ],
+                "summary": "Get FavoriteRoute.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -937,7 +1190,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/address": {
+        "/user/address/update": {
             "put": {
                 "security": [
                     {
@@ -971,52 +1224,6 @@ const docTemplate = `{
                         "description": "Updated Address Info",
                         "schema": {
                             "$ref": "#/definitions/user.UpdateUserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/create": {
-            "post": {
-                "description": "Create a new user with email, password, and profile details.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Create a User.",
-                "parameters": [
-                    {
-                        "description": "User Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.CreateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User Info",
-                        "schema": {
-                            "$ref": "#/definitions/user.CreateUserResponse"
                         }
                     },
                     "400": {
@@ -1111,59 +1318,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/login": {
-            "post": {
-                "description": "Login a user with email and password or Google authentication.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "User login.",
-                "parameters": [
-                    {
-                        "description": "User Login Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User Info with Token",
-                        "schema": {
-                            "$ref": "#/definitions/user.LoginUserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/personal-info": {
+        "/user/personal/update": {
             "put": {
                 "security": [
                     {
@@ -1197,6 +1352,55 @@ const docTemplate = `{
                         "description": "Updated Personal Info",
                         "schema": {
                             "$ref": "#/definitions/user.UpdateUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/plan": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Assigns a user to a selected plan.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create a User Plan.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User Plan Info",
+                        "schema": {
+                            "$ref": "#/definitions/plans.UserPlanResponse"
                         }
                     },
                     "400": {
@@ -1264,6 +1468,148 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v2/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Register a new user in the system.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create a new user.",
+                "parameters": [
+                    {
+                        "description": "User Creation Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestCreateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Created User Info",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseCreateUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/login": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Authenticate a user by email and password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Authenticate a user.",
+                "parameters": [
+                    {
+                        "description": "Login Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestLogin"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated User Info",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseLogin"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ws": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Establishes a WebSocket connection for real-time communication.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WebSocket"
+                ],
+                "summary": "Handle WebSocket connection.",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1284,6 +1630,15 @@ const docTemplate = `{
                 },
                 "cargo_weight": {
                     "type": "number"
+                },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -1315,6 +1670,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1330,14 +1688,26 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
                     "type": "string"
                 },
+                "state": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "boolean"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"
@@ -1392,6 +1762,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1422,6 +1801,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1437,10 +1819,22 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1502,6 +1896,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1520,6 +1923,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1533,6 +1939,15 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1570,6 +1985,15 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
                 "created_who": {
                     "type": "string"
                 },
@@ -1594,6 +2018,9 @@ const docTemplate = `{
                 "expiration_date": {
                     "type": "string"
                 },
+                "neighborhood": {
+                    "type": "string"
+                },
                 "origin": {
                     "type": "string"
                 },
@@ -1609,10 +2036,22 @@ const docTemplate = `{
                 "pickup_date": {
                     "type": "string"
                 },
+                "price": {
+                    "type": "number"
+                },
                 "requires_tarp": {
                     "type": "boolean"
                 },
                 "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
                     "type": "string"
                 },
                 "title": {
@@ -1636,7 +2075,108 @@ const docTemplate = `{
             }
         },
         "advertisement.UpdateAdvertisementRequest": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "advance": {
+                    "type": "string"
+                },
+                "agency": {
+                    "type": "boolean"
+                },
+                "cargo_species": {
+                    "type": "string"
+                },
+                "cargo_type": {
+                    "type": "string"
+                },
+                "cargo_weight": {
+                    "type": "number"
+                },
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "complement": {
+                    "type": "string"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "destination_lat": {
+                    "type": "number"
+                },
+                "destination_lng": {
+                    "type": "number"
+                },
+                "distance": {
+                    "type": "integer"
+                },
+                "expiration_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "neighborhood": {
+                    "type": "string"
+                },
+                "origin": {
+                    "type": "string"
+                },
+                "origin_lat": {
+                    "type": "number"
+                },
+                "origin_lng": {
+                    "type": "number"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "pickup_date": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "requires_tarp": {
+                    "type": "boolean"
+                },
+                "situation": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "street_number": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "toll": {
+                    "type": "boolean"
+                },
+                "tracking": {
+                    "type": "boolean"
+                },
+                "trailer": {
+                    "type": "string"
+                },
+                "vehicles_accepted": {
+                    "type": "string"
+                }
+            }
         },
         "drivers.CreateDriverRequest": {
             "type": "object",
@@ -1689,9 +2229,6 @@ const docTemplate = `{
                 },
                 "street_number": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -1811,36 +2348,347 @@ const docTemplate = `{
                 },
                 "street_number": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
-        "plans.CreatePlansRequest": {
+        "geolocation_internal_new_routes.ArrivalResponse": {
             "type": "object",
             "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "annual": {
-                    "type": "boolean"
-                },
-                "duration": {
+                "distance": {
                     "type": "string"
                 },
-                "expiration_date": {
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Costs": {
+            "type": "object",
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "cash": {
+                    "type": "number"
+                },
+                "fuel_in_the_city": {
+                    "type": "number"
+                },
+                "fuel_in_the_hwy": {
+                    "type": "number"
+                },
+                "maximumTollCost": {
+                    "type": "number"
+                },
+                "minimumTollCost": {
+                    "type": "number"
+                },
+                "prepaidCard": {
+                    "type": "number"
+                },
+                "tag": {
+                    "type": "number"
+                },
+                "tagAndCash": {
+                    "type": "number"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Distance": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Duration": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.FrontInfo": {
+            "type": "object",
+            "required": [
+                "destination",
+                "origin",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "favorite": {
+                    "type": "boolean"
+                },
+                "origin": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "public_or_private": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "geolocation_internal_new_routes.FuelEfficiency": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "number"
+                },
+                "fuel_unit": {
+                    "type": "string"
+                },
+                "hwy": {
+                    "type": "number"
+                },
+                "units": {
+                    "type": "string"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.FuelPrice": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "fuel_unit": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "units": {
+                    "type": "string"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.GasStation": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Location"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Location": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Summary": {
+            "type": "object",
+            "properties": {
+                "all_stopping_points": {
+                    "type": "array",
+                    "items": {}
+                },
+                "fuel_efficiency": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.FuelEfficiency"
+                },
+                "fuel_price": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.FuelPrice"
+                },
+                "location_destination": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                }
+            }
+        },
+        "geolocation_internal_new_routes.Toll": {
+            "type": "object",
+            "properties": {
+                "arrival": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.ArrivalResponse"
+                },
+                "cashCost": {
+                    "type": "number"
+                },
+                "concession": {
+                    "type": "string"
+                },
+                "concession_img": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "free_flow": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pay_free_flow": {
+                    "type": "string"
+                },
+                "prepaidCardCost": {
+                    "type": "number"
+                },
+                "road": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "tagCost": {
+                    "type": "number"
+                },
+                "tagImg": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tagPrimary": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "login.RequestCreateUser": {
+            "type": "object",
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "price": {
+                "password": {
+                    "type": "string"
+                },
+                "telephone": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "type_person": {
+                    "type": "integer"
+                }
+            }
+        },
+        "login.RequestLogin": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "plans.PlansResponse": {
+        "login.ResponseCreateUser": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "login.ResponseLogin": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "plans.UserPlanResponse": {
             "type": "object",
             "properties": {
                 "active": {
@@ -1852,39 +2700,115 @@ const docTemplate = `{
                 "annual": {
                     "type": "boolean"
                 },
-                "duration": {
-                    "type": "string"
-                },
                 "expiration_date": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
-                    "type": "string"
+                "id_plan": {
+                    "type": "integer"
+                },
+                "id_user": {
+                    "type": "integer"
                 },
                 "price": {
+                    "type": "number"
+                }
+            }
+        },
+        "routes.AddressInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Location"
+                }
+            }
+        },
+        "routes.FinalOutput": {
+            "type": "object",
+            "properties": {
+                "routes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/routes.RouteOutput"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Summary"
+                }
+            }
+        },
+        "routes.Instruction": {
+            "type": "object",
+            "properties": {
+                "img": {
+                    "type": "string"
+                },
+                "text": {
                     "type": "string"
                 }
             }
         },
-        "plans.UpdatePlansRequest": {
+        "routes.RouteOutput": {
             "type": "object",
             "properties": {
-                "annual": {
-                    "type": "boolean"
+                "balances": {},
+                "costs": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Costs"
+                },
+                "freight_load": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "gas_stations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/geolocation_internal_new_routes.GasStation"
+                    }
+                },
+                "instructions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/routes.Instruction"
+                    }
+                },
+                "polyline": {
+                    "type": "string"
+                },
+                "summary": {
+                    "$ref": "#/definitions/routes.RouteSummary"
+                },
+                "tolls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/geolocation_internal_new_routes.Toll"
+                    }
+                }
+            }
+        },
+        "routes.RouteSummary": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Distance"
                 },
                 "duration": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Duration"
+                },
+                "hasTolls": {
+                    "type": "boolean"
+                },
+                "route_type": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
+                "url": {
                     "type": "string"
                 },
-                "price": {
+                "url_waze": {
                     "type": "string"
                 }
             }
@@ -2101,9 +3025,6 @@ const docTemplate = `{
                 "state": {
                     "type": "string"
                 },
-                "user_id": {
-                    "type": "integer"
-                },
                 "width": {
                     "type": "number"
                 }
@@ -2151,7 +3072,7 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string"
                 },
-                "userId": {
+                "user_id": {
                     "type": "integer"
                 },
                 "width": {
@@ -2198,67 +3119,8 @@ const docTemplate = `{
                 "state": {
                     "type": "string"
                 },
-                "userId": {
-                    "type": "integer"
-                },
                 "width": {
                     "type": "number"
-                }
-            }
-        },
-        "user.CreateUserRequest": {
-            "type": "object",
-            "required": [
-                "document",
-                "email",
-                "name",
-                "phone",
-                "profile_id"
-            ],
-            "properties": {
-                "confirm_password": {
-                    "type": "string"
-                },
-                "document": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "google_id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "profile_id": {
-                    "type": "integer"
-                },
-                "profile_picture": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.CreateUserResponse": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
                 }
             }
         },
@@ -2311,46 +3173,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.LoginRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.LoginUserResponse": {
-            "type": "object",
-            "properties": {
-                "document": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "profile_id": {
-                    "type": "integer"
-                },
-                "profile_picture": {
-                    "type": "string"
-                },
-                "token": {
                     "type": "string"
                 }
             }
@@ -2474,6 +3296,60 @@ const docTemplate = `{
                 },
                 "street_number": {
                     "type": "string"
+                }
+            }
+        },
+        "ws.CreateChatRoomRequest": {
+            "type": "object",
+            "properties": {
+                "advertisement_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ws.CreateChatRoomResponse": {
+            "type": "object",
+            "properties": {
+                "advertisement_id": {
+                    "type": "integer"
+                },
+                "advertisement_user_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "interested_user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ws.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "message_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profile_picture": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         }

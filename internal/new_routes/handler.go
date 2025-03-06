@@ -16,6 +16,19 @@ func NewRoutesNewHandler(InterfaceService InterfaceService) *Handler {
 	return &Handler{InterfaceService}
 }
 
+// CalculateRoutes godoc
+// @Summary Calculate possible routes.
+// @Description Calculates the best routes based on provided information.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfo true "Route calculation request"
+// @Success 200 {object} FinalOutput "Calculated Routes Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /public/check-route-tolls [post]
+// @Security ApiKeyAuth
 func (h *Handler) CalculateRoutes(e echo.Context) error {
 	var frontInfo FrontInfo
 	if err := e.Bind(&frontInfo); err != nil {
@@ -28,13 +41,8 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 	}
 
 	payloadPublic := get_token.GetPublicPayloadToken(e)
-	payload := get_token.GetPayloadToken(e)
-	id, err := validation.ParseStringToInt64(payload.UserID)
-	if err != nil {
-		return e.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	result, err := h.InterfaceService.CalculateRoutes(e.Request().Context(), frontInfo, payloadPublic.ID, id)
+	payload := get_token.GetUserPayloadToken(e)
+	result, err := h.InterfaceService.CalculateRoutes(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {
@@ -44,4 +52,55 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 	}
 
 	return e.JSON(http.StatusOK, result)
+}
+
+// GetFavoriteRouteHandler godoc
+// @Summary Get FavoriteRoute.
+// @Description Get FavoriteRoute.
+// @Tags FavoriteRoutes
+// @Accept json
+// @Produce json
+// @Param id path string true "FavoriteRoute id"
+// @Success 200 {string} json.RawMessage "Favorite Route Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /route/favorite/list [get]
+// @Security ApiKeyAuth
+func (h *Handler) GetFavoriteRouteHandler(c echo.Context) error {
+	payload := get_token.GetUserPayloadToken(c)
+
+	result, err := h.InterfaceService.GetFavoriteRouteService(c.Request().Context(), payload.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+// RemoveFavoriteRouteHandler godoc
+// @Summary Get FavoriteRoute.
+// @Description Get FavoriteRoute.
+// @Tags FavoriteRoutes
+// @Accept json
+// @Produce json
+// @Param id path string true "FavoriteRoute id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /route/favorite/remove/:id [put]
+// @Security ApiKeyAuth
+func (h *Handler) RemoveFavoriteRouteHandler(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	err = h.InterfaceService.RemoveFavoriteRouteService(c.Request().Context(), id, payload.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "success")
 }

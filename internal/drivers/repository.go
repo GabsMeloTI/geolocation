@@ -9,7 +9,7 @@ import (
 type InterfaceRepository interface {
 	CreateDriver(ctx context.Context, arg db.CreateDriverParams) (db.Driver, error)
 	UpdateDriver(ctx context.Context, arg db.UpdateDriverParams) (db.Driver, error)
-	DeleteDriver(ctx context.Context, arg int64) error
+	DeleteDriver(ctx context.Context, arg db.DeleteDriverParams) error
 	GetDriverById(ctx context.Context, arg int64) (db.Driver, error)
 	GetDriverByUserId(ctx context.Context, arg int64) ([]db.Driver, error)
 }
@@ -36,7 +36,7 @@ func (r *Repository) CreateDriver(ctx context.Context, arg db.CreateDriverParams
 func (r *Repository) UpdateDriver(ctx context.Context, arg db.UpdateDriverParams) (db.Driver, error) {
 	return r.Queries.UpdateDriver(ctx, arg)
 }
-func (r *Repository) DeleteDriver(ctx context.Context, arg int64) error {
+func (r *Repository) DeleteDriver(ctx context.Context, arg db.DeleteDriverParams) error {
 	return r.Queries.DeleteDriver(ctx, arg)
 }
 func (r *Repository) GetDriverById(ctx context.Context, arg int64) (db.Driver, error) {

@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	db "geolocation/db/sqlc"
 )
 
 type InterfaceService interface {
-	CreateDriverService(ctx context.Context, data CreateDriverRequest) (DriverResponse, error)
-	UpdateDriverService(ctx context.Context, data UpdateDriverRequest) (DriverResponse, error)
-	DeleteDriverService(ctx context.Context, id int64) error
+	CreateDriverService(ctx context.Context, data CreateDriverDto) (DriverResponse, error)
+	UpdateDriverService(ctx context.Context, data UpdateDriverDto) (DriverResponse, error)
+	DeleteDriverService(ctx context.Context, id, idUser int64) error
 	GetDriverService(ctx context.Context, id int64) ([]DriverResponse, error)
 }
 
@@ -21,7 +22,7 @@ func NewDriversService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverRequest) (DriverResponse, error) {
+func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverDto) (DriverResponse, error) {
 	arg := data.ParseCreateToDriver()
 
 	result, err := p.InterfaceService.CreateDriver(ctx, arg)
@@ -35,8 +36,8 @@ func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverRequ
 	return createDriverService, nil
 }
 
-func (p *Service) UpdateDriverService(ctx context.Context, data UpdateDriverRequest) (DriverResponse, error) {
-	_, err := p.InterfaceService.GetDriverById(ctx, data.ID)
+func (p *Service) UpdateDriverService(ctx context.Context, data UpdateDriverDto) (DriverResponse, error) {
+	_, err := p.InterfaceService.GetDriverById(ctx, data.UpdateDriverRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return DriverResponse{}, errors.New("driver not found")
 	}
@@ -57,7 +58,7 @@ func (p *Service) UpdateDriverService(ctx context.Context, data UpdateDriverRequ
 	return updateDriverService, nil
 }
 
-func (p *Service) DeleteDriverService(ctx context.Context, id int64) error {
+func (p *Service) DeleteDriverService(ctx context.Context, id, idUser int64) error {
 	_, err := p.InterfaceService.GetDriverById(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("driver not found")
@@ -66,7 +67,10 @@ func (p *Service) DeleteDriverService(ctx context.Context, id int64) error {
 		return err
 	}
 
-	err = p.InterfaceService.DeleteDriver(ctx, id)
+	err = p.InterfaceService.DeleteDriver(ctx, db.DeleteDriverParams{
+		ID:     id,
+		UserID: idUser,
+	})
 	if err != nil {
 		return err
 	}

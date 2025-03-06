@@ -55,7 +55,7 @@ func (h *Handler) CreateAttachHandler(c echo.Context) error {
 // @Success 200 {string} string "Success"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /attach/delete/{id} [delete]
+// @Router /attach/delete/{id} [put]
 // @Security ApiKeyAuth
 func (h *Handler) DeleteAttachHandler(c echo.Context) error {
 	idStr := c.Param("id")
