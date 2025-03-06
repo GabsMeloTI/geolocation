@@ -20,9 +20,11 @@ WHERE id=$1 AND
 -- name: GetTractorUnitById :one
 SELECT *
 FROM public.tractor_unit
-WHERE id=$1;
+WHERE id=$1 AND
+    status=true;
 
 -- name: GetTractorUnitByUserId :many
 SELECT *
 FROM public.tractor_unit
-WHERE user_id=$1;
+WHERE user_id=$1 AND
+    status=true;

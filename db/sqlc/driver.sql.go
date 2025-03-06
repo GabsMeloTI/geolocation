@@ -100,7 +100,8 @@ func (q *Queries) DeleteDriver(ctx context.Context, arg DeleteDriverParams) erro
 const getDriverById = `-- name: GetDriverById :one
 SELECT id, user_id, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, status, created_at, updated_at, name, cep, complement
 FROM public.driver
-WHERE id=$1
+WHERE id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetDriverById(ctx context.Context, id int64) (Driver, error) {
@@ -133,7 +134,8 @@ func (q *Queries) GetDriverById(ctx context.Context, id int64) (Driver, error) {
 const getDriverByUserId = `-- name: GetDriverByUserId :many
 SELECT id, user_id, birth_date, cpf, license_number, license_category, license_expiration_date, state, city, neighborhood, street, street_number, phone, status, created_at, updated_at, name, cep, complement
 FROM public.driver
-WHERE user_id=$1
+WHERE user_id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetDriverByUserId(ctx context.Context, userID int64) ([]Driver, error) {

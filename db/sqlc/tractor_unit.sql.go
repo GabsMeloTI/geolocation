@@ -107,7 +107,8 @@ func (q *Queries) DeleteTractorUnit(ctx context.Context, arg DeleteTractorUnitPa
 const getTractorUnitById = `-- name: GetTractorUnitById :one
 SELECT id, license_plate, driver_id, user_id, chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, height, axles, status, created_at, updated_at, state, renavan, capacity, width, length, color
 FROM public.tractor_unit
-WHERE id=$1
+WHERE id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetTractorUnitById(ctx context.Context, id int64) (TractorUnit, error) {
@@ -143,7 +144,8 @@ func (q *Queries) GetTractorUnitById(ctx context.Context, id int64) (TractorUnit
 const getTractorUnitByUserId = `-- name: GetTractorUnitByUserId :many
 SELECT id, license_plate, driver_id, user_id, chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, height, axles, status, created_at, updated_at, state, renavan, capacity, width, length, color
 FROM public.tractor_unit
-WHERE user_id=$1
+WHERE user_id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetTractorUnitByUserId(ctx context.Context, userID int64) ([]TractorUnit, error) {

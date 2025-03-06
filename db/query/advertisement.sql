@@ -1,18 +1,25 @@
 -- name: CreateAdvertisement :one
 INSERT INTO public.advertisement
-(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, state, city, complement, neighborhood, street, street_number, cep)
+(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who,
+ state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
+ state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination)
 VALUES(nextval('advertisement_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,  true, now(), $27, $28, $29, $30, $31, $32, $33, $34)
+       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, true, now(), $27,
+       $28, $29, $30, $31, $32, $33, $34,
+       $35, $36, $37, $38, $39, $40, $41)
     RETURNING *;
+
 
 -- name: UpdateAdvertisement :one
 UPDATE public.advertisement
 SET destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, distance=$8, pickup_date=$9, delivery_date=$10, expiration_date=$11, title=$12,
     cargo_type=$13, cargo_species=$14, cargo_weight=$15, vehicles_accepted=$16, trailer=$17, requires_tarp=$18, tracking=$19, agency=$20, description=$21, payment_type=$22, advance=$23, toll=$24, situation=$25, price=$26, updated_at=now(), updated_who=$27,
-    state=$28, city=$29, complement=$30, neighborhood=$31, street=$32, street_number=$33, cep=$34
+    state_origin=$28, city_origin=$29, complement_origin=$30, neighborhood_origin=$31, street_origin=$32, street_number_origin=$33, cep_origin=$34,
+    state_destination=$35, city_destination=$36, complement_destination=$37, neighborhood_destination=$38, street_destination=$39, street_number_destination=$40, cep_destination=$41
 WHERE user_id=$1 AND
-      id=$35
+    id=$42
     RETURNING *;
+
 
 -- name: DeleteAdvertisement :exec
 UPDATE public.advertisement
@@ -23,13 +30,16 @@ WHERE id=$1 and
 -- name: GetAdvertisementById :one
 SELECT *
 FROM public.advertisement
-WHERE id=$1;
+WHERE id=$1 AND
+    status=true;
 
 -- name: GetAllAdvertisementUsers :many
-SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
-       a.state, a.city, a.complement, a.neighborhood, a.street, a.street_number, a.cep
+SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
+       destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
+       a.state_origin, a.city_origin, a.complement_origin, a.neighborhood_origin, a.street_origin, a.street_number_origin, a.cep_origin,
+       a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination
 FROM public.advertisement a
-         inner join users u on u.id = a.user_id
+         INNER JOIN users u ON u.id = a.user_id
 WHERE a.status=true
 ORDER BY expiration_date;
 
@@ -40,9 +50,12 @@ WHERE user_id = $1
   AND status = true
   AND situation = 'ativo';
 
+
 -- name: GetAllAdvertisementPublic :many
 SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at,
-       state, city, complement, neighborhood, street, street_number, cep
+       state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
+       state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination
 FROM public.advertisement
 WHERE status=true
 ORDER BY expiration_date;
+p.CreateAdvertisementRequest

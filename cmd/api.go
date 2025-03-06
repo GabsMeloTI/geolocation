@@ -85,7 +85,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/update", container.UserHandler.UpdateUser)
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
-	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler, _midlleware.CheckUserAuthorization)
+	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
@@ -103,7 +103,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
 	//simpplify
-	e.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	//easyfrete
 	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)

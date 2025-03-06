@@ -51,7 +51,8 @@ func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsPa
 const getAttachmentById = `-- name: GetAttachmentById :one
 SELECT id, user_id, description, url, name_file, size_file, status, created_at, updated_at
 FROM public.attachments
-WHERE id=$1
+WHERE id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetAttachmentById(ctx context.Context, id int64) (Attachment, error) {
