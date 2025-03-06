@@ -99,9 +99,20 @@ func (u UpdateOfferDTO) ToCreateTruckParams() db.CreateTruckParams {
 	return db.CreateTruckParams{
 		TractorUnitID: u.Request.TractorUnitId,
 		TrailerID: sql.NullInt64{
-			Int64: u.Request.TractorUnitId,
+			Int64: u.Request.TrailerId,
 			Valid: true,
 		},
 		DriverID: u.Request.DriverId,
+	}
+}
+
+func (u UpdateOfferDTO) ToCreateAppointmentParams(advertisementUserId, interestedUserId, offerId, truckId int64) db.CreateAppointmentParams {
+	return db.CreateAppointmentParams{
+		AdvertisementUserID: advertisementUserId,
+		InterestedUserID:    interestedUserId,
+		OfferID:             offerId,
+		TruckID:             truckId,
+		AdvertisementID:     u.Request.AdvertisementId,
+		CreatedWho:          "system",
 	}
 }

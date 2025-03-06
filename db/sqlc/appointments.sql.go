@@ -13,22 +13,26 @@ import (
 
 const createAppointment = `-- name: CreateAppointment :one
 INSERT INTO appointments
-(id, user_id, truck_id, advertisement_id, situation, status, created_who, created_at)
-VALUES(nextval('appointments_id_seq'::regclass), $1, $2, $3, 'ATIVO',
-       true,$4,now())
-    RETURNING id, user_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
+(id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, situation, status, created_who, created_at)
+VALUES(nextval('appointments_id_seq'::regclass), $1, $2, $3, $4, $5,'ATIVO',
+       true,$6,now())
+    RETURNING id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
 `
 
 type CreateAppointmentParams struct {
-	UserID          int64  `json:"user_id"`
-	TruckID         int64  `json:"truck_id"`
-	AdvertisementID int64  `json:"advertisement_id"`
-	CreatedWho      string `json:"created_who"`
+	AdvertisementUserID int64  `json:"advertisement_user_id"`
+	InterestedUserID    int64  `json:"interested_user_id"`
+	OfferID             int64  `json:"offer_id"`
+	TruckID             int64  `json:"truck_id"`
+	AdvertisementID     int64  `json:"advertisement_id"`
+	CreatedWho          string `json:"created_who"`
 }
 
 func (q *Queries) CreateAppointment(ctx context.Context, arg CreateAppointmentParams) (Appointment, error) {
 	row := q.db.QueryRowContext(ctx, createAppointment,
-		arg.UserID,
+		arg.AdvertisementUserID,
+		arg.InterestedUserID,
+		arg.OfferID,
 		arg.TruckID,
 		arg.AdvertisementID,
 		arg.CreatedWho,
@@ -36,7 +40,9 @@ func (q *Queries) CreateAppointment(ctx context.Context, arg CreateAppointmentPa
 	var i Appointment
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.AdvertisementUserID,
+		&i.InterestedUserID,
+		&i.OfferID,
 		&i.TruckID,
 		&i.AdvertisementID,
 		&i.Situation,
@@ -61,7 +67,7 @@ func (q *Queries) DeleteAppointment(ctx context.Context, id int64) error {
 }
 
 const getAppointmentByID = `-- name: GetAppointmentByID :one
-SELECT id, user_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
+SELECT id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
 FROM appointments
 WHERE id=$1
 `
@@ -71,7 +77,9 @@ func (q *Queries) GetAppointmentByID(ctx context.Context, id int64) (Appointment
 	var i Appointment
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.AdvertisementUserID,
+		&i.InterestedUserID,
+		&i.OfferID,
 		&i.TruckID,
 		&i.AdvertisementID,
 		&i.Situation,
@@ -84,279 +92,23 @@ func (q *Queries) GetAppointmentByID(ctx context.Context, id int64) (Appointment
 	return i, err
 }
 
-const getListAppointmentByAdvertiser = `-- name: GetListAppointmentByAdvertiser :many
-SELECT ap.id, ap.user_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, length, width, t.height, t.axles, t.status, t.created_at, t.updated_at, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at
+const getListAppointmentByUserID = `-- name: GetListAppointmentByUserID :many
+SELECT ap.id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, u.name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, u.cep, u.complement, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, ad.state, ad.city, ad.complement, ad.neighborhood, ad.street, ad.street_number, ad.cep, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, tu.state, tu.renavan, capacity, tu.width, tu.length, color, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, t.length, t.width, t.height, t.axles, t.status, t.created_at, t.updated_at, t.state, t.renavan, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at, d.name, d.cep, d.complement
 FROM appointments ap
-         LEFT JOIN users u ON u.id = ap.user_id AND u.status = true
+         LEFT JOIN users u ON u.id IN (ap.advertisement_user_id, ap.interested_user_id) AND u.status = true
          LEFT JOIN advertisement ad ON ad.id = ap.advertisement_id AND ad.status = true
          LEFT JOIN truck tr ON tr.id = ap.truck_id
          LEFT JOIN tractor_unit tu ON tu.id = tr.tractor_unit_id AND tu.status = true
          LEFT JOIN trailer t ON t.id = tr.trailer_id AND t.status = true
          LEFT JOIN driver d ON d.id = tr.driver_id AND d.status = true
-WHERE ap.advertisement_id in (SELECT ad.id FROM advertisement ad where ad.user_id = $1)
-  and ap.status=true
-`
-
-type GetListAppointmentByAdvertiserRow struct {
-	ID                    int64           `json:"id"`
-	UserID                int64           `json:"user_id"`
-	TruckID               int64           `json:"truck_id"`
-	AdvertisementID       int64           `json:"advertisement_id"`
-	Situation             string          `json:"situation"`
-	Status                bool            `json:"status"`
-	CreatedWho            string          `json:"created_who"`
-	CreatedAt             time.Time       `json:"created_at"`
-	UpdatedWho            sql.NullString  `json:"updated_who"`
-	UpdatedAt             sql.NullTime    `json:"updated_at"`
-	ID_2                  sql.NullInt64   `json:"id_2"`
-	Name                  sql.NullString  `json:"name"`
-	Email                 sql.NullString  `json:"email"`
-	Password              sql.NullString  `json:"password"`
-	CreatedAt_2           sql.NullTime    `json:"created_at_2"`
-	UpdatedAt_2           sql.NullTime    `json:"updated_at_2"`
-	ProfileID             sql.NullInt64   `json:"profile_id"`
-	Document              sql.NullString  `json:"document"`
-	State                 sql.NullString  `json:"state"`
-	City                  sql.NullString  `json:"city"`
-	Neighborhood          sql.NullString  `json:"neighborhood"`
-	Street                sql.NullString  `json:"street"`
-	StreetNumber          sql.NullString  `json:"street_number"`
-	Phone                 sql.NullString  `json:"phone"`
-	GoogleID              sql.NullString  `json:"google_id"`
-	ProfilePicture        sql.NullString  `json:"profile_picture"`
-	Status_2              sql.NullBool    `json:"status_2"`
-	ID_3                  sql.NullInt64   `json:"id_3"`
-	UserID_2              sql.NullInt64   `json:"user_id_2"`
-	Destination           sql.NullString  `json:"destination"`
-	Origin                sql.NullString  `json:"origin"`
-	DestinationLat        sql.NullString  `json:"destination_lat"`
-	DestinationLng        sql.NullString  `json:"destination_lng"`
-	OriginLat             sql.NullString  `json:"origin_lat"`
-	OriginLng             sql.NullString  `json:"origin_lng"`
-	Distance              sql.NullInt64   `json:"distance"`
-	PickupDate            sql.NullTime    `json:"pickup_date"`
-	DeliveryDate          sql.NullTime    `json:"delivery_date"`
-	ExpirationDate        sql.NullTime    `json:"expiration_date"`
-	Title                 sql.NullString  `json:"title"`
-	CargoType             sql.NullString  `json:"cargo_type"`
-	CargoSpecies          sql.NullString  `json:"cargo_species"`
-	CargoVolume           sql.NullString  `json:"cargo_volume"`
-	CargoWeight           sql.NullString  `json:"cargo_weight"`
-	VehiclesAccepted      sql.NullString  `json:"vehicles_accepted"`
-	Trailer               sql.NullString  `json:"trailer"`
-	RequiresTarp          sql.NullBool    `json:"requires_tarp"`
-	Tracking              sql.NullBool    `json:"tracking"`
-	Agency                sql.NullBool    `json:"agency"`
-	Description           sql.NullString  `json:"description"`
-	PaymentType           sql.NullString  `json:"payment_type"`
-	Advance               sql.NullString  `json:"advance"`
-	Toll                  sql.NullBool    `json:"toll"`
-	Situation_2           sql.NullString  `json:"situation_2"`
-	Price                 sql.NullString  `json:"price"`
-	Status_3              sql.NullBool    `json:"status_3"`
-	CreatedAt_3           sql.NullTime    `json:"created_at_3"`
-	CreatedWho_2          sql.NullString  `json:"created_who_2"`
-	UpdatedAt_3           sql.NullTime    `json:"updated_at_3"`
-	UpdatedWho_2          sql.NullString  `json:"updated_who_2"`
-	ID_4                  sql.NullInt64   `json:"id_4"`
-	TractorUnitID         sql.NullInt64   `json:"tractor_unit_id"`
-	TrailerID             sql.NullInt64   `json:"trailer_id"`
-	DriverID              sql.NullInt64   `json:"driver_id"`
-	ID_5                  sql.NullInt64   `json:"id_5"`
-	LicensePlate          sql.NullString  `json:"license_plate"`
-	DriverID_2            sql.NullInt64   `json:"driver_id_2"`
-	UserID_3              sql.NullInt64   `json:"user_id_3"`
-	Chassis               sql.NullString  `json:"chassis"`
-	Brand                 sql.NullString  `json:"brand"`
-	Model                 sql.NullString  `json:"model"`
-	ManufactureYear       sql.NullInt32   `json:"manufacture_year"`
-	EnginePower           sql.NullString  `json:"engine_power"`
-	UnitType              sql.NullString  `json:"unit_type"`
-	CanCouple             sql.NullBool    `json:"can_couple"`
-	Height                sql.NullFloat64 `json:"height"`
-	Axles                 sql.NullInt64   `json:"axles"`
-	Status_4              sql.NullBool    `json:"status_4"`
-	CreatedAt_4           sql.NullTime    `json:"created_at_4"`
-	UpdatedAt_4           sql.NullTime    `json:"updated_at_4"`
-	ID_6                  sql.NullInt64   `json:"id_6"`
-	LicensePlate_2        sql.NullString  `json:"license_plate_2"`
-	UserID_4              sql.NullInt64   `json:"user_id_4"`
-	Chassis_2             sql.NullString  `json:"chassis_2"`
-	BodyType              sql.NullString  `json:"body_type"`
-	LoadCapacity          sql.NullFloat64 `json:"load_capacity"`
-	Length                sql.NullFloat64 `json:"length"`
-	Width                 sql.NullFloat64 `json:"width"`
-	Height_2              sql.NullFloat64 `json:"height_2"`
-	Axles_2               sql.NullInt64   `json:"axles_2"`
-	Status_5              sql.NullBool    `json:"status_5"`
-	CreatedAt_5           sql.NullTime    `json:"created_at_5"`
-	UpdatedAt_5           sql.NullTime    `json:"updated_at_5"`
-	ID_7                  sql.NullInt64   `json:"id_7"`
-	UserID_5              sql.NullInt64   `json:"user_id_5"`
-	BirthDate             sql.NullTime    `json:"birth_date"`
-	Cpf                   sql.NullString  `json:"cpf"`
-	LicenseNumber         sql.NullString  `json:"license_number"`
-	LicenseCategory       sql.NullString  `json:"license_category"`
-	LicenseExpirationDate sql.NullTime    `json:"license_expiration_date"`
-	State_2               sql.NullString  `json:"state_2"`
-	City_2                sql.NullString  `json:"city_2"`
-	Neighborhood_2        sql.NullString  `json:"neighborhood_2"`
-	Street_2              sql.NullString  `json:"street_2"`
-	StreetNumber_2        sql.NullString  `json:"street_number_2"`
-	Phone_2               sql.NullString  `json:"phone_2"`
-	Status_6              sql.NullBool    `json:"status_6"`
-	CreatedAt_6           sql.NullTime    `json:"created_at_6"`
-	UpdatedAt_6           sql.NullTime    `json:"updated_at_6"`
-}
-
-func (q *Queries) GetListAppointmentByAdvertiser(ctx context.Context, userID int64) ([]GetListAppointmentByAdvertiserRow, error) {
-	rows, err := q.db.QueryContext(ctx, getListAppointmentByAdvertiser, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetListAppointmentByAdvertiserRow
-	for rows.Next() {
-		var i GetListAppointmentByAdvertiserRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.TruckID,
-			&i.AdvertisementID,
-			&i.Situation,
-			&i.Status,
-			&i.CreatedWho,
-			&i.CreatedAt,
-			&i.UpdatedWho,
-			&i.UpdatedAt,
-			&i.ID_2,
-			&i.Name,
-			&i.Email,
-			&i.Password,
-			&i.CreatedAt_2,
-			&i.UpdatedAt_2,
-			&i.ProfileID,
-			&i.Document,
-			&i.State,
-			&i.City,
-			&i.Neighborhood,
-			&i.Street,
-			&i.StreetNumber,
-			&i.Phone,
-			&i.GoogleID,
-			&i.ProfilePicture,
-			&i.Status_2,
-			&i.ID_3,
-			&i.UserID_2,
-			&i.Destination,
-			&i.Origin,
-			&i.DestinationLat,
-			&i.DestinationLng,
-			&i.OriginLat,
-			&i.OriginLng,
-			&i.Distance,
-			&i.PickupDate,
-			&i.DeliveryDate,
-			&i.ExpirationDate,
-			&i.Title,
-			&i.CargoType,
-			&i.CargoSpecies,
-			&i.CargoVolume,
-			&i.CargoWeight,
-			&i.VehiclesAccepted,
-			&i.Trailer,
-			&i.RequiresTarp,
-			&i.Tracking,
-			&i.Agency,
-			&i.Description,
-			&i.PaymentType,
-			&i.Advance,
-			&i.Toll,
-			&i.Situation_2,
-			&i.Price,
-			&i.Status_3,
-			&i.CreatedAt_3,
-			&i.CreatedWho_2,
-			&i.UpdatedAt_3,
-			&i.UpdatedWho_2,
-			&i.ID_4,
-			&i.TractorUnitID,
-			&i.TrailerID,
-			&i.DriverID,
-			&i.ID_5,
-			&i.LicensePlate,
-			&i.DriverID_2,
-			&i.UserID_3,
-			&i.Chassis,
-			&i.Brand,
-			&i.Model,
-			&i.ManufactureYear,
-			&i.EnginePower,
-			&i.UnitType,
-			&i.CanCouple,
-			&i.Height,
-			&i.Axles,
-			&i.Status_4,
-			&i.CreatedAt_4,
-			&i.UpdatedAt_4,
-			&i.ID_6,
-			&i.LicensePlate_2,
-			&i.UserID_4,
-			&i.Chassis_2,
-			&i.BodyType,
-			&i.LoadCapacity,
-			&i.Length,
-			&i.Width,
-			&i.Height_2,
-			&i.Axles_2,
-			&i.Status_5,
-			&i.CreatedAt_5,
-			&i.UpdatedAt_5,
-			&i.ID_7,
-			&i.UserID_5,
-			&i.BirthDate,
-			&i.Cpf,
-			&i.LicenseNumber,
-			&i.LicenseCategory,
-			&i.LicenseExpirationDate,
-			&i.State_2,
-			&i.City_2,
-			&i.Neighborhood_2,
-			&i.Street_2,
-			&i.StreetNumber_2,
-			&i.Phone_2,
-			&i.Status_6,
-			&i.CreatedAt_6,
-			&i.UpdatedAt_6,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getListAppointmentByUserID = `-- name: GetListAppointmentByUserID :many
-SELECT ap.id, ap.user_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_volume, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, length, width, t.height, t.axles, t.status, t.created_at, t.updated_at, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at
-FROM appointments ap
-    LEFT JOIN users u ON u.id = ap.user_id AND u.status = true
-    LEFT JOIN advertisement ad ON ad.id = ap.advertisement_id AND ad.status = true
-    LEFT JOIN truck tr ON tr.id = ap.truck_id
-    LEFT JOIN tractor_unit tu ON tu.id = tr.tractor_unit_id AND tu.status = true
-    LEFT JOIN trailer t ON t.id = tr.trailer_id AND t.status = true
-    LEFT JOIN driver d ON d.id = tr.driver_id AND d.status = true
-WHERE ap.user_id=$1 and ap.status=true
+WHERE (ap.advertisement_user_id=$1 OR ap.interested_user_id=$1) AND ap.status = true
 `
 
 type GetListAppointmentByUserIDRow struct {
 	ID                    int64           `json:"id"`
-	UserID                int64           `json:"user_id"`
+	AdvertisementUserID   int64           `json:"advertisement_user_id"`
+	InterestedUserID      int64           `json:"interested_user_id"`
+	OfferID               int64           `json:"offer_id"`
 	TruckID               int64           `json:"truck_id"`
 	AdvertisementID       int64           `json:"advertisement_id"`
 	Situation             string          `json:"situation"`
@@ -382,14 +134,16 @@ type GetListAppointmentByUserIDRow struct {
 	GoogleID              sql.NullString  `json:"google_id"`
 	ProfilePicture        sql.NullString  `json:"profile_picture"`
 	Status_2              sql.NullBool    `json:"status_2"`
+	Cep                   sql.NullString  `json:"cep"`
+	Complement            sql.NullString  `json:"complement"`
 	ID_3                  sql.NullInt64   `json:"id_3"`
-	UserID_2              sql.NullInt64   `json:"user_id_2"`
+	UserID                sql.NullInt64   `json:"user_id"`
 	Destination           sql.NullString  `json:"destination"`
 	Origin                sql.NullString  `json:"origin"`
-	DestinationLat        sql.NullString  `json:"destination_lat"`
-	DestinationLng        sql.NullString  `json:"destination_lng"`
-	OriginLat             sql.NullString  `json:"origin_lat"`
-	OriginLng             sql.NullString  `json:"origin_lng"`
+	DestinationLat        sql.NullFloat64 `json:"destination_lat"`
+	DestinationLng        sql.NullFloat64 `json:"destination_lng"`
+	OriginLat             sql.NullFloat64 `json:"origin_lat"`
+	OriginLng             sql.NullFloat64 `json:"origin_lng"`
 	Distance              sql.NullInt64   `json:"distance"`
 	PickupDate            sql.NullTime    `json:"pickup_date"`
 	DeliveryDate          sql.NullTime    `json:"delivery_date"`
@@ -397,8 +151,7 @@ type GetListAppointmentByUserIDRow struct {
 	Title                 sql.NullString  `json:"title"`
 	CargoType             sql.NullString  `json:"cargo_type"`
 	CargoSpecies          sql.NullString  `json:"cargo_species"`
-	CargoVolume           sql.NullString  `json:"cargo_volume"`
-	CargoWeight           sql.NullString  `json:"cargo_weight"`
+	CargoWeight           sql.NullFloat64 `json:"cargo_weight"`
 	VehiclesAccepted      sql.NullString  `json:"vehicles_accepted"`
 	Trailer               sql.NullString  `json:"trailer"`
 	RequiresTarp          sql.NullBool    `json:"requires_tarp"`
@@ -409,7 +162,14 @@ type GetListAppointmentByUserIDRow struct {
 	Advance               sql.NullString  `json:"advance"`
 	Toll                  sql.NullBool    `json:"toll"`
 	Situation_2           sql.NullString  `json:"situation_2"`
-	Price                 sql.NullString  `json:"price"`
+	Price                 sql.NullFloat64 `json:"price"`
+	State_2               sql.NullString  `json:"state_2"`
+	City_2                sql.NullString  `json:"city_2"`
+	Complement_2          sql.NullString  `json:"complement_2"`
+	Neighborhood_2        sql.NullString  `json:"neighborhood_2"`
+	Street_2              sql.NullString  `json:"street_2"`
+	StreetNumber_2        sql.NullString  `json:"street_number_2"`
+	Cep_2                 sql.NullString  `json:"cep_2"`
 	Status_3              sql.NullBool    `json:"status_3"`
 	CreatedAt_3           sql.NullTime    `json:"created_at_3"`
 	CreatedWho_2          sql.NullString  `json:"created_who_2"`
@@ -422,11 +182,11 @@ type GetListAppointmentByUserIDRow struct {
 	ID_5                  sql.NullInt64   `json:"id_5"`
 	LicensePlate          sql.NullString  `json:"license_plate"`
 	DriverID_2            sql.NullInt64   `json:"driver_id_2"`
-	UserID_3              sql.NullInt64   `json:"user_id_3"`
+	UserID_2              sql.NullInt64   `json:"user_id_2"`
 	Chassis               sql.NullString  `json:"chassis"`
 	Brand                 sql.NullString  `json:"brand"`
 	Model                 sql.NullString  `json:"model"`
-	ManufactureYear       sql.NullInt32   `json:"manufacture_year"`
+	ManufactureYear       sql.NullInt64   `json:"manufacture_year"`
 	EnginePower           sql.NullString  `json:"engine_power"`
 	UnitType              sql.NullString  `json:"unit_type"`
 	CanCouple             sql.NullBool    `json:"can_couple"`
@@ -435,39 +195,50 @@ type GetListAppointmentByUserIDRow struct {
 	Status_4              sql.NullBool    `json:"status_4"`
 	CreatedAt_4           sql.NullTime    `json:"created_at_4"`
 	UpdatedAt_4           sql.NullTime    `json:"updated_at_4"`
+	State_3               sql.NullString  `json:"state_3"`
+	Renavan               sql.NullString  `json:"renavan"`
+	Capacity              sql.NullString  `json:"capacity"`
+	Width                 sql.NullFloat64 `json:"width"`
+	Length                sql.NullFloat64 `json:"length"`
+	Color                 sql.NullString  `json:"color"`
 	ID_6                  sql.NullInt64   `json:"id_6"`
 	LicensePlate_2        sql.NullString  `json:"license_plate_2"`
-	UserID_4              sql.NullInt64   `json:"user_id_4"`
+	UserID_3              sql.NullInt64   `json:"user_id_3"`
 	Chassis_2             sql.NullString  `json:"chassis_2"`
 	BodyType              sql.NullString  `json:"body_type"`
 	LoadCapacity          sql.NullFloat64 `json:"load_capacity"`
-	Length                sql.NullFloat64 `json:"length"`
-	Width                 sql.NullFloat64 `json:"width"`
+	Length_2              sql.NullFloat64 `json:"length_2"`
+	Width_2               sql.NullFloat64 `json:"width_2"`
 	Height_2              sql.NullFloat64 `json:"height_2"`
 	Axles_2               sql.NullInt64   `json:"axles_2"`
 	Status_5              sql.NullBool    `json:"status_5"`
 	CreatedAt_5           sql.NullTime    `json:"created_at_5"`
 	UpdatedAt_5           sql.NullTime    `json:"updated_at_5"`
+	State_4               sql.NullString  `json:"state_4"`
+	Renavan_2             sql.NullString  `json:"renavan_2"`
 	ID_7                  sql.NullInt64   `json:"id_7"`
-	UserID_5              sql.NullInt64   `json:"user_id_5"`
+	UserID_4              sql.NullInt64   `json:"user_id_4"`
 	BirthDate             sql.NullTime    `json:"birth_date"`
 	Cpf                   sql.NullString  `json:"cpf"`
 	LicenseNumber         sql.NullString  `json:"license_number"`
 	LicenseCategory       sql.NullString  `json:"license_category"`
 	LicenseExpirationDate sql.NullTime    `json:"license_expiration_date"`
-	State_2               sql.NullString  `json:"state_2"`
-	City_2                sql.NullString  `json:"city_2"`
-	Neighborhood_2        sql.NullString  `json:"neighborhood_2"`
-	Street_2              sql.NullString  `json:"street_2"`
-	StreetNumber_2        sql.NullString  `json:"street_number_2"`
+	State_5               sql.NullString  `json:"state_5"`
+	City_3                sql.NullString  `json:"city_3"`
+	Neighborhood_3        sql.NullString  `json:"neighborhood_3"`
+	Street_3              sql.NullString  `json:"street_3"`
+	StreetNumber_3        sql.NullString  `json:"street_number_3"`
 	Phone_2               sql.NullString  `json:"phone_2"`
 	Status_6              sql.NullBool    `json:"status_6"`
 	CreatedAt_6           sql.NullTime    `json:"created_at_6"`
 	UpdatedAt_6           sql.NullTime    `json:"updated_at_6"`
+	Name_2                sql.NullString  `json:"name_2"`
+	Cep_3                 sql.NullString  `json:"cep_3"`
+	Complement_3          sql.NullString  `json:"complement_3"`
 }
 
-func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) ([]GetListAppointmentByUserIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, getListAppointmentByUserID, userID)
+func (q *Queries) GetListAppointmentByUserID(ctx context.Context, advertisementUserID int64) ([]GetListAppointmentByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getListAppointmentByUserID, advertisementUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +248,9 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 		var i GetListAppointmentByUserIDRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
+			&i.AdvertisementUserID,
+			&i.InterestedUserID,
+			&i.OfferID,
 			&i.TruckID,
 			&i.AdvertisementID,
 			&i.Situation,
@@ -503,8 +276,10 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 			&i.GoogleID,
 			&i.ProfilePicture,
 			&i.Status_2,
+			&i.Cep,
+			&i.Complement,
 			&i.ID_3,
-			&i.UserID_2,
+			&i.UserID,
 			&i.Destination,
 			&i.Origin,
 			&i.DestinationLat,
@@ -518,7 +293,6 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 			&i.Title,
 			&i.CargoType,
 			&i.CargoSpecies,
-			&i.CargoVolume,
 			&i.CargoWeight,
 			&i.VehiclesAccepted,
 			&i.Trailer,
@@ -531,6 +305,13 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 			&i.Toll,
 			&i.Situation_2,
 			&i.Price,
+			&i.State_2,
+			&i.City_2,
+			&i.Complement_2,
+			&i.Neighborhood_2,
+			&i.Street_2,
+			&i.StreetNumber_2,
+			&i.Cep_2,
 			&i.Status_3,
 			&i.CreatedAt_3,
 			&i.CreatedWho_2,
@@ -543,7 +324,7 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 			&i.ID_5,
 			&i.LicensePlate,
 			&i.DriverID_2,
-			&i.UserID_3,
+			&i.UserID_2,
 			&i.Chassis,
 			&i.Brand,
 			&i.Model,
@@ -556,35 +337,46 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, userID int64) 
 			&i.Status_4,
 			&i.CreatedAt_4,
 			&i.UpdatedAt_4,
+			&i.State_3,
+			&i.Renavan,
+			&i.Capacity,
+			&i.Width,
+			&i.Length,
+			&i.Color,
 			&i.ID_6,
 			&i.LicensePlate_2,
-			&i.UserID_4,
+			&i.UserID_3,
 			&i.Chassis_2,
 			&i.BodyType,
 			&i.LoadCapacity,
-			&i.Length,
-			&i.Width,
+			&i.Length_2,
+			&i.Width_2,
 			&i.Height_2,
 			&i.Axles_2,
 			&i.Status_5,
 			&i.CreatedAt_5,
 			&i.UpdatedAt_5,
+			&i.State_4,
+			&i.Renavan_2,
 			&i.ID_7,
-			&i.UserID_5,
+			&i.UserID_4,
 			&i.BirthDate,
 			&i.Cpf,
 			&i.LicenseNumber,
 			&i.LicenseCategory,
 			&i.LicenseExpirationDate,
-			&i.State_2,
-			&i.City_2,
-			&i.Neighborhood_2,
-			&i.Street_2,
-			&i.StreetNumber_2,
+			&i.State_5,
+			&i.City_3,
+			&i.Neighborhood_3,
+			&i.Street_3,
+			&i.StreetNumber_3,
 			&i.Phone_2,
 			&i.Status_6,
 			&i.CreatedAt_6,
 			&i.UpdatedAt_6,
+			&i.Name_2,
+			&i.Cep_3,
+			&i.Complement_3,
 		); err != nil {
 			return nil, err
 		}
@@ -603,7 +395,7 @@ const updateAppointmentSituation = `-- name: UpdateAppointmentSituation :exec
 UPDATE appointments
 SET situation=$1, updated_who=$2, updated_at=now()
 WHERE id=$3
-    RETURNING id, user_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
+    RETURNING id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, situation, status, created_who, created_at, updated_who, updated_at
 `
 
 type UpdateAppointmentSituationParams struct {

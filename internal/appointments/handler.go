@@ -15,38 +15,6 @@ func NewAppointmentHandler(InterfaceService InterfaceService) *Handler {
 	return &Handler{InterfaceService}
 }
 
-// CreateAppointmentHandler godoc
-// @Summary Create an Appointment.
-// @Description Create an Appointment.
-// @Tags Appointments
-// @Accept json
-// @Produce json
-// @Param request body CreateAppointmentRequest true "Appointment Request"
-// @Success 200 {object} AppointmentResponse "Appointment Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /appointment/create [post]
-// @Security ApiKeyAuth
-func (p *Handler) CreateAppointmentHandler(c echo.Context) error {
-	var request CreateAppointmentRequest
-	if err := c.Bind(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-	payload := get_token.GetUserPayloadToken(c)
-
-	data := CreateAppointmentDTO{
-		Request: request,
-		Payload: payload,
-	}
-
-	result, err := p.InterfaceService.CreateAppointmentService(c.Request().Context(), data)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	return c.JSON(http.StatusOK, result)
-}
-
 // UpdateAppointmentHandler godoc
 // @Summary Update an Appointment.
 // @Description Update an Appointment.

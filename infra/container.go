@@ -6,6 +6,7 @@ import (
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
 	"geolocation/internal/advertisement"
+	"geolocation/internal/appointments"
 	"geolocation/internal/attachment"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
@@ -60,9 +61,9 @@ type ContainerDI struct {
 	PasetoMaker             *token.Maker
 	WsRepository            *ws.Repository
 	WsService               *ws.Service
-	HandlerAppointment     *appointments.Handler
-	ServiceAppointment     *appointments.Service
-	RepositoryAppointment  *appointments.Repository
+	HandlerAppointment      *appointments.Handler
+	ServiceAppointment      *appointments.Service
+	RepositoryAppointment   *appointments.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {

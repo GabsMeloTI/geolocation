@@ -54,16 +54,6 @@ type AppointmentResponse struct {
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
 
-func (p *CreateAppointmentDTO) ParseCreateToAppointment() db.CreateAppointmentParams {
-	arg := db.CreateAppointmentParams{
-		UserID:          p.Request.UserID,
-		TruckID:         p.Request.TruckID,
-		AdvertisementID: p.Request.AdvertisementID,
-		CreatedWho:      p.Payload.Name,
-	}
-	return arg
-}
-
 func (p *UpdateAppointmentDTO) ParseUpdateToAppointment() db.UpdateAppointmentSituationParams {
 	arg := db.UpdateAppointmentSituationParams{
 		Situation: p.Request.Situation,
@@ -75,24 +65,9 @@ func (p *UpdateAppointmentDTO) ParseUpdateToAppointment() db.UpdateAppointmentSi
 	}
 	return arg
 }
-
-func (p *AppointmentResponse) ParseFromAppointmentObject(result db.Appointment) {
+func (p *AppointmentResponseList) ParseFromAppointmentListObject(result db.GetListAppointmentByUserIDRow, userId int64) {
 	p.ID = result.ID
-	p.UserID = result.UserID
-	p.TruckID = result.TruckID
-	p.AdvertisementID = result.AdvertisementID
-	p.Status = result.Status
-	p.CreatedWho = result.CreatedWho
-	p.CreatedAt = result.CreatedAt
-	p.UpdatedWho = result.UpdatedWho.String
-	if result.UpdatedAt.Valid {
-		p.UpdatedAt = &result.UpdatedAt.Time
-	}
-}
-
-func (p *AppointmentResponseList) ParseFromAppointmentListObject(result db.GetListAppointmentByUserIDRow) {
-	p.ID = result.ID
-	p.UserID = result.UserID
+	p.UserID = userId
 	p.TruckID = result.TruckID
 	p.AdvertisementID = result.AdvertisementID
 	p.Status = result.Status

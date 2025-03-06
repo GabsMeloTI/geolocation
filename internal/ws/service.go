@@ -223,7 +223,7 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 		return err
 	}
 
-	_, err = s.InterfaceService.CreateOfferRepository(ctx, data.ToCreateOfferParams(r.InterestedUserID))
+	offer, err := s.InterfaceService.CreateOfferRepository(ctx, data.ToCreateOfferParams(r.InterestedUserID))
 
 	if err != nil {
 		return err
@@ -235,7 +235,13 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 		return err
 	}
 
-	_, err = s.InterfaceService.CreateTruckRepository(ctx, data.ToCreateTruckParams())
+	truck, err := s.InterfaceService.CreateTruckRepository(ctx, data.ToCreateTruckParams())
+
+	if err != nil {
+		return err
+	}
+
+	_, err = s.InterfaceService.CreateAppointmentRepository(ctx, data.ToCreateAppointmentParams(r.AdvertisementUserID, r.InterestedUserID, offer.ID, truck.ID))
 
 	if err != nil {
 		return err

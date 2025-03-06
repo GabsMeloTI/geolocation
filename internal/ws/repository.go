@@ -19,6 +19,7 @@ type InterfaceRepository interface {
 	CreateOfferRepository(ctx context.Context, arg db.CreateOfferParams) (db.Offer, error)
 	UpdateAdvertisementSituationRepository(ctx context.Context, arg db.UpdateAdvertisementSituationParams) error
 	CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error)
+	CreateAppointmentRepository(ctx context.Context, arg db.CreateAppointmentParams) (db.Appointment, error)
 }
 
 type Repository struct {
@@ -84,4 +85,8 @@ func (r *Repository) UpdateAdvertisementSituationRepository(ctx context.Context,
 
 func (r *Repository) CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error) {
 	return r.Queries.CreateTruck(ctx, arg)
+}
+
+func (r *Repository) CreateAppointmentRepository(ctx context.Context, arg db.CreateAppointmentParams) (db.Appointment, error) {
+	return r.Queries.CreateAppointment(ctx, arg)
 }

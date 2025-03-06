@@ -12,7 +12,7 @@ type InterfaceRepository interface {
 	DeleteAppointment(ctx context.Context, arg int64) error
 	GetAppointmentByID(ctx context.Context, arg int64) (db.Appointment, error)
 	GetListAppointmentByUserID(ctx context.Context, arg int64) ([]db.GetListAppointmentByUserIDRow, error)
-	GetListAppointmentByAdvertiser(ctx context.Context, arg int64) ([]db.GetListAppointmentByAdvertiserRow, error)
+	//GetListAppointmentByAdvertiser(ctx context.Context, arg int64) ([]db.GetListAppointmentByAdvertiserRow, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -43,9 +43,11 @@ func (r *Repository) DeleteAppointment(ctx context.Context, arg int64) error {
 func (r *Repository) GetAppointmentByID(ctx context.Context, arg int64) (db.Appointment, error) {
 	return r.Queries.GetAppointmentByID(ctx, arg)
 }
+
 func (r *Repository) GetListAppointmentByUserID(ctx context.Context, arg int64) ([]db.GetListAppointmentByUserIDRow, error) {
 	return r.Queries.GetListAppointmentByUserID(ctx, arg)
 }
-func (r *Repository) GetListAppointmentByAdvertiser(ctx context.Context, arg int64) ([]db.GetListAppointmentByAdvertiserRow, error) {
-	return r.Queries.GetListAppointmentByAdvertiser(ctx, arg)
-}
+
+//func (r *Repository) GetListAppointmentByAdvertiser(ctx context.Context, arg int64) ([]db.GetListAppointmentByAdvertiserRow, error) {
+//	return r.Queries.GetListAppointmentByAdvertiser(ctx, arg)
+//}

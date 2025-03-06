@@ -1,6 +1,8 @@
 CREATE TABLE appointments (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT not null,
+    advertisement_user_id BIGINT not null,
+    interested_user_id BIGINT not null,
+    offer_id BIGINT not null,
     truck_id BIGINT not null,
     advertisement_id BIGINT not null,
     situation VARCHAR NOT NULL,

@@ -41,7 +41,7 @@ CREATE TABLE trailer (
 
 
 CREATE TABLE truck (
-                          id BIGINT PRIMARY KEY,
+                          id BIGSERIAL PRIMARY KEY,
                           tractor_unit_id BIGINT NOT NULL,
                           trailer_id  BIGINT,
                           driver_id BIGINT NOT NULL,
