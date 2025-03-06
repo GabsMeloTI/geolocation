@@ -6,6 +6,7 @@ import (
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
 	"geolocation/internal/advertisement"
+	"geolocation/internal/appointments"
 	"geolocation/internal/attachment"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
@@ -60,6 +61,9 @@ type ContainerDI struct {
 	PasetoMaker             *token.Maker
 	WsRepository            *ws.Repository
 	WsService               *ws.Service
+	HandlerAppointment      *appointments.Handler
+	ServiceAppointment      *appointments.Service
+	RepositoryAppointment   *appointments.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -104,6 +108,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryUserPlan = plans.NewUserPlanRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
+	c.RepositoryAppointment = appointments.NewAppointmentsRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -119,6 +124,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
+	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -136,5 +142,6 @@ func (c *ContainerDI) buildHandler() {
 	hub := ws.NewHub()
 	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()
+	c.HandlerAppointment = appointments.NewAppointmentHandler(c.ServiceAppointment)
 
 }

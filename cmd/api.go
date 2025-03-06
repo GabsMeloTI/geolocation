@@ -99,6 +99,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
+	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
@@ -113,7 +114,10 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/v2/login", container.LoginHandler.Login)
 	e.POST("/v2/create", container.LoginHandler.CreateUser)
 
-	log.Printf("Server started")
+	appointment := e.Group("/appointment")
+	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
+	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
+	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"

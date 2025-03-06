@@ -140,3 +140,26 @@ func (h *Handler) GetMessagesByRoomId(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
+
+func (h *Handler) UpdateMessageOffer(c echo.Context) error {
+	var request UpdateOfferRequest
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+
+	data := UpdateOfferDTO{
+		Request: request,
+		Payload: payload,
+	}
+
+	err := h.InterfaceService.UpdateMessageOfferService(c.Request().Context(), data, h.hub)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.String(http.StatusOK, "Success")
+}

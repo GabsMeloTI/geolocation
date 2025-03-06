@@ -21,3 +21,4 @@ WHERE r.interested_user_id = $1;
 SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertisement_id, a.origin, a.destination, a.distance, a.title FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.advertisement_user_id = $1;
+
