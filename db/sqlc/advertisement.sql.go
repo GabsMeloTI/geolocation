@@ -28,47 +28,58 @@ func (q *Queries) CountAdvertisementByUserID(ctx context.Context, userID int64) 
 
 const createAdvertisement = `-- name: CreateAdvertisement :one
 INSERT INTO public.advertisement
-(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, state, city, complement, neighborhood, street, street_number, cep)
+(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who,
+ state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
+ state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination)
 VALUES(nextval('advertisement_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,  true, now(), $27, $28, $29, $30, $31, $32, $33, $34)
-    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state, city, complement, neighborhood, street, street_number, cep, status, created_at, created_who, updated_at, updated_who
+       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, true, now(), $27,
+       $28, $29, $30, $31, $32, $33, $34,
+       $35, $36, $37, $38, $39, $40, $41)
+    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, status, created_at, created_who, updated_at, updated_who
 `
 
 type CreateAdvertisementParams struct {
-	UserID           int64     `json:"user_id"`
-	Destination      string    `json:"destination"`
-	Origin           string    `json:"origin"`
-	DestinationLat   float64   `json:"destination_lat"`
-	DestinationLng   float64   `json:"destination_lng"`
-	OriginLat        float64   `json:"origin_lat"`
-	OriginLng        float64   `json:"origin_lng"`
-	Distance         int64     `json:"distance"`
-	PickupDate       time.Time `json:"pickup_date"`
-	DeliveryDate     time.Time `json:"delivery_date"`
-	ExpirationDate   time.Time `json:"expiration_date"`
-	Title            string    `json:"title"`
-	CargoType        string    `json:"cargo_type"`
-	CargoSpecies     string    `json:"cargo_species"`
-	CargoWeight      float64   `json:"cargo_weight"`
-	VehiclesAccepted string    `json:"vehicles_accepted"`
-	Trailer          string    `json:"trailer"`
-	RequiresTarp     bool      `json:"requires_tarp"`
-	Tracking         bool      `json:"tracking"`
-	Agency           bool      `json:"agency"`
-	Description      string    `json:"description"`
-	PaymentType      string    `json:"payment_type"`
-	Advance          string    `json:"advance"`
-	Toll             bool      `json:"toll"`
-	Situation        string    `json:"situation"`
-	Price            float64   `json:"price"`
-	CreatedWho       string    `json:"created_who"`
-	State            string    `json:"state"`
-	City             string    `json:"city"`
-	Complement       string    `json:"complement"`
-	Neighborhood     string    `json:"neighborhood"`
-	Street           string    `json:"street"`
-	StreetNumber     string    `json:"street_number"`
-	Cep              string    `json:"cep"`
+	UserID                  int64     `json:"user_id"`
+	Destination             string    `json:"destination"`
+	Origin                  string    `json:"origin"`
+	DestinationLat          float64   `json:"destination_lat"`
+	DestinationLng          float64   `json:"destination_lng"`
+	OriginLat               float64   `json:"origin_lat"`
+	OriginLng               float64   `json:"origin_lng"`
+	Distance                int64     `json:"distance"`
+	PickupDate              time.Time `json:"pickup_date"`
+	DeliveryDate            time.Time `json:"delivery_date"`
+	ExpirationDate          time.Time `json:"expiration_date"`
+	Title                   string    `json:"title"`
+	CargoType               string    `json:"cargo_type"`
+	CargoSpecies            string    `json:"cargo_species"`
+	CargoWeight             float64   `json:"cargo_weight"`
+	VehiclesAccepted        string    `json:"vehicles_accepted"`
+	Trailer                 string    `json:"trailer"`
+	RequiresTarp            bool      `json:"requires_tarp"`
+	Tracking                bool      `json:"tracking"`
+	Agency                  bool      `json:"agency"`
+	Description             string    `json:"description"`
+	PaymentType             string    `json:"payment_type"`
+	Advance                 string    `json:"advance"`
+	Toll                    bool      `json:"toll"`
+	Situation               string    `json:"situation"`
+	Price                   float64   `json:"price"`
+	CreatedWho              string    `json:"created_who"`
+	StateOrigin             string    `json:"state_origin"`
+	CityOrigin              string    `json:"city_origin"`
+	ComplementOrigin        string    `json:"complement_origin"`
+	NeighborhoodOrigin      string    `json:"neighborhood_origin"`
+	StreetOrigin            string    `json:"street_origin"`
+	StreetNumberOrigin      string    `json:"street_number_origin"`
+	CepOrigin               string    `json:"cep_origin"`
+	StateDestination        string    `json:"state_destination"`
+	CityDestination         string    `json:"city_destination"`
+	ComplementDestination   string    `json:"complement_destination"`
+	NeighborhoodDestination string    `json:"neighborhood_destination"`
+	StreetDestination       string    `json:"street_destination"`
+	StreetNumberDestination string    `json:"street_number_destination"`
+	CepDestination          string    `json:"cep_destination"`
 }
 
 func (q *Queries) CreateAdvertisement(ctx context.Context, arg CreateAdvertisementParams) (Advertisement, error) {
@@ -100,13 +111,20 @@ func (q *Queries) CreateAdvertisement(ctx context.Context, arg CreateAdvertiseme
 		arg.Situation,
 		arg.Price,
 		arg.CreatedWho,
-		arg.State,
-		arg.City,
-		arg.Complement,
-		arg.Neighborhood,
-		arg.Street,
-		arg.StreetNumber,
-		arg.Cep,
+		arg.StateOrigin,
+		arg.CityOrigin,
+		arg.ComplementOrigin,
+		arg.NeighborhoodOrigin,
+		arg.StreetOrigin,
+		arg.StreetNumberOrigin,
+		arg.CepOrigin,
+		arg.StateDestination,
+		arg.CityDestination,
+		arg.ComplementDestination,
+		arg.NeighborhoodDestination,
+		arg.StreetDestination,
+		arg.StreetNumberDestination,
+		arg.CepDestination,
 	)
 	var i Advertisement
 	err := row.Scan(
@@ -137,13 +155,20 @@ func (q *Queries) CreateAdvertisement(ctx context.Context, arg CreateAdvertiseme
 		&i.Toll,
 		&i.Situation,
 		&i.Price,
-		&i.State,
-		&i.City,
-		&i.Complement,
-		&i.Neighborhood,
-		&i.Street,
-		&i.StreetNumber,
-		&i.Cep,
+		&i.StateOrigin,
+		&i.CityOrigin,
+		&i.ComplementOrigin,
+		&i.NeighborhoodOrigin,
+		&i.StreetOrigin,
+		&i.StreetNumberOrigin,
+		&i.CepOrigin,
+		&i.StateDestination,
+		&i.CityDestination,
+		&i.ComplementDestination,
+		&i.NeighborhoodDestination,
+		&i.StreetDestination,
+		&i.StreetNumberDestination,
+		&i.CepDestination,
 		&i.Status,
 		&i.CreatedAt,
 		&i.CreatedWho,
@@ -172,9 +197,10 @@ func (q *Queries) DeleteAdvertisement(ctx context.Context, arg DeleteAdvertiseme
 }
 
 const getAdvertisementById = `-- name: GetAdvertisementById :one
-SELECT id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state, city, complement, neighborhood, street, street_number, cep, status, created_at, created_who, updated_at, updated_who
+SELECT id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, status, created_at, created_who, updated_at, updated_who
 FROM public.advertisement
-WHERE id=$1
+WHERE id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetAdvertisementById(ctx context.Context, id int64) (Advertisement, error) {
@@ -208,13 +234,20 @@ func (q *Queries) GetAdvertisementById(ctx context.Context, id int64) (Advertise
 		&i.Toll,
 		&i.Situation,
 		&i.Price,
-		&i.State,
-		&i.City,
-		&i.Complement,
-		&i.Neighborhood,
-		&i.Street,
-		&i.StreetNumber,
-		&i.Cep,
+		&i.StateOrigin,
+		&i.CityOrigin,
+		&i.ComplementOrigin,
+		&i.NeighborhoodOrigin,
+		&i.StreetOrigin,
+		&i.StreetNumberOrigin,
+		&i.CepOrigin,
+		&i.StateDestination,
+		&i.CityDestination,
+		&i.ComplementDestination,
+		&i.NeighborhoodDestination,
+		&i.StreetDestination,
+		&i.StreetNumberDestination,
+		&i.CepDestination,
 		&i.Status,
 		&i.CreatedAt,
 		&i.CreatedWho,
@@ -226,41 +259,49 @@ func (q *Queries) GetAdvertisementById(ctx context.Context, id int64) (Advertise
 
 const getAllAdvertisementPublic = `-- name: GetAllAdvertisementPublic :many
 SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at,
-       state, city, complement, neighborhood, street, street_number, cep
+       state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
+       state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination
 FROM public.advertisement
 WHERE status=true
 ORDER BY expiration_date
 `
 
 type GetAllAdvertisementPublicRow struct {
-	ID               int64     `json:"id"`
-	Destination      string    `json:"destination"`
-	Origin           string    `json:"origin"`
-	PickupDate       time.Time `json:"pickup_date"`
-	DeliveryDate     time.Time `json:"delivery_date"`
-	ExpirationDate   time.Time `json:"expiration_date"`
-	Title            string    `json:"title"`
-	CargoType        string    `json:"cargo_type"`
-	CargoSpecies     string    `json:"cargo_species"`
-	CargoWeight      float64   `json:"cargo_weight"`
-	VehiclesAccepted string    `json:"vehicles_accepted"`
-	Trailer          string    `json:"trailer"`
-	RequiresTarp     bool      `json:"requires_tarp"`
-	Tracking         bool      `json:"tracking"`
-	Agency           bool      `json:"agency"`
-	Description      string    `json:"description"`
-	PaymentType      string    `json:"payment_type"`
-	Advance          string    `json:"advance"`
-	Toll             bool      `json:"toll"`
-	Situation        string    `json:"situation"`
-	CreatedAt        time.Time `json:"created_at"`
-	State            string    `json:"state"`
-	City             string    `json:"city"`
-	Complement       string    `json:"complement"`
-	Neighborhood     string    `json:"neighborhood"`
-	Street           string    `json:"street"`
-	StreetNumber     string    `json:"street_number"`
-	Cep              string    `json:"cep"`
+	ID                      int64     `json:"id"`
+	Destination             string    `json:"destination"`
+	Origin                  string    `json:"origin"`
+	PickupDate              time.Time `json:"pickup_date"`
+	DeliveryDate            time.Time `json:"delivery_date"`
+	ExpirationDate          time.Time `json:"expiration_date"`
+	Title                   string    `json:"title"`
+	CargoType               string    `json:"cargo_type"`
+	CargoSpecies            string    `json:"cargo_species"`
+	CargoWeight             float64   `json:"cargo_weight"`
+	VehiclesAccepted        string    `json:"vehicles_accepted"`
+	Trailer                 string    `json:"trailer"`
+	RequiresTarp            bool      `json:"requires_tarp"`
+	Tracking                bool      `json:"tracking"`
+	Agency                  bool      `json:"agency"`
+	Description             string    `json:"description"`
+	PaymentType             string    `json:"payment_type"`
+	Advance                 string    `json:"advance"`
+	Toll                    bool      `json:"toll"`
+	Situation               string    `json:"situation"`
+	CreatedAt               time.Time `json:"created_at"`
+	StateOrigin             string    `json:"state_origin"`
+	CityOrigin              string    `json:"city_origin"`
+	ComplementOrigin        string    `json:"complement_origin"`
+	NeighborhoodOrigin      string    `json:"neighborhood_origin"`
+	StreetOrigin            string    `json:"street_origin"`
+	StreetNumberOrigin      string    `json:"street_number_origin"`
+	CepOrigin               string    `json:"cep_origin"`
+	StateDestination        string    `json:"state_destination"`
+	CityDestination         string    `json:"city_destination"`
+	ComplementDestination   string    `json:"complement_destination"`
+	NeighborhoodDestination string    `json:"neighborhood_destination"`
+	StreetDestination       string    `json:"street_destination"`
+	StreetNumberDestination string    `json:"street_number_destination"`
+	CepDestination          string    `json:"cep_destination"`
 }
 
 func (q *Queries) GetAllAdvertisementPublic(ctx context.Context) ([]GetAllAdvertisementPublicRow, error) {
@@ -294,13 +335,20 @@ func (q *Queries) GetAllAdvertisementPublic(ctx context.Context) ([]GetAllAdvert
 			&i.Toll,
 			&i.Situation,
 			&i.CreatedAt,
-			&i.State,
-			&i.City,
-			&i.Complement,
-			&i.Neighborhood,
-			&i.Street,
-			&i.StreetNumber,
-			&i.Cep,
+			&i.StateOrigin,
+			&i.CityOrigin,
+			&i.ComplementOrigin,
+			&i.NeighborhoodOrigin,
+			&i.StreetOrigin,
+			&i.StreetNumberOrigin,
+			&i.CepOrigin,
+			&i.StateDestination,
+			&i.CityDestination,
+			&i.ComplementDestination,
+			&i.NeighborhoodDestination,
+			&i.StreetDestination,
+			&i.StreetNumberDestination,
+			&i.CepDestination,
 		); err != nil {
 			return nil, err
 		}
@@ -316,60 +364,69 @@ func (q *Queries) GetAllAdvertisementPublic(ctx context.Context) ([]GetAllAdvert
 }
 
 const getAllAdvertisementUsers = `-- name: GetAllAdvertisementUsers :many
-SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
-       a.state, a.city, a.complement, a.neighborhood, a.street, a.street_number, a.cep
+SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
+       destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
+       a.state_origin, a.city_origin, a.complement_origin, a.neighborhood_origin, a.street_origin, a.street_number_origin, a.cep_origin,
+       a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination
 FROM public.advertisement a
-         inner join users u on u.id = a.user_id
+         INNER JOIN users u ON u.id = a.user_id
 WHERE a.status=true
 ORDER BY expiration_date
 `
 
 type GetAllAdvertisementUsersRow struct {
-	ID                 int64          `json:"id"`
-	UserID             int64          `json:"user_id"`
-	UserName           string         `json:"user_name"`
-	ActiveThere        sql.NullTime   `json:"active_there"`
-	UserCity           sql.NullString `json:"user_city"`
-	UserState          sql.NullString `json:"user_state"`
-	UserPhone          sql.NullString `json:"user_phone"`
-	UserEmail          string         `json:"user_email"`
-	UserProfilePicture sql.NullString `json:"user_profile_picture"`
-	Destination        string         `json:"destination"`
-	Origin             string         `json:"origin"`
-	DestinationLat     float64        `json:"destination_lat"`
-	DestinationLng     float64        `json:"destination_lng"`
-	OriginLat          float64        `json:"origin_lat"`
-	OriginLng          float64        `json:"origin_lng"`
-	Distance           int64          `json:"distance"`
-	PickupDate         time.Time      `json:"pickup_date"`
-	DeliveryDate       time.Time      `json:"delivery_date"`
-	ExpirationDate     time.Time      `json:"expiration_date"`
-	Title              string         `json:"title"`
-	CargoType          string         `json:"cargo_type"`
-	CargoSpecies       string         `json:"cargo_species"`
-	CargoWeight        float64        `json:"cargo_weight"`
-	VehiclesAccepted   string         `json:"vehicles_accepted"`
-	Trailer            string         `json:"trailer"`
-	RequiresTarp       bool           `json:"requires_tarp"`
-	Tracking           bool           `json:"tracking"`
-	Agency             bool           `json:"agency"`
-	Description        string         `json:"description"`
-	PaymentType        string         `json:"payment_type"`
-	Advance            string         `json:"advance"`
-	Toll               bool           `json:"toll"`
-	Situation          string         `json:"situation"`
-	Price              float64        `json:"price"`
-	CreatedAt          time.Time      `json:"created_at"`
-	CreatedWho         string         `json:"created_who"`
-	UpdatedAt          sql.NullTime   `json:"updated_at"`
-	UpdatedWho         sql.NullString `json:"updated_who"`
-	State              string         `json:"state"`
-	City               string         `json:"city"`
-	Complement         string         `json:"complement"`
-	Neighborhood       string         `json:"neighborhood"`
-	Street             string         `json:"street"`
-	StreetNumber       string         `json:"street_number"`
-	Cep                string         `json:"cep"`
+	ID                      int64          `json:"id"`
+	UserID                  int64          `json:"user_id"`
+	UserName                string         `json:"user_name"`
+	ActiveThere             sql.NullTime   `json:"active_there"`
+	UserCity                sql.NullString `json:"user_city"`
+	UserState               sql.NullString `json:"user_state"`
+	UserPhone               sql.NullString `json:"user_phone"`
+	UserEmail               string         `json:"user_email"`
+	UserProfilePicture      sql.NullString `json:"user_profile_picture"`
+	Destination             string         `json:"destination"`
+	Origin                  string         `json:"origin"`
+	DestinationLat          float64        `json:"destination_lat"`
+	DestinationLng          float64        `json:"destination_lng"`
+	OriginLat               float64        `json:"origin_lat"`
+	OriginLng               float64        `json:"origin_lng"`
+	Distance                int64          `json:"distance"`
+	PickupDate              time.Time      `json:"pickup_date"`
+	DeliveryDate            time.Time      `json:"delivery_date"`
+	ExpirationDate          time.Time      `json:"expiration_date"`
+	Title                   string         `json:"title"`
+	CargoType               string         `json:"cargo_type"`
+	CargoSpecies            string         `json:"cargo_species"`
+	CargoWeight             float64        `json:"cargo_weight"`
+	VehiclesAccepted        string         `json:"vehicles_accepted"`
+	Trailer                 string         `json:"trailer"`
+	RequiresTarp            bool           `json:"requires_tarp"`
+	Tracking                bool           `json:"tracking"`
+	Agency                  bool           `json:"agency"`
+	Description             string         `json:"description"`
+	PaymentType             string         `json:"payment_type"`
+	Advance                 string         `json:"advance"`
+	Toll                    bool           `json:"toll"`
+	Situation               string         `json:"situation"`
+	Price                   float64        `json:"price"`
+	CreatedAt               time.Time      `json:"created_at"`
+	CreatedWho              string         `json:"created_who"`
+	UpdatedAt               sql.NullTime   `json:"updated_at"`
+	UpdatedWho              sql.NullString `json:"updated_who"`
+	StateOrigin             string         `json:"state_origin"`
+	CityOrigin              string         `json:"city_origin"`
+	ComplementOrigin        string         `json:"complement_origin"`
+	NeighborhoodOrigin      string         `json:"neighborhood_origin"`
+	StreetOrigin            string         `json:"street_origin"`
+	StreetNumberOrigin      string         `json:"street_number_origin"`
+	CepOrigin               string         `json:"cep_origin"`
+	StateDestination        string         `json:"state_destination"`
+	CityDestination         string         `json:"city_destination"`
+	ComplementDestination   string         `json:"complement_destination"`
+	NeighborhoodDestination string         `json:"neighborhood_destination"`
+	StreetDestination       string         `json:"street_destination"`
+	StreetNumberDestination string         `json:"street_number_destination"`
+	CepDestination          string         `json:"cep_destination"`
 }
 
 func (q *Queries) GetAllAdvertisementUsers(ctx context.Context) ([]GetAllAdvertisementUsersRow, error) {
@@ -420,13 +477,20 @@ func (q *Queries) GetAllAdvertisementUsers(ctx context.Context) ([]GetAllAdverti
 			&i.CreatedWho,
 			&i.UpdatedAt,
 			&i.UpdatedWho,
-			&i.State,
-			&i.City,
-			&i.Complement,
-			&i.Neighborhood,
-			&i.Street,
-			&i.StreetNumber,
-			&i.Cep,
+			&i.StateOrigin,
+			&i.CityOrigin,
+			&i.ComplementOrigin,
+			&i.NeighborhoodOrigin,
+			&i.StreetOrigin,
+			&i.StreetNumberOrigin,
+			&i.CepOrigin,
+			&i.StateDestination,
+			&i.CityDestination,
+			&i.ComplementDestination,
+			&i.NeighborhoodDestination,
+			&i.StreetDestination,
+			&i.StreetNumberDestination,
+			&i.CepDestination,
 		); err != nil {
 			return nil, err
 		}
@@ -445,48 +509,56 @@ const updateAdvertisement = `-- name: UpdateAdvertisement :one
 UPDATE public.advertisement
 SET destination=$2, origin=$3, destination_lat=$4, destination_lng=$5, origin_lat=$6, origin_lng=$7, distance=$8, pickup_date=$9, delivery_date=$10, expiration_date=$11, title=$12,
     cargo_type=$13, cargo_species=$14, cargo_weight=$15, vehicles_accepted=$16, trailer=$17, requires_tarp=$18, tracking=$19, agency=$20, description=$21, payment_type=$22, advance=$23, toll=$24, situation=$25, price=$26, updated_at=now(), updated_who=$27,
-    state=$28, city=$29, complement=$30, neighborhood=$31, street=$32, street_number=$33, cep=$34
+    state_origin=$28, city_origin=$29, complement_origin=$30, neighborhood_origin=$31, street_origin=$32, street_number_origin=$33, cep_origin=$34,
+    state_destination=$35, city_destination=$36, complement_destination=$37, neighborhood_destination=$38, street_destination=$39, street_number_destination=$40, cep_destination=$41
 WHERE user_id=$1 AND
-      id=$35
-    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state, city, complement, neighborhood, street, street_number, cep, status, created_at, created_who, updated_at, updated_who
+    id=$42
+    RETURNING id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, status, created_at, created_who, updated_at, updated_who
 `
 
 type UpdateAdvertisementParams struct {
-	UserID           int64          `json:"user_id"`
-	Destination      string         `json:"destination"`
-	Origin           string         `json:"origin"`
-	DestinationLat   float64        `json:"destination_lat"`
-	DestinationLng   float64        `json:"destination_lng"`
-	OriginLat        float64        `json:"origin_lat"`
-	OriginLng        float64        `json:"origin_lng"`
-	Distance         int64          `json:"distance"`
-	PickupDate       time.Time      `json:"pickup_date"`
-	DeliveryDate     time.Time      `json:"delivery_date"`
-	ExpirationDate   time.Time      `json:"expiration_date"`
-	Title            string         `json:"title"`
-	CargoType        string         `json:"cargo_type"`
-	CargoSpecies     string         `json:"cargo_species"`
-	CargoWeight      float64        `json:"cargo_weight"`
-	VehiclesAccepted string         `json:"vehicles_accepted"`
-	Trailer          string         `json:"trailer"`
-	RequiresTarp     bool           `json:"requires_tarp"`
-	Tracking         bool           `json:"tracking"`
-	Agency           bool           `json:"agency"`
-	Description      string         `json:"description"`
-	PaymentType      string         `json:"payment_type"`
-	Advance          string         `json:"advance"`
-	Toll             bool           `json:"toll"`
-	Situation        string         `json:"situation"`
-	Price            float64        `json:"price"`
-	UpdatedWho       sql.NullString `json:"updated_who"`
-	State            string         `json:"state"`
-	City             string         `json:"city"`
-	Complement       string         `json:"complement"`
-	Neighborhood     string         `json:"neighborhood"`
-	Street           string         `json:"street"`
-	StreetNumber     string         `json:"street_number"`
-	Cep              string         `json:"cep"`
-	ID               int64          `json:"id"`
+	UserID                  int64          `json:"user_id"`
+	Destination             string         `json:"destination"`
+	Origin                  string         `json:"origin"`
+	DestinationLat          float64        `json:"destination_lat"`
+	DestinationLng          float64        `json:"destination_lng"`
+	OriginLat               float64        `json:"origin_lat"`
+	OriginLng               float64        `json:"origin_lng"`
+	Distance                int64          `json:"distance"`
+	PickupDate              time.Time      `json:"pickup_date"`
+	DeliveryDate            time.Time      `json:"delivery_date"`
+	ExpirationDate          time.Time      `json:"expiration_date"`
+	Title                   string         `json:"title"`
+	CargoType               string         `json:"cargo_type"`
+	CargoSpecies            string         `json:"cargo_species"`
+	CargoWeight             float64        `json:"cargo_weight"`
+	VehiclesAccepted        string         `json:"vehicles_accepted"`
+	Trailer                 string         `json:"trailer"`
+	RequiresTarp            bool           `json:"requires_tarp"`
+	Tracking                bool           `json:"tracking"`
+	Agency                  bool           `json:"agency"`
+	Description             string         `json:"description"`
+	PaymentType             string         `json:"payment_type"`
+	Advance                 string         `json:"advance"`
+	Toll                    bool           `json:"toll"`
+	Situation               string         `json:"situation"`
+	Price                   float64        `json:"price"`
+	UpdatedWho              sql.NullString `json:"updated_who"`
+	StateOrigin             string         `json:"state_origin"`
+	CityOrigin              string         `json:"city_origin"`
+	ComplementOrigin        string         `json:"complement_origin"`
+	NeighborhoodOrigin      string         `json:"neighborhood_origin"`
+	StreetOrigin            string         `json:"street_origin"`
+	StreetNumberOrigin      string         `json:"street_number_origin"`
+	CepOrigin               string         `json:"cep_origin"`
+	StateDestination        string         `json:"state_destination"`
+	CityDestination         string         `json:"city_destination"`
+	ComplementDestination   string         `json:"complement_destination"`
+	NeighborhoodDestination string         `json:"neighborhood_destination"`
+	StreetDestination       string         `json:"street_destination"`
+	StreetNumberDestination string         `json:"street_number_destination"`
+	CepDestination          string         `json:"cep_destination"`
+	ID                      int64          `json:"id"`
 }
 
 func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertisementParams) (Advertisement, error) {
@@ -518,13 +590,20 @@ func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertiseme
 		arg.Situation,
 		arg.Price,
 		arg.UpdatedWho,
-		arg.State,
-		arg.City,
-		arg.Complement,
-		arg.Neighborhood,
-		arg.Street,
-		arg.StreetNumber,
-		arg.Cep,
+		arg.StateOrigin,
+		arg.CityOrigin,
+		arg.ComplementOrigin,
+		arg.NeighborhoodOrigin,
+		arg.StreetOrigin,
+		arg.StreetNumberOrigin,
+		arg.CepOrigin,
+		arg.StateDestination,
+		arg.CityDestination,
+		arg.ComplementDestination,
+		arg.NeighborhoodDestination,
+		arg.StreetDestination,
+		arg.StreetNumberDestination,
+		arg.CepDestination,
 		arg.ID,
 	)
 	var i Advertisement
@@ -556,13 +635,20 @@ func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertiseme
 		&i.Toll,
 		&i.Situation,
 		&i.Price,
-		&i.State,
-		&i.City,
-		&i.Complement,
-		&i.Neighborhood,
-		&i.Street,
-		&i.StreetNumber,
-		&i.Cep,
+		&i.StateOrigin,
+		&i.CityOrigin,
+		&i.ComplementOrigin,
+		&i.NeighborhoodOrigin,
+		&i.StreetOrigin,
+		&i.StreetNumberOrigin,
+		&i.CepOrigin,
+		&i.StateDestination,
+		&i.CityDestination,
+		&i.ComplementDestination,
+		&i.NeighborhoodDestination,
+		&i.StreetDestination,
+		&i.StreetNumberDestination,
+		&i.CepDestination,
 		&i.Status,
 		&i.CreatedAt,
 		&i.CreatedWho,
@@ -570,21 +656,4 @@ func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertiseme
 		&i.UpdatedWho,
 	)
 	return i, err
-}
-
-const updateAdvertisementSituation = `-- name: UpdateAdvertisementSituation :exec
-UPDATE public.advertisement
-SET situation=$1, updated_at=now(), updated_who=$2
-WHERE id=$3
-`
-
-type UpdateAdvertisementSituationParams struct {
-	Situation  string         `json:"situation"`
-	UpdatedWho sql.NullString `json:"updated_who"`
-	ID         int64          `json:"id"`
-}
-
-func (q *Queries) UpdateAdvertisementSituation(ctx context.Context, arg UpdateAdvertisementSituationParams) error {
-	_, err := q.db.ExecContext(ctx, updateAdvertisementSituation, arg.Situation, arg.UpdatedWho, arg.ID)
-	return err
 }

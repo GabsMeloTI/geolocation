@@ -86,7 +86,8 @@ func (q *Queries) DeleteTrailer(ctx context.Context, arg DeleteTrailerParams) er
 const getTrailerById = `-- name: GetTrailerById :one
 SELECT id, license_plate, user_id, chassis, body_type, load_capacity, length, width, height, axles, status, created_at, updated_at, state, renavan
 FROM public.trailer
-WHERE id=$1
+WHERE id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetTrailerById(ctx context.Context, id int64) (Trailer, error) {
@@ -115,7 +116,8 @@ func (q *Queries) GetTrailerById(ctx context.Context, id int64) (Trailer, error)
 const getTrailerByUserId = `-- name: GetTrailerByUserId :many
 SELECT id, license_plate, user_id, chassis, body_type, load_capacity, length, width, height, axles, status, created_at, updated_at, state, renavan
 FROM public.trailer
-WHERE user_id=$1
+WHERE user_id=$1 AND
+    status=true
 `
 
 func (q *Queries) GetTrailerByUserId(ctx context.Context, userID int64) ([]Trailer, error) {

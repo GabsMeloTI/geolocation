@@ -50,15 +50,19 @@ func (r *Repository) DeleteUserByIdRepository(ctx context.Context, id int64) err
 func (r *Repository) UpdateUserByIdRepository(ctx context.Context, arg db.UpdateUserByIdParams) (db.User, error) {
 	return r.Queries.UpdateUserById(ctx, arg)
 }
+
 func (r *Repository) UpdateUserPasswordRepository(ctx context.Context, arg db.UpdateUserPasswordParams) error {
 	return r.Queries.UpdateUserPassword(ctx, arg)
 }
+
 func (r *Repository) UpdateUserPersonalInfo(ctx context.Context, arg db.UpdateUserPersonalInfoParams) (db.User, error) {
 	return r.Queries.UpdateUserPersonalInfo(ctx, arg)
 }
+
 func (r *Repository) UpdateUserAddress(ctx context.Context, arg db.UpdateUserAddressParams) (db.User, error) {
 	return r.Queries.UpdateUserAddress(ctx, arg)
 }
+
 func (r *Repository) GetUserById(ctx context.Context, arg int64) (db.User, error) {
 	return r.Queries.GetUserById(ctx, arg)
 }

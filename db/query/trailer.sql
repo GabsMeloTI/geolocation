@@ -22,11 +22,13 @@ WHERE id=$1 AND
 -- name: GetTrailerById :one
 SELECT *
 FROM public.trailer
-WHERE id=$1;
+WHERE id=$1 AND
+    status=true;
 
 -- name: GetTrailerByUserId :many
 SELECT *
 FROM public.trailer
-WHERE user_id=$1;
+WHERE user_id=$1 AND
+    status=true;
 
 

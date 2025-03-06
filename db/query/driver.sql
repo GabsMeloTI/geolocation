@@ -21,10 +21,12 @@ WHERE id=$1 AND
 -- name: GetDriverById :one
 SELECT *
 FROM public.driver
-WHERE id=$1;
+WHERE id=$1 AND
+    status=true;
 
 
 -- name: GetDriverByUserId :many
 SELECT *
 FROM public.driver
-WHERE user_id=$1;
+WHERE user_id=$1 AND
+    status=true;
