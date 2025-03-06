@@ -1,7 +1,9 @@
 package ws
 
 import (
+	"database/sql"
 	db "geolocation/db/sqlc"
+	"geolocation/internal/get_token"
 	"time"
 )
 
@@ -41,6 +43,7 @@ type MessageResponse struct {
 	Name           string    `json:"name"`
 	ProfilePicture string    `json:"profile_picture"`
 	CreatedAt      time.Time `json:"created_at"`
+	TypeMessage    string    `json:"type_message,omitempty"`
 }
 
 func (r CreateChatRoomRequest) ParseToCreateChatRoomResponse(room db.ChatRoom) CreateChatRoomResponse {
@@ -50,5 +53,55 @@ func (r CreateChatRoomRequest) ParseToCreateChatRoomResponse(room db.ChatRoom) C
 		AdvertisementUserID: room.AdvertisementUserID,
 		InterestedUserID:    room.InterestedUserID,
 		CreatedAt:           room.CreatedAt,
+	}
+}
+
+type UpdateOfferRequest struct {
+	MessageId       int64   `json:"message_id"`
+	IsAccepted      bool    `json:"is_accepted"`
+	Price           float64 `json:"price"`
+	AdvertisementId int64   `json:"advertisement_id"`
+	TractorUnitId   int64   `json:"tractor_unit_id"`
+	TrailerId       int64   `json:"trailer_id"`
+	DriverId        int64   `json:"driver_id"`
+}
+
+type UpdateOfferDTO struct {
+	Request UpdateOfferRequest
+	Payload get_token.PayloadUserDTO
+}
+
+func (u UpdateOfferDTO) ToCreateOfferParams(interestedId int64) db.CreateOfferParams {
+	return db.CreateOfferParams{
+		AdvertisementID: sql.NullInt64{
+			Int64: u.Request.AdvertisementId,
+			Valid: true,
+		},
+		Price: u.Request.Price,
+		InterestedID: sql.NullInt64{
+			Int64: interestedId,
+			Valid: true,
+		},
+	}
+}
+func (u UpdateOfferDTO) ToUpdateAdvertisementSituationParams() db.UpdateAdvertisementSituationParams {
+	return db.UpdateAdvertisementSituationParams{
+		Situation: "inactive",
+		UpdatedWho: sql.NullString{
+			String: "system",
+			Valid:  true,
+		},
+		ID: u.Request.AdvertisementId,
+	}
+}
+
+func (u UpdateOfferDTO) ToCreateTruckParams() db.CreateTruckParams {
+	return db.CreateTruckParams{
+		TractorUnitID: u.Request.TractorUnitId,
+		TrailerID: sql.NullInt64{
+			Int64: u.Request.TractorUnitId,
+			Valid: true,
+		},
+		DriverID: u.Request.DriverId,
 	}
 }

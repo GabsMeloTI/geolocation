@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"database/sql"
+	"errors"
 	db "geolocation/db/sqlc"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/get_token"
@@ -14,6 +15,7 @@ type InterfaceService interface {
 	GetRoomService(ctx context.Context, id int64) (Room, error)
 	GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) (HomeResponse, error)
 	GetChatMessagesByRoomIdService(ctx context.Context, roomId int64, userId int64) ([]MessageResponse, error)
+	UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error
 }
 
 type Service struct {
@@ -62,6 +64,10 @@ func (s *Service) CreateChatMessageService(ctx context.Context, msg *Message, cl
 			Valid: true,
 		},
 		Content: msg.Content,
+		TypeMessage: sql.NullString{
+			String: msg.TypeMessage,
+			Valid:  msg.TypeMessage != "",
+		},
 	})
 
 	if err != nil {
@@ -187,8 +193,65 @@ func (s *Service) GetChatMessagesByRoomIdService(ctx context.Context, roomId int
 			Name:           m.Name,
 			ProfilePicture: m.ProfilePicture.String,
 			CreatedAt:      m.CreatedAt,
+			TypeMessage:    m.TypeMessage.String,
 		}
 	}
 
 	return messages, nil
+}
+
+func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error {
+	r, err := s.InterfaceService.GetRoomByMessageIdRepository(ctx, data.Request.MessageId)
+
+	if err != nil {
+		return err
+	}
+
+	if r.AdvertisementUserID != data.Payload.ID || r.TypeMessage.String != "offer" || r.IsAccepted.Bool {
+		return errors.New("invalid offer")
+	}
+
+	err = s.InterfaceService.UpdateMessageStatusRepository(ctx, db.UpdateMessageStatusParams{
+		IsAccepted: sql.NullBool{
+			Bool:  data.Request.IsAccepted,
+			Valid: true,
+		},
+		ID: data.Request.MessageId,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	_, err = s.InterfaceService.CreateOfferRepository(ctx, data.ToCreateOfferParams(r.InterestedUserID))
+
+	if err != nil {
+		return err
+	}
+
+	err = s.InterfaceService.UpdateAdvertisementSituationRepository(ctx, data.ToUpdateAdvertisementSituationParams())
+
+	if err != nil {
+		return err
+	}
+
+	_, err = s.InterfaceService.CreateTruckRepository(ctx, data.ToCreateTruckParams())
+
+	if err != nil {
+		return err
+	}
+
+	msg := &OutgoingMessage{
+		MessageId:   data.Request.MessageId,
+		RoomId:      r.ID,
+		UserId:      data.Payload.ID,
+		TypeMessage: "offer",
+		IsAccepted:  data.Request.IsAccepted,
+	}
+
+	if cl, ok := hub.Clients[r.InterestedUserID]; ok {
+		cl.Message <- msg
+	}
+
+	return nil
 }

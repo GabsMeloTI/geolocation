@@ -11,13 +11,13 @@ type ResponseLogin struct {
 }
 
 type RequestCreateUser struct {
-	Email           string `json:"email"`
-	Name            string `json:"name"`
-	Telephone       string `json:"telephone"`
-	Document        string `json:"document"`
+	Email           string `json:"email" validate:"required"`
+	Name            string `json:"name" validate:"required"`
+	Telephone       string `json:"telephone" validate:"required"`
+	Document        string `json:"document" validate:"required"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirm_password"`
-	TypePerson      int64  `json:"type_person"`
+	TypePerson      int64  `json:"type_person" validate:"required"`
 	Token           string `json:"token"`
 }
 

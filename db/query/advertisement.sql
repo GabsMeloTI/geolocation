@@ -45,4 +45,7 @@ FROM public.advertisement
 WHERE status=true
 ORDER BY expiration_date;
 
-
+-- name: UpdateAdvertisementSituation :exec
+UPDATE public.advertisement
+SET situation=$1, updated_at=now(), updated_who=$2
+WHERE id=$3;

@@ -70,16 +70,18 @@ type Balanca struct {
 }
 
 type ChatMessage struct {
-	ID        int64         `json:"id"`
-	RoomID    sql.NullInt64 `json:"room_id"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Content   string        `json:"content"`
-	Status    bool          `json:"status"`
-	ReplyID   sql.NullInt64 `json:"reply_id"`
-	ReadAt    sql.NullTime  `json:"read_at"`
-	IsRead    sql.NullBool  `json:"is_read"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt sql.NullTime  `json:"updated_at"`
+	ID          int64          `json:"id"`
+	RoomID      sql.NullInt64  `json:"room_id"`
+	UserID      sql.NullInt64  `json:"user_id"`
+	Content     string         `json:"content"`
+	Status      bool           `json:"status"`
+	ReplyID     sql.NullInt64  `json:"reply_id"`
+	ReadAt      sql.NullTime   `json:"read_at"`
+	IsRead      sql.NullBool   `json:"is_read"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	TypeMessage sql.NullString `json:"type_message"`
+	IsAccepted  sql.NullBool   `json:"is_accepted"`
 }
 
 type ChatRoom struct {
@@ -146,6 +148,13 @@ type GasStation struct {
 	AddressName   string `json:"address_name"`
 	Municipio     string `json:"municipio"`
 	SpecificPoint string `json:"specific_point"`
+}
+
+type Offer struct {
+	ID              int64         `json:"id"`
+	AdvertisementID sql.NullInt64 `json:"advertisement_id"`
+	Price           float64       `json:"price"`
+	InterestedID    sql.NullInt64 `json:"interested_id"`
 }
 
 type Plan struct {

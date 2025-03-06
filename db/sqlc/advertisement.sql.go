@@ -486,3 +486,20 @@ func (q *Queries) UpdateAdvertisement(ctx context.Context, arg UpdateAdvertiseme
 	)
 	return i, err
 }
+
+const updateAdvertisementSituation = `-- name: UpdateAdvertisementSituation :exec
+UPDATE public.advertisement
+SET situation=$1, updated_at=now(), updated_who=$2
+WHERE id=$3
+`
+
+type UpdateAdvertisementSituationParams struct {
+	Situation  string         `json:"situation"`
+	UpdatedWho sql.NullString `json:"updated_who"`
+	ID         int64          `json:"id"`
+}
+
+func (q *Queries) UpdateAdvertisementSituation(ctx context.Context, arg UpdateAdvertisementSituationParams) error {
+	_, err := q.db.ExecContext(ctx, updateAdvertisementSituation, arg.Situation, arg.UpdatedWho, arg.ID)
+	return err
+}

@@ -103,6 +103,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
+	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 
 	e.POST("/attach/upload", container.HandlerAttachment.CreateAttachHandler)

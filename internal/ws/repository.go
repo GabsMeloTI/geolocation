@@ -14,6 +14,11 @@ type InterfaceRepository interface {
 	GetAdvertisementChatRoomsRepository(ctx context.Context, arg int64) ([]db.GetAdvertisementChatRoomsRow, error)
 	GetChatMessagesByRoomIdRepository(ctx context.Context, arg db.GetChatMessagesByRoomIdParams) ([]db.GetChatMessagesByRoomIdRow, error)
 	GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error)
+	GetRoomByMessageIdRepository(ctx context.Context, messageId int64) (db.GetRoomByMessageIdRow, error)
+	UpdateMessageStatusRepository(ctx context.Context, arg db.UpdateMessageStatusParams) error
+	CreateOfferRepository(ctx context.Context, arg db.CreateOfferParams) (db.Offer, error)
+	UpdateAdvertisementSituationRepository(ctx context.Context, arg db.UpdateAdvertisementSituationParams) error
+	CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error)
 }
 
 type Repository struct {
@@ -59,4 +64,24 @@ func (r *Repository) GetChatMessagesByRoomIdRepository(ctx context.Context, arg 
 
 func (r *Repository) GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error) {
 	return r.Queries.GetLastMessageByRoomId(ctx, userId)
+}
+
+func (r *Repository) GetRoomByMessageIdRepository(ctx context.Context, messageId int64) (db.GetRoomByMessageIdRow, error) {
+	return r.Queries.GetRoomByMessageId(ctx, messageId)
+}
+
+func (r *Repository) UpdateMessageStatusRepository(ctx context.Context, arg db.UpdateMessageStatusParams) error {
+	return r.Queries.UpdateMessageStatus(ctx, arg)
+}
+
+func (r *Repository) CreateOfferRepository(ctx context.Context, arg db.CreateOfferParams) (db.Offer, error) {
+	return r.Queries.CreateOffer(ctx, arg)
+}
+
+func (r *Repository) UpdateAdvertisementSituationRepository(ctx context.Context, arg db.UpdateAdvertisementSituationParams) error {
+	return r.Queries.UpdateAdvertisementSituation(ctx, arg)
+}
+
+func (r *Repository) CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error) {
+	return r.Queries.CreateTruck(ctx, arg)
 }

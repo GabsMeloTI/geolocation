@@ -19,19 +19,21 @@ type Client struct {
 }
 
 type Message struct {
-	RoomId  int64  `json:"room_id"`
-	Content string `json:"content"`
-	Action  string `json:"action"`
+	RoomId      int64  `json:"room_id"`
+	Content     string `json:"content"`
+	TypeMessage string `json:"type_message"`
 }
 
 type OutgoingMessage struct {
-	MessageId      int64     `json:"message_id"`
-	RoomId         int64     `json:"room_id"`
-	UserId         int64     `json:"user_id"`
-	Content        string    `json:"content"`
-	Name           string    `json:"name"`
-	ProfilePicture string    `json:"profile_picture"`
-	CreatedAt      time.Time `json:"created_at"`
+	MessageId      int64      `json:"message_id"`
+	RoomId         int64      `json:"room_id"`
+	UserId         int64      `json:"user_id"`
+	Content        string     `json:"content,omitempty"`
+	Name           string     `json:"name,omitempty"`
+	ProfilePicture string     `json:"profile_picture,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+	TypeMessage    string     `json:"type_message,omitempty"`
+	IsAccepted     bool       `json:"is_accepted,omitempty"`
 }
 
 func (c *Client) writeMessage() {
@@ -87,7 +89,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			room, err = s.GetRoomService(context.Background(), msg.RoomId)
 
 			if err != nil {
-				log.Println("error in get room service")
 				continue
 			}
 			hub.Rooms[msg.RoomId] = &room
@@ -111,7 +112,8 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			Content:        msg.Content,
 			Name:           c.Name,
 			ProfilePicture: c.ProfilePicture,
-			CreatedAt:      data.CreatedAt,
+			CreatedAt:      &data.CreatedAt,
+			TypeMessage:    data.TypeMessage.String,
 		}
 
 		hub.Broadcast <- outgoingMessage
