@@ -52,6 +52,19 @@ type Advertisement struct {
 	UpdatedWho       sql.NullString `json:"updated_who"`
 }
 
+type Appointment struct {
+	ID              int64          `json:"id"`
+	UserID          int64          `json:"user_id"`
+	TruckID         int64          `json:"truck_id"`
+	AdvertisementID int64          `json:"advertisement_id"`
+	Situation       string         `json:"situation"`
+	Status          bool           `json:"status"`
+	CreatedWho      string         `json:"created_who"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedWho      sql.NullString `json:"updated_who"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+}
+
 type Attachment struct {
 	ID          int64          `json:"id"`
 	UserID      int64          `json:"user_id"`
