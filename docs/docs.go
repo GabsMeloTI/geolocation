@@ -15,6 +15,55 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/address/find": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Encontra endereço por busca, pode ser 1. CEP, 2.Latidude, Longitude ou 3.Endereço (Rua, bairro, número).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Address"
+                ],
+                "summary": "Find Address By Query",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address Query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Address Info",
+                        "schema": {
+                            "$ref": "#/definitions/address.AddressResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/advertisement/create": {
             "post": {
                 "security": [
@@ -183,6 +232,142 @@ const docTemplate = `{
                         "description": "Advertisement Info",
                         "schema": {
                             "$ref": "#/definitions/advertisement.AdvertisementResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointment/delete/{id}": {
+            "put": {
+                "description": "Delete Appointment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Delete Appointment.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointment/update": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update an Appointment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Update an Appointment.",
+                "parameters": [
+                    {
+                        "description": "Appointment Request",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appointments.UpdateAppointmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointment/{id}": {
+            "get": {
+                "description": "Get list Appointment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Get list Appointment.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Appointment Info",
+                        "schema": {
+                            "$ref": "#/definitions/appointments.AppointmentResponseList"
                         }
                     },
                     "400": {
@@ -789,6 +974,63 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/simple": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a simple route with distance and duration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Get simple route information.",
+                "parameters": [
+                    {
+                        "description": "Route calculation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.SimpleRouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Route details",
+                        "schema": {
+                            "$ref": "#/definitions/routes.SimpleRouteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "string"
                         }
@@ -1613,6 +1855,38 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "address.AddressResponse": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "neighborhood": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
         "advertisement.AdvertisementResponse": {
             "type": "object",
             "properties": {
@@ -1631,13 +1905,22 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
-                "cep": {
+                "cep_destination": {
                     "type": "string"
                 },
-                "city": {
+                "cep_origin": {
                     "type": "string"
                 },
-                "complement": {
+                "city_destination": {
+                    "type": "string"
+                },
+                "city_origin": {
+                    "type": "string"
+                },
+                "complement_destination": {
+                    "type": "string"
+                },
+                "complement_origin": {
                     "type": "string"
                 },
                 "created_at": {
@@ -1670,7 +1953,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "neighborhood": {
+                "neighborhood_destination": {
+                    "type": "string"
+                },
+                "neighborhood_origin": {
                     "type": "string"
                 },
                 "origin": {
@@ -1697,16 +1983,25 @@ const docTemplate = `{
                 "situation": {
                     "type": "string"
                 },
-                "state": {
+                "state_destination": {
+                    "type": "string"
+                },
+                "state_origin": {
                     "type": "string"
                 },
                 "status": {
                     "type": "boolean"
                 },
-                "street": {
+                "street_destination": {
                     "type": "string"
                 },
-                "street_number": {
+                "street_number_destination": {
+                    "type": "string"
+                },
+                "street_number_origin": {
+                    "type": "string"
+                },
+                "street_origin": {
                     "type": "string"
                 },
                 "title": {
@@ -1762,13 +2057,22 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
-                "cep": {
+                "cep_destination": {
                     "type": "string"
                 },
-                "city": {
+                "cep_origin": {
                     "type": "string"
                 },
-                "complement": {
+                "city_destination": {
+                    "type": "string"
+                },
+                "city_origin": {
+                    "type": "string"
+                },
+                "complement_destination": {
+                    "type": "string"
+                },
+                "complement_origin": {
                     "type": "string"
                 },
                 "created_at": {
@@ -1801,7 +2105,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "neighborhood": {
+                "neighborhood_destination": {
+                    "type": "string"
+                },
+                "neighborhood_origin": {
                     "type": "string"
                 },
                 "origin": {
@@ -1828,13 +2135,22 @@ const docTemplate = `{
                 "situation": {
                     "type": "string"
                 },
-                "state": {
+                "state_destination": {
                     "type": "string"
                 },
-                "street": {
+                "state_origin": {
                     "type": "string"
                 },
-                "street_number": {
+                "street_destination": {
+                    "type": "string"
+                },
+                "street_number_destination": {
+                    "type": "string"
+                },
+                "street_number_origin": {
+                    "type": "string"
+                },
+                "street_origin": {
                     "type": "string"
                 },
                 "title": {
@@ -1896,13 +2212,22 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
-                "cep": {
+                "cep_destination": {
                     "type": "string"
                 },
-                "city": {
+                "cep_origin": {
                     "type": "string"
                 },
-                "complement": {
+                "city_destination": {
+                    "type": "string"
+                },
+                "city_origin": {
+                    "type": "string"
+                },
+                "complement_destination": {
+                    "type": "string"
+                },
+                "complement_origin": {
                     "type": "string"
                 },
                 "created_at": {
@@ -1923,7 +2248,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "neighborhood": {
+                "neighborhood_destination": {
+                    "type": "string"
+                },
+                "neighborhood_origin": {
                     "type": "string"
                 },
                 "origin": {
@@ -1941,13 +2269,22 @@ const docTemplate = `{
                 "situation": {
                     "type": "string"
                 },
-                "state": {
+                "state_destination": {
                     "type": "string"
                 },
-                "street": {
+                "state_origin": {
                     "type": "string"
                 },
-                "street_number": {
+                "street_destination": {
+                    "type": "string"
+                },
+                "street_number_destination": {
+                    "type": "string"
+                },
+                "street_number_origin": {
+                    "type": "string"
+                },
+                "street_origin": {
                     "type": "string"
                 },
                 "title": {
@@ -1985,13 +2322,22 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
-                "cep": {
+                "cep_destination": {
                     "type": "string"
                 },
-                "city": {
+                "cep_origin": {
                     "type": "string"
                 },
-                "complement": {
+                "city_destination": {
+                    "type": "string"
+                },
+                "city_origin": {
+                    "type": "string"
+                },
+                "complement_destination": {
+                    "type": "string"
+                },
+                "complement_origin": {
                     "type": "string"
                 },
                 "created_who": {
@@ -2018,7 +2364,10 @@ const docTemplate = `{
                 "expiration_date": {
                     "type": "string"
                 },
-                "neighborhood": {
+                "neighborhood_destination": {
+                    "type": "string"
+                },
+                "neighborhood_origin": {
                     "type": "string"
                 },
                 "origin": {
@@ -2045,13 +2394,22 @@ const docTemplate = `{
                 "situation": {
                     "type": "string"
                 },
-                "state": {
+                "state_destination": {
                     "type": "string"
                 },
-                "street": {
+                "state_origin": {
                     "type": "string"
                 },
-                "street_number": {
+                "street_destination": {
+                    "type": "string"
+                },
+                "street_number_destination": {
+                    "type": "string"
+                },
+                "street_number_origin": {
+                    "type": "string"
+                },
+                "street_origin": {
                     "type": "string"
                 },
                 "title": {
@@ -2065,9 +2423,6 @@ const docTemplate = `{
                 },
                 "trailer": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 },
                 "vehicles_accepted": {
                     "type": "string"
@@ -2092,13 +2447,22 @@ const docTemplate = `{
                 "cargo_weight": {
                     "type": "number"
                 },
-                "cep": {
+                "cep_destination": {
                     "type": "string"
                 },
-                "city": {
+                "cep_origin": {
                     "type": "string"
                 },
-                "complement": {
+                "city_destination": {
+                    "type": "string"
+                },
+                "city_origin": {
+                    "type": "string"
+                },
+                "complement_destination": {
+                    "type": "string"
+                },
+                "complement_origin": {
                     "type": "string"
                 },
                 "delivery_date": {
@@ -2125,7 +2489,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "neighborhood": {
+                "neighborhood_destination": {
+                    "type": "string"
+                },
+                "neighborhood_origin": {
                     "type": "string"
                 },
                 "origin": {
@@ -2152,13 +2519,22 @@ const docTemplate = `{
                 "situation": {
                     "type": "string"
                 },
-                "state": {
+                "state_destination": {
                     "type": "string"
                 },
-                "street": {
+                "state_origin": {
                     "type": "string"
                 },
-                "street_number": {
+                "street_destination": {
+                    "type": "string"
+                },
+                "street_number_destination": {
+                    "type": "string"
+                },
+                "street_number_origin": {
+                    "type": "string"
+                },
+                "street_origin": {
                     "type": "string"
                 },
                 "title": {
@@ -2174,6 +2550,49 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "vehicles_accepted": {
+                    "type": "string"
+                }
+            }
+        },
+        "appointments.AppointmentResponseList": {
+            "type": "object",
+            "properties": {
+                "advertisement_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_who": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "truck_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updated_who": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "appointments.UpdateAppointmentRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "situation": {
                     "type": "string"
                 }
             }
@@ -2622,6 +3041,13 @@ const docTemplate = `{
         },
         "login.RequestCreateUser": {
             "type": "object",
+            "required": [
+                "document",
+                "email",
+                "name",
+                "telephone",
+                "type_person"
+            ],
             "properties": {
                 "confirm_password": {
                     "type": "string"
@@ -2810,6 +3236,56 @@ const docTemplate = `{
                 },
                 "url_waze": {
                     "type": "string"
+                }
+            }
+        },
+        "routes.SimpleRouteRequest": {
+            "type": "object",
+            "properties": {
+                "destination_lat": {
+                    "type": "number"
+                },
+                "destination_lng": {
+                    "type": "number"
+                },
+                "origin_lat": {
+                    "type": "number"
+                },
+                "origin_lng": {
+                    "type": "number"
+                }
+            }
+        },
+        "routes.SimpleRouteResponse": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                    "$ref": "#/definitions/routes.SimpleSummary"
+                }
+            }
+        },
+        "routes.SimpleRouteSummary": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Distance"
+                },
+                "duration": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Duration"
+                }
+            }
+        },
+        "routes.SimpleSummary": {
+            "type": "object",
+            "properties": {
+                "location_destination": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                },
+                "routes": {
+                    "$ref": "#/definitions/routes.SimpleRouteSummary"
                 }
             }
         },
@@ -3347,6 +3823,9 @@ const docTemplate = `{
                 },
                 "room_id": {
                     "type": "integer"
+                },
+                "type_message": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"

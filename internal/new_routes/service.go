@@ -27,6 +27,7 @@ type InterfaceService interface {
 	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
 	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
+	GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error)
 }
 
 type Service struct {
@@ -1152,4 +1153,94 @@ func (s *Service) RemoveFavoriteRouteService(ctx context.Context, id, idUser int
 	}
 
 	return nil
+}
+
+func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error) {
+	coords := fmt.Sprintf("%f,%f;%f,%f", data.OriginLng, data.OriginLat, data.DestLng, data.DestLat)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	client := http.Client{Timeout: 120 * time.Second}
+
+	osrmURL := baseOSRMURL + "?" + url.Values{
+		"alternatives": {"false"},
+		"steps":        {"false"},
+		"overview":     {"full"},
+	}.Encode()
+
+	resp, err := client.Get(osrmURL)
+	if err != nil {
+		return SimpleRouteResponse{}, fmt.Errorf("erro na requisição OSRM: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var osrmResp OSRMResponse
+	if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+		return SimpleRouteResponse{}, fmt.Errorf("erro ao decodificar resposta OSRM: %w", err)
+	}
+
+	if osrmResp.Code != "Ok" || len(osrmResp.Routes) == 0 {
+		return SimpleRouteResponse{}, fmt.Errorf("OSRM retornou erro ou nenhuma rota encontrada")
+	}
+
+	distanceText, distanceValue := formatDistance(osrmResp.Routes[0].Distance)
+	durationText, durationValue := formatDuration(osrmResp.Routes[0].Duration)
+
+	originAddress, err := s.reverseGeocode(data.OriginLat, data.OriginLng)
+	if err != nil {
+		return SimpleRouteResponse{}, fmt.Errorf("erro ao obter endereço da origem: %w", err)
+	}
+	destinationAddress, err := s.reverseGeocode(data.DestLat, data.DestLng)
+	if err != nil {
+		return SimpleRouteResponse{}, fmt.Errorf("erro ao obter endereço do destino: %w", err)
+	}
+
+	output := SimpleRouteResponse{
+		Summary: SimpleSummary{
+			LocationOrigin: AddressInfo{
+				Location: Location{
+					Latitude:  data.OriginLat,
+					Longitude: data.OriginLng,
+				},
+				Address: originAddress,
+			},
+			LocationDestination: AddressInfo{
+				Location: Location{
+					Latitude:  data.DestLat,
+					Longitude: data.DestLng,
+				},
+				Address: destinationAddress,
+			},
+			SimpleRoute: SimpleRouteSummary{
+				Distance: Distance{
+					Text:  distanceText,
+					Value: distanceValue,
+				},
+				Duration: Duration{
+					Text:  durationText,
+					Value: durationValue,
+				},
+			},
+		},
+	}
+
+	return output, nil
+}
+
+func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
+	geocodeURL := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, lng)
+	client := http.Client{Timeout: 10 * time.Second}
+
+	resp, err := client.Get(geocodeURL)
+	if err != nil {
+		return "", fmt.Errorf("erro na requisição de geocodificação reversa: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("erro ao decodificar resposta de geocodificação reversa: %w", err)
+	}
+
+	return result.DisplayName, nil
 }

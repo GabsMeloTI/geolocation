@@ -5,6 +5,7 @@ import (
 	_ "geolocation/docs"
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
+	"geolocation/internal/webhook"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -96,6 +97,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
 	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
+	route.POST("/simple", container.HandlerNewRoutes.GetSimpleRoute)
 
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
@@ -118,6 +120,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
+
+	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
 
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)

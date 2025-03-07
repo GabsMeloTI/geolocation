@@ -54,6 +54,37 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// GetSimpleRoute godoc
+// @Summary Get simple route information.
+// @Description Retrieves a simple route with distance and duration.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body SimpleRouteRequest true "Route calculation request"
+// @Success 200 {object} SimpleRouteResponse "Route details"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /route/simple [post]
+// @Security ApiKeyAuth
+func (h *Handler) GetSimpleRoute(e echo.Context) error {
+	var request SimpleRouteRequest
+	if err := e.Bind(&request); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := h.InterfaceService.GetSimpleRoute(request)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // GetFavoriteRouteHandler godoc
 // @Summary Get FavoriteRoute.
 // @Description Get FavoriteRoute.
