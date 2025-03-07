@@ -5,6 +5,7 @@ import (
 	_ "geolocation/docs"
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
+	"geolocation/internal/webhook"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -118,6 +119,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
+
+	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
