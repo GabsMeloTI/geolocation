@@ -188,6 +188,28 @@ type ArrivalResponse struct {
 	Time     string `json:"time"`
 }
 
+type SimpleRouteRequest struct {
+	OriginLat float64 `json:"origin_lat"`
+	OriginLng float64 `json:"origin_lng"`
+	DestLat   float64 `json:"destination_lat"`
+	DestLng   float64 `json:"destination_lng"`
+}
+
+type SimpleSummary struct {
+	LocationOrigin      AddressInfo        `json:"location_origin"`
+	LocationDestination AddressInfo        `json:"location_destination"`
+	SimpleRoute         SimpleRouteSummary `json:"routes"`
+}
+
+type SimpleRouteResponse struct {
+	Summary SimpleSummary `json:"summary"`
+}
+
+type SimpleRouteSummary struct {
+	Distance Distance `json:"distance"`
+	Duration Duration `json:"duration"`
+}
+
 type FreightLoad struct {
 	TypeOfLoad  string `json:"type_of_load"`
 	TwoAxes     string `json:"two_axes"`
