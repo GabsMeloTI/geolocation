@@ -129,7 +129,7 @@ func (c *ContainerDI) buildService() {
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
-	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
+	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 	c.ServiceAddress = address.NewAddresssService(c.RepositoryAddress)
 }

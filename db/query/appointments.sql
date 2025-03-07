@@ -32,4 +32,11 @@ FROM appointments ap
          LEFT JOIN driver d ON d.id = tr.driver_id AND d.status = true
 WHERE (ap.advertisement_user_id=$1 OR ap.interested_user_id=$1) AND ap.status = true;
 
-
+-- name: GetAppointmentDetailsByAdvertisementId :one
+select a.advertisement_user_id, a.interested_user_id,tr.license_plate as trailer_license_plate, tu.license_plate as tractor_unit_license_plate, d.name, ad.destination_lat, ad.destination_lng from appointments a
+     RIGHT JOIN advertisement ad on ad.id = a.advertisement_id
+     RIGHT JOIN truck t on t.id = a.truck_id
+     LEFT JOIN tractor_unit tu on tu.id = t.tractor_unit_id
+     LEFT JOIN trailer tr on tr.id = t.trailer_id
+     RIGHT JOIN driver d on d.id = t.driver_id
+WHERE a.advertisement_id = $1;

@@ -116,3 +116,18 @@ func (u UpdateOfferDTO) ToCreateAppointmentParams(advertisementUserId, intereste
 		CreatedWho:          "system",
 	}
 }
+
+type FreightLocationDetailsResponse struct {
+	DurationText            string `json:"duration"`
+	DistanceText            string `json:"distance_text"`
+	DriverName              string `json:"driver_name"`
+	AdvertisementUserId     int64  `json:"advertisement_user_id"`
+	TractorUnitLicensePlate string `json:"tractor_unit_license_plate"`
+	TrailerLicensePlate     string `json:"trailer_license_p_late"`
+}
+
+type UpdateFreightData struct {
+	AdvertisementId int64   `json:"advertisement_id"`
+	OriginLatitude  float64 `json:"latitude"`
+	OriginLongitude float64 `json:"longitude"`
+}

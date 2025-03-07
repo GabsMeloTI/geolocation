@@ -134,10 +134,9 @@ type ChatRoom struct {
 }
 
 type City struct {
-	ID           int32       `json:"id"`
-	Name         string      `json:"name"`
-	StateID      int32       `json:"state_id"`
-	SearchVector interface{} `json:"search_vector"`
+	ID      int32  `json:"id"`
+	Name    string `json:"name"`
+	StateID int32  `json:"state_id"`
 }
 
 type Driver struct {
@@ -198,10 +197,9 @@ type GasStation struct {
 }
 
 type Neighborhood struct {
-	ID           int32       `json:"id"`
-	Name         string      `json:"name"`
-	CityID       int32       `json:"city_id"`
-	SearchVector interface{} `json:"search_vector"`
+	ID     int32  `json:"id"`
+	Name   string `json:"name"`
+	CityID int32  `json:"city_id"`
 }
 
 type Offer struct {
@@ -209,6 +207,23 @@ type Offer struct {
 	AdvertisementID sql.NullInt64 `json:"advertisement_id"`
 	Price           float64       `json:"price"`
 	InterestedID    sql.NullInt64 `json:"interested_id"`
+}
+
+type PaymentHist struct {
+	ID               int64     `json:"id"`
+	UserID           int64     `json:"user_id"`
+	Email            string    `json:"email"`
+	Name             string    `json:"name"`
+	Value            float64   `json:"value"`
+	Method           string    `json:"method"`
+	Automatic        bool      `json:"automatic"`
+	PaymentDate      time.Time `json:"payment_date"`
+	PaymentExpireted time.Time `json:"payment_expireted"`
+	PaymentStatus    string    `json:"payment_status"`
+	Currency         string    `json:"currency"`
+	Invoice          string    `json:"invoice"`
+	Customer         string    `json:"customer"`
+	Interval         string    `json:"interval"`
 }
 
 type Plan struct {
@@ -249,17 +264,15 @@ type SavedRoute struct {
 }
 
 type State struct {
-	ID           int32       `json:"id"`
-	Name         string      `json:"name"`
-	Uf           string      `json:"uf"`
-	SearchVector interface{} `json:"search_vector"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+	Uf   string `json:"uf"`
 }
 
 type Street struct {
 	ID             int32         `json:"id"`
 	Name           string        `json:"name"`
 	NeighborhoodID sql.NullInt32 `json:"neighborhood_id"`
-	SearchVector   interface{}   `json:"search_vector"`
 }
 
 type TokenHist struct {
