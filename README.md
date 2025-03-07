@@ -699,6 +699,32 @@ Retorna uma lista dos cavalos associados ao usuário autenticado (baseado no tok
 
 ---
 
+### Address
+
+**GET** `/address/find`  
+Busca um endereço correspondente com a query digitada.
+
+- **Query**:
+  - String com o endereço a ser buscado `q`.
+  
+- **Responses**:
+  - `400`: Requisição inválida. Retorna uma mensagem de erro.
+  - `500`: Erro interno do servidor. Retorna uma mensagem de erro.
+  - `200`: Sucesso. Retorna uma lista JSON `AddressResponse`.
+  ````json
+  {
+  "id": 1,
+  "street": "Rua Exemplo",
+  "neighborhood": "Bairro Exemplo",
+  "city": "Cidade Exemplo",
+  "state": "SP",
+  "number": "123",
+  "cep": "12345-678",
+  "latitude": -23.55052,
+  "longitude": -46.633308
+  }
+  ````
+
 ### Advertisement
 
 **POST** `/advertisement/create`  
