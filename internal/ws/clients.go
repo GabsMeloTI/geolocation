@@ -19,12 +19,9 @@ type Client struct {
 }
 
 type Message struct {
-	RoomId          int64   `json:"room_id"`
-	Content         string  `json:"content"`
-	TypeMessage     string  `json:"type_message"`
-	Latitude        float64 `json:"latitude,omitempty"`
-	Longitude       float64 `json:"longitude,omitempty"`
-	AdvertisementId int64   `json:"advertisement_id"`
+	RoomId      int64  `json:"room_id"`
+	Content     string `json:"content"`
+	TypeMessage string `json:"type_message"`
 }
 
 type OutgoingMessage struct {
@@ -95,45 +92,7 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		err = json.Unmarshal(m, &msg)
 
 		if err != nil {
-			log.Println(err)
 			log.Println("error to unmarshal message")
-			continue
-		}
-
-		if msg.TypeMessage == "update_freight" {
-			var data FreightLocationDetailsResponse
-			data, err = s.FreightLocationDetailsService(context.Background(), UpdateFreightData{
-				AdvertisementId: msg.AdvertisementId,
-				OriginLatitude:  msg.Latitude,
-				OriginLongitude: msg.Longitude,
-			})
-
-			if err != nil {
-				log.Println("error in freight location details service")
-				continue
-			}
-
-			updateFreightMessage := &UpdateFreightMessage{
-				AdvertisementId:         msg.AdvertisementId,
-				Latitude:                msg.Latitude,
-				Longitude:               msg.Longitude,
-				DurationText:            data.DurationText,
-				DistanceText:            data.DistanceText,
-				DriverName:              data.DriverName,
-				TractorUnitLicensePlate: data.TractorUnitLicensePlate,
-				TrailerLicensePlate:     data.TrailerLicensePlate,
-				TypeMessage:             "update_freight",
-			}
-
-			if cl, ok := hub.Clients[data.AdvertisementUserId]; ok {
-				err = cl.Conn.WriteJSON(updateFreightMessage)
-
-				if err != nil {
-					log.Println("error in write json")
-					continue
-				}
-			}
-
 			continue
 		}
 
