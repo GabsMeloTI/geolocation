@@ -20,12 +20,11 @@ func NewAddressHandler(InterfaceService InterfaceService) *Handler {
 // @Accept json
 // @Produce json
 // @Param q query string true "Address Query"
-// @Success 200 {object} []AddressResponse "Address Info"
+// @Success 200 {object} AddressResponse[] "Address Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /address/find [get]
 // @Security ApiKeyAuth
-
 func (p *Handler) FindAddressByQueryHandler(c echo.Context) error {
 	q := c.QueryParam("q")
 	if q == "" {

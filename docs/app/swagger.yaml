@@ -1,4 +1,25 @@
 definitions:
+  address.AddressResponse:
+    properties:
+      cep:
+        type: string
+      city:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      neighborhood:
+        type: string
+      number:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+    type: object
   advertisement.AdvertisementResponse:
     properties:
       advance:
@@ -1266,6 +1287,38 @@ info:
   title: GO-auth-service
   version: "1.0"
 paths:
+  /address/find:
+    get:
+      consumes:
+      - application/json
+      description: Encontra endereço por busca, pode ser 1. CEP, 2.Latidude, Longitude
+        ou 3.Endereço (Rua, bairro, número).
+      parameters:
+      - description: Address Query
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address Info
+          schema:
+            $ref: '#/definitions/address.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Find Address By Query
+      tags:
+      - Address
   /advertisement/create:
     post:
       consumes:
