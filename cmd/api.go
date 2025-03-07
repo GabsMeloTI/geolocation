@@ -119,6 +119,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
+	address := e.Group("/address")
+	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
+
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
 

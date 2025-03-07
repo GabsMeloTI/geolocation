@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+type Address struct {
+	ID         int32           `json:"id"`
+	StreetID   int32           `json:"street_id"`
+	Number     sql.NullString  `json:"number"`
+	Complement sql.NullString  `json:"complement"`
+	Cep        string          `json:"cep"`
+	Lat        sql.NullFloat64 `json:"lat"`
+	Lon        sql.NullFloat64 `json:"lon"`
+}
+
 type Advertisement struct {
 	ID                      int64          `json:"id"`
 	UserID                  int64          `json:"user_id"`
@@ -123,6 +133,13 @@ type ChatRoom struct {
 	UpdatedAt           sql.NullTime `json:"updated_at"`
 }
 
+type City struct {
+	ID           int32       `json:"id"`
+	Name         string      `json:"name"`
+	StateID      int32       `json:"state_id"`
+	SearchVector interface{} `json:"search_vector"`
+}
+
 type Driver struct {
 	ID                    int64          `json:"id"`
 	UserID                int64          `json:"user_id"`
@@ -180,6 +197,13 @@ type GasStation struct {
 	SpecificPoint string `json:"specific_point"`
 }
 
+type Neighborhood struct {
+	ID           int32       `json:"id"`
+	Name         string      `json:"name"`
+	CityID       int32       `json:"city_id"`
+	SearchVector interface{} `json:"search_vector"`
+}
+
 type Offer struct {
 	ID              int64         `json:"id"`
 	AdvertisementID sql.NullInt64 `json:"advertisement_id"`
@@ -222,6 +246,20 @@ type SavedRoute struct {
 	UpdatedAt   sql.NullTime    `json:"updated_at"`
 	Favorite    sql.NullBool    `json:"favorite"`
 	ExpiredAt   time.Time       `json:"expired_at"`
+}
+
+type State struct {
+	ID           int32       `json:"id"`
+	Name         string      `json:"name"`
+	Uf           string      `json:"uf"`
+	SearchVector interface{} `json:"search_vector"`
+}
+
+type Street struct {
+	ID             int32         `json:"id"`
+	Name           string        `json:"name"`
+	NeighborhoodID sql.NullInt32 `json:"neighborhood_id"`
+	SearchVector   interface{}   `json:"search_vector"`
 }
 
 type TokenHist struct {
