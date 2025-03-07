@@ -71,3 +71,11 @@ func GetUserPayloadToken(c echo.Context) PayloadUserDTO {
 		ExpireAt:  strExpireAt,
 	}
 }
+
+func GetUserIDPayloadToken(c echo.Context) PayloadUserIDDTO {
+	strUserID, _ := c.Get("token_user_id").(int64)
+
+	return PayloadUserIDDTO{
+		UserID: strUserID,
+	}
+}

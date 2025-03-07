@@ -90,3 +90,12 @@ func (maker *PasetoMaker) CreateToken(tokenHistID int64, ip string, numberReques
 
 	return maker.paseto.Encrypt(maker.symetricKey, payload, nil)
 }
+
+func (maker *PasetoMaker) CreateTokenUserID(userID int64) (string, error) {
+	payload, err := NewPayloadUserID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return maker.paseto.Encrypt(maker.symetricKey, payload, nil)
+}
