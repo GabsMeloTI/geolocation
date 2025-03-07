@@ -171,7 +171,9 @@ func (h *Handler) UpdateFreightLocation(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := h.InterfaceService.FreightLocationDetailsService(c.Request().Context(), request)
+	payload := get_token.GetUserPayloadToken(c)
+
+	res, err := h.InterfaceService.FreightLocationDetailsService(c.Request().Context(), request, payload.ID)
 
 	if err != nil {
 		return err

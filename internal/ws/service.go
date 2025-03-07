@@ -17,7 +17,7 @@ type InterfaceService interface {
 	GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) (HomeResponse, error)
 	GetChatMessagesByRoomIdService(ctx context.Context, roomId int64, userId int64) ([]MessageResponse, error)
 	UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error
-	FreightLocationDetailsService(ctx context.Context, data UpdateFreightData) (FreightLocationDetailsResponse, error)
+	FreightLocationDetailsService(ctx context.Context, data UpdateFreightData, userId int64) (FreightLocationDetailsResponse, error)
 }
 
 type Service struct {
@@ -267,11 +267,15 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 	return nil
 }
 
-func (s *Service) FreightLocationDetailsService(ctx context.Context, data UpdateFreightData) (FreightLocationDetailsResponse, error) {
+func (s *Service) FreightLocationDetailsService(ctx context.Context, data UpdateFreightData, userId int64) (FreightLocationDetailsResponse, error) {
 	freightDetails, err := s.InterfaceService.GetAppointmentDetailsByAdvertisementIdRepository(ctx, data.AdvertisementId)
 
 	if err != nil {
 		return FreightLocationDetailsResponse{}, err
+	}
+
+	if freightDetails.InterestedUserID.Int64 != userId {
+		return FreightLocationDetailsResponse{}, errors.New("invalid user_id")
 	}
 
 	route, err := s.ServiceRoutes.GetSimpleRoute(new_routes.SimpleRouteRequest{

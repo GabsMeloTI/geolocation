@@ -93,7 +93,7 @@ func (q *Queries) GetAppointmentByID(ctx context.Context, id int64) (Appointment
 }
 
 const getAppointmentDetailsByAdvertisementId = `-- name: GetAppointmentDetailsByAdvertisementId :one
-select a.advertisement_user_id, tr.license_plate as trailer_license_plate, tu.license_plate as tractor_unit_license_plate, d.name, ad.destination_lat, ad.destination_lng from appointments a
+select a.advertisement_user_id, a.interested_user_id,tr.license_plate as trailer_license_plate, tu.license_plate as tractor_unit_license_plate, d.name, ad.destination_lat, ad.destination_lng from appointments a
      RIGHT JOIN advertisement ad on ad.id = a.advertisement_id
      RIGHT JOIN truck t on t.id = a.truck_id
      LEFT JOIN tractor_unit tu on tu.id = t.tractor_unit_id
@@ -104,6 +104,7 @@ WHERE a.advertisement_id = $1
 
 type GetAppointmentDetailsByAdvertisementIdRow struct {
 	AdvertisementUserID     sql.NullInt64  `json:"advertisement_user_id"`
+	InterestedUserID        sql.NullInt64  `json:"interested_user_id"`
 	TrailerLicensePlate     sql.NullString `json:"trailer_license_plate"`
 	TractorUnitLicensePlate sql.NullString `json:"tractor_unit_license_plate"`
 	Name                    string         `json:"name"`
@@ -116,6 +117,7 @@ func (q *Queries) GetAppointmentDetailsByAdvertisementId(ctx context.Context, ad
 	var i GetAppointmentDetailsByAdvertisementIdRow
 	err := row.Scan(
 		&i.AdvertisementUserID,
+		&i.InterestedUserID,
 		&i.TrailerLicensePlate,
 		&i.TractorUnitLicensePlate,
 		&i.Name,
