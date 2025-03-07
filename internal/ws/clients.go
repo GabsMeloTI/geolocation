@@ -19,9 +19,12 @@ type Client struct {
 }
 
 type Message struct {
-	RoomId      int64  `json:"room_id"`
-	Content     string `json:"content"`
-	TypeMessage string `json:"type_message"`
+	RoomId          int64   `json:"room_id"`
+	Content         string  `json:"content"`
+	TypeMessage     string  `json:"type_message"`
+	Latitude        float64 `json:"latitude,omitempty"`
+	Longitude       float64 `json:"longitude,omitempty"`
+	AdvertisementId int64   `json:"advertisement_id"`
 }
 
 type OutgoingMessage struct {
@@ -34,6 +37,18 @@ type OutgoingMessage struct {
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
 	TypeMessage    string     `json:"type_message,omitempty"`
 	IsAccepted     bool       `json:"is_accepted,omitempty"`
+}
+
+type UpdateFreightMessage struct {
+	AdvertisementId         int64   `json:"advertisement_id"`
+	Latitude                float64 `json:"latitude"`
+	Longitude               float64 `json:"longitude"`
+	DurationText            string  `json:"duration"`
+	DistanceText            string  `json:"distance"`
+	DriverName              string  `json:"driver_name"`
+	TractorUnitLicensePlate string  `json:"tractor_unit_license_plate"`
+	TrailerLicensePlate     string  `json:"trailer_license_p_late"`
+	TypeMessage             string  `json:"type_message"`
 }
 
 func (c *Client) writeMessage() {
@@ -80,7 +95,45 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		err = json.Unmarshal(m, &msg)
 
 		if err != nil {
+			log.Println(err)
 			log.Println("error to unmarshal message")
+			continue
+		}
+
+		if msg.TypeMessage == "update_freight" {
+			var data FreightLocationDetailsResponse
+			data, err = s.FreightLocationDetailsService(context.Background(), UpdateFreightData{
+				AdvertisementId: msg.AdvertisementId,
+				OriginLatitude:  msg.Latitude,
+				OriginLongitude: msg.Longitude,
+			})
+
+			if err != nil {
+				log.Println("error in freight location details service")
+				continue
+			}
+
+			updateFreightMessage := &UpdateFreightMessage{
+				AdvertisementId:         msg.AdvertisementId,
+				Latitude:                msg.Latitude,
+				Longitude:               msg.Longitude,
+				DurationText:            data.DurationText,
+				DistanceText:            data.DistanceText,
+				DriverName:              data.DriverName,
+				TractorUnitLicensePlate: data.TractorUnitLicensePlate,
+				TrailerLicensePlate:     data.TrailerLicensePlate,
+				TypeMessage:             "update_freight",
+			}
+
+			if cl, ok := hub.Clients[data.AdvertisementUserId]; ok {
+				err = cl.Conn.WriteJSON(updateFreightMessage)
+
+				if err != nil {
+					log.Println("error in write json")
+					continue
+				}
+			}
+
 			continue
 		}
 

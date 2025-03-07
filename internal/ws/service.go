@@ -7,6 +7,7 @@ import (
 	db "geolocation/db/sqlc"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/get_token"
+	new_routes "geolocation/internal/new_routes"
 )
 
 type InterfaceService interface {
@@ -16,17 +17,21 @@ type InterfaceService interface {
 	GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) (HomeResponse, error)
 	GetChatMessagesByRoomIdService(ctx context.Context, roomId int64, userId int64) ([]MessageResponse, error)
 	UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error
+	FreightLocationDetailsService(ctx context.Context, data UpdateFreightData) (FreightLocationDetailsResponse, error)
 }
 
 type Service struct {
 	InterfaceService       InterfaceRepository
+	ServiceRoutes          new_routes.InterfaceService
 	InterfaceAdvertisement advertisement.InterfaceRepository
 }
 
-func NewWsService(interfaceService InterfaceRepository, InterfaceAdvertisement advertisement.InterfaceRepository) *Service {
+func NewWsService(interfaceService InterfaceRepository, InterfaceAdvertisement advertisement.InterfaceRepository, ServiceRoutes new_routes.InterfaceService,
+) *Service {
 	return &Service{
 		InterfaceService:       interfaceService,
 		InterfaceAdvertisement: InterfaceAdvertisement,
+		ServiceRoutes:          ServiceRoutes,
 	}
 }
 
@@ -260,4 +265,32 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 	}
 
 	return nil
+}
+
+func (s *Service) FreightLocationDetailsService(ctx context.Context, data UpdateFreightData) (FreightLocationDetailsResponse, error) {
+	freightDetails, err := s.InterfaceService.GetAppointmentDetailsByAdvertisementIdRepository(ctx, data.AdvertisementId)
+
+	if err != nil {
+		return FreightLocationDetailsResponse{}, err
+	}
+
+	route, err := s.ServiceRoutes.GetSimpleRoute(new_routes.SimpleRouteRequest{
+		OriginLat: data.OriginLatitude,
+		OriginLng: data.OriginLongitude,
+		DestLat:   freightDetails.DestinationLat,
+		DestLng:   freightDetails.DestinationLng,
+	})
+
+	if err != nil {
+		return FreightLocationDetailsResponse{}, err
+	}
+
+	return FreightLocationDetailsResponse{
+		DurationText:            route.Summary.SimpleRoute.Duration.Text,
+		DistanceText:            route.Summary.SimpleRoute.Distance.Text,
+		DriverName:              freightDetails.Name,
+		AdvertisementUserId:     freightDetails.AdvertisementUserID.Int64,
+		TractorUnitLicensePlate: freightDetails.TractorUnitLicensePlate.String,
+		TrailerLicensePlate:     freightDetails.TrailerLicensePlate.String,
+	}, nil
 }

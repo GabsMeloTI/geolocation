@@ -92,6 +92,39 @@ func (q *Queries) GetAppointmentByID(ctx context.Context, id int64) (Appointment
 	return i, err
 }
 
+const getAppointmentDetailsByAdvertisementId = `-- name: GetAppointmentDetailsByAdvertisementId :one
+select a.advertisement_user_id, tr.license_plate as trailer_license_plate, tu.license_plate as tractor_unit_license_plate, d.name, ad.destination_lat, ad.destination_lng from appointments a
+     RIGHT JOIN advertisement ad on ad.id = a.advertisement_id
+     RIGHT JOIN truck t on t.id = a.truck_id
+     LEFT JOIN tractor_unit tu on tu.id = t.tractor_unit_id
+     LEFT JOIN trailer tr on tr.id = t.trailer_id
+     RIGHT JOIN driver d on d.id = t.driver_id
+WHERE a.advertisement_id = $1
+`
+
+type GetAppointmentDetailsByAdvertisementIdRow struct {
+	AdvertisementUserID     sql.NullInt64  `json:"advertisement_user_id"`
+	TrailerLicensePlate     sql.NullString `json:"trailer_license_plate"`
+	TractorUnitLicensePlate sql.NullString `json:"tractor_unit_license_plate"`
+	Name                    string         `json:"name"`
+	DestinationLat          float64        `json:"destination_lat"`
+	DestinationLng          float64        `json:"destination_lng"`
+}
+
+func (q *Queries) GetAppointmentDetailsByAdvertisementId(ctx context.Context, advertisementID int64) (GetAppointmentDetailsByAdvertisementIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getAppointmentDetailsByAdvertisementId, advertisementID)
+	var i GetAppointmentDetailsByAdvertisementIdRow
+	err := row.Scan(
+		&i.AdvertisementUserID,
+		&i.TrailerLicensePlate,
+		&i.TractorUnitLicensePlate,
+		&i.Name,
+		&i.DestinationLat,
+		&i.DestinationLng,
+	)
+	return i, err
+}
+
 const getListAppointmentByUserID = `-- name: GetListAppointmentByUserID :many
 SELECT DISTINCT ON (ap.id) ap.id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, u.name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, u.cep, u.complement, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, tu.state, tu.renavan, capacity, tu.width, tu.length, color, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, t.length, t.width, t.height, t.axles, t.status, t.created_at, t.updated_at, t.state, t.renavan, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at, d.name, d.cep, d.complement
 FROM appointments ap
