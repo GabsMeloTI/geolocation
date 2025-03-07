@@ -15,6 +15,55 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/address/find": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Encontra endereço por busca, pode ser 1. CEP, 2.Latidude, Longitude ou 3.Endereço (Rua, bairro, número).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Address"
+                ],
+                "summary": "Find Address By Query",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address Query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Address Info",
+                        "schema": {
+                            "$ref": "#/definitions/address.AddressResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/advertisement/create": {
             "post": {
                 "security": [
@@ -938,6 +987,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/route/simple": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a simple route with distance and duration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Get simple route information.",
+                "parameters": [
+                    {
+                        "description": "Route calculation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.SimpleRouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Route details",
+                        "schema": {
+                            "$ref": "#/definitions/routes.SimpleRouteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tractor-unit/create": {
             "post": {
                 "security": [
@@ -1749,6 +1855,38 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "address.AddressResponse": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "neighborhood": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
         "advertisement.AdvertisementResponse": {
             "type": "object",
             "properties": {
@@ -3098,6 +3236,56 @@ const docTemplate = `{
                 },
                 "url_waze": {
                     "type": "string"
+                }
+            }
+        },
+        "routes.SimpleRouteRequest": {
+            "type": "object",
+            "properties": {
+                "destination_lat": {
+                    "type": "number"
+                },
+                "destination_lng": {
+                    "type": "number"
+                },
+                "origin_lat": {
+                    "type": "number"
+                },
+                "origin_lng": {
+                    "type": "number"
+                }
+            }
+        },
+        "routes.SimpleRouteResponse": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                    "$ref": "#/definitions/routes.SimpleSummary"
+                }
+            }
+        },
+        "routes.SimpleRouteSummary": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Distance"
+                },
+                "duration": {
+                    "$ref": "#/definitions/geolocation_internal_new_routes.Duration"
+                }
+            }
+        },
+        "routes.SimpleSummary": {
+            "type": "object",
+            "properties": {
+                "location_destination": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/routes.AddressInfo"
+                },
+                "routes": {
+                    "$ref": "#/definitions/routes.SimpleRouteSummary"
                 }
             }
         },

@@ -97,6 +97,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
 	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
+	route.POST("/simple", container.HandlerNewRoutes.GetSimpleRoute)
 
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
@@ -121,6 +122,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
 	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
+
+	address := e.Group("/address")
+	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
+
+	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"

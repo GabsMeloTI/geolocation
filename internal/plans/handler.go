@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"geolocation/infra/token"
 	"geolocation/internal/get_token"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -8,10 +9,14 @@ import (
 
 type Handler struct {
 	InterfaceService InterfaceService
+	tokenMaker       token.PasetoMaker
 }
 
 func NewUserPlanHandler(InterfaceService InterfaceService) *Handler {
-	return &Handler{InterfaceService}
+	return &Handler{
+		InterfaceService,
+		token.PasetoMaker{},
+	}
 }
 
 // CreateUserPlanHandler godoc
@@ -40,4 +45,15 @@ func (p *Handler) CreateUserPlanHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+func (p *Handler) GetTokenUserHandler(c echo.Context) error {
+	payload := get_token.GetUserIDPayloadToken(c)
+
+	newToken, err := p.InterfaceService.GenerateUserToken(payload.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"token": newToken})
 }

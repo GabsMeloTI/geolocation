@@ -5,6 +5,7 @@ import (
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
+	"geolocation/internal/address"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/appointments"
 	"geolocation/internal/attachment"
@@ -59,11 +60,15 @@ type ContainerDI struct {
 	LoginRepository         *login.Repository
 	GoogleToken             *sso.GoogleToken
 	PasetoMaker             *token.Maker
+	PassetoMaker            *token.PasetoMaker
 	WsRepository            *ws.Repository
 	WsService               *ws.Service
 	HandlerAppointment      *appointments.Handler
 	ServiceAppointment      *appointments.Service
 	RepositoryAppointment   *appointments.Repository
+	HandlerAddress          *address.Handler
+	ServiceAddress          *address.Service
+	RepositoryAddress       *address.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -109,6 +114,7 @@ func (c *ContainerDI) buildRepository() {
 	c.LoginRepository = login.NewRepository(c.ConnDB)
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 	c.RepositoryAppointment = appointments.NewAppointmentsRepository(c.ConnDB)
+	c.RepositoryAddress = address.NewAddressRepository(c.ConnDB)
 }
 
 func (c *ContainerDI) buildService() {
@@ -121,10 +127,11 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
-	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan)
+	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
+	c.ServiceAddress = address.NewAddresssService(c.RepositoryAddress)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -143,5 +150,5 @@ func (c *ContainerDI) buildHandler() {
 	c.WsHandler = ws.NewWsHandler(hub, c.WsService)
 	go hub.Run()
 	c.HandlerAppointment = appointments.NewAppointmentHandler(c.ServiceAppointment)
-
+	c.HandlerAddress = address.NewAddressHandler(c.ServiceAddress)
 }

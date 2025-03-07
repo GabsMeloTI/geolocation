@@ -1,4 +1,25 @@
 definitions:
+  address.AddressResponse:
+    properties:
+      cep:
+        type: string
+      city:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      neighborhood:
+        type: string
+      number:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+    type: object
   advertisement.AdvertisementResponse:
     properties:
       advance:
@@ -898,6 +919,38 @@ definitions:
       url_waze:
         type: string
     type: object
+  routes.SimpleRouteRequest:
+    properties:
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+    type: object
+  routes.SimpleRouteResponse:
+    properties:
+      summary:
+        $ref: '#/definitions/routes.SimpleSummary'
+    type: object
+  routes.SimpleRouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/geolocation_internal_new_routes.Distance'
+      duration:
+        $ref: '#/definitions/geolocation_internal_new_routes.Duration'
+    type: object
+  routes.SimpleSummary:
+    properties:
+      location_destination:
+        $ref: '#/definitions/routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/routes.AddressInfo'
+      routes:
+        $ref: '#/definitions/routes.SimpleRouteSummary'
+    type: object
   tractor_unit.CreateTractorUnitRequest:
     properties:
       brand:
@@ -1260,6 +1313,38 @@ definitions:
 info:
   contact: {}
 paths:
+  /address/find:
+    get:
+      consumes:
+      - application/json
+      description: Encontra endereço por busca, pode ser 1. CEP, 2.Latidude, Longitude
+        ou 3.Endereço (Rua, bairro, número).
+      parameters:
+      - description: Address Query
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address Info
+          schema:
+            $ref: '#/definitions/address.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Find Address By Query
+      tags:
+      - Address
   /advertisement/create:
     post:
       consumes:
@@ -1849,6 +1934,42 @@ paths:
       summary: Get FavoriteRoute.
       tags:
       - FavoriteRoutes
+  /route/simple:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a simple route with distance and duration.
+      parameters:
+      - description: Route calculation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/routes.SimpleRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Route details
+          schema:
+            $ref: '#/definitions/routes.SimpleRouteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get simple route information.
+      tags:
+      - Routes
   /tractor-unit/create:
     post:
       consumes:

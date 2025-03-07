@@ -43,12 +43,17 @@ type PayloadUser struct {
 	ExpireAt  time.Time `json:"expire_at"`
 }
 
+type PayloadUserID struct {
+	UserID int64 `json:"user_id"`
+}
+
 func (payload *PayloadSimp) valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
 	}
 	return nil
 }
+
 func (payload *Payload) validPublic() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
@@ -88,5 +93,11 @@ func NewPayloadUser(id int64, name string, email string, profileId int64, docume
 		Document:  document,
 		GoogleID:  googleId,
 		ExpireAt:  expireAt,
+	}, nil
+}
+
+func NewPayloadUserID(userID int64) (*PayloadUserID, error) {
+	return &PayloadUserID{
+		UserID: userID,
 	}, nil
 }

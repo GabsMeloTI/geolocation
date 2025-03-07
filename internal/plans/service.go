@@ -4,19 +4,22 @@ import (
 	"context"
 	"fmt"
 	db "geolocation/db/sqlc"
+	"geolocation/infra/token"
 	"time"
 )
 
 type InterfaceService interface {
 	CreateUserPlanService(ctx context.Context, data CreateUserPlanRequest) (UserPlanResponse, error)
+	GenerateUserToken(userID int64) (string, error)
 }
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	maker            token.Maker
 }
 
-func NewUserPlanService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewUserPlanService(InterfaceService InterfaceRepository, maker token.Maker) *Service {
+	return &Service{InterfaceService, maker}
 }
 
 func (p *Service) CreateUserPlanService(ctx context.Context, data CreateUserPlanRequest) (UserPlanResponse, error) {
@@ -77,4 +80,13 @@ func (p *Service) CreateUserPlanService(ctx context.Context, data CreateUserPlan
 	createUserPlan.ParseFromPlansObject(result)
 
 	return createUserPlan, nil
+}
+
+func (p *Service) GenerateUserToken(userID int64) (string, error) {
+	tokenStr, err := p.maker.CreateTokenUserID(int64(userID))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenStr, nil
 }
