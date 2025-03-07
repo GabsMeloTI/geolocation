@@ -126,6 +126,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 
+	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
+
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
 
