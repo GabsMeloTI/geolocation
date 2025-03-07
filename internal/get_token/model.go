@@ -36,3 +36,7 @@ type PayloadUserDTO struct {
 	GoogleID  string    `json:"google_id"`
 	ExpireAt  time.Time `json:"expire_at"`
 }
+
+type PayloadUserIDDTO struct {
+	UserID int64 `json:"user_id"`
+}

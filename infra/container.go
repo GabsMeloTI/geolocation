@@ -60,6 +60,7 @@ type ContainerDI struct {
 	LoginRepository         *login.Repository
 	GoogleToken             *sso.GoogleToken
 	PasetoMaker             *token.Maker
+	PassetoMaker            *token.PasetoMaker
 	WsRepository            *ws.Repository
 	WsService               *ws.Service
 	HandlerAppointment      *appointments.Handler
@@ -126,7 +127,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
-	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan)
+	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)

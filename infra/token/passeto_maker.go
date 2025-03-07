@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/o1egl/paseto"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -26,12 +27,11 @@ func NewPasetoMaker(symetricKey string) (Maker, error) {
 		return nil, fmt.Errorf("invalid key size: must be exactly %d characacteres", chacha20poly1305.KeySize)
 	}
 
-	maker := &PasetoMaker{
+	return &PasetoMaker{
 		paseto:      paseto.NewV2(),
 		symetricKey: []byte(symetricKey),
-	}
+	}, nil
 
-	return maker, nil
 }
 
 func (maker *PasetoMaker) VerifyToken(token string) (*PayloadSimp, error) {
@@ -89,4 +89,18 @@ func (maker *PasetoMaker) CreateToken(tokenHistID int64, ip string, numberReques
 	}
 
 	return maker.paseto.Encrypt(maker.symetricKey, payload, nil)
+}
+
+func (maker *PasetoMaker) CreateTokenUserID(userID int64) (string, error) {
+	payload, err := NewPayloadUserID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	return maker.paseto.Encrypt(maker.symetricKey, payloadJSON, nil)
 }

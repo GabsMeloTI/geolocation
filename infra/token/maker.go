@@ -24,4 +24,7 @@ type Maker interface {
 		googleId string,
 		expireAt time.Time,
 	) (string, error)
+	CreateTokenUserID(
+		userID int64,
+	) (string, error)
 }
