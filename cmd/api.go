@@ -123,6 +123,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
 
+	address := e.Group("/address")
+	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
+
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
 
