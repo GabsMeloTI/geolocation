@@ -34,6 +34,17 @@ func NewPasetoMaker(symetricKey string) (Maker, error) {
 
 }
 
+func (maker *PasetoMaker) VerifyTokenUserID(token string) (*PayloadUserID, error) {
+	payload := &PayloadUserID{}
+
+	err := maker.paseto.Decrypt(token, maker.symetricKey, &payload, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
 func (maker *PasetoMaker) VerifyToken(token string) (*PayloadSimp, error) {
 	payload := &PayloadSimp{}
 
