@@ -36,6 +36,18 @@ type OutgoingMessage struct {
 	IsAccepted     bool       `json:"is_accepted,omitempty"`
 }
 
+type UpdateFreightMessage struct {
+	AdvertisementId         int64   `json:"advertisement_id"`
+	Latitude                float64 `json:"latitude"`
+	Longitude               float64 `json:"longitude"`
+	DurationText            string  `json:"duration"`
+	DistanceText            string  `json:"distance"`
+	DriverName              string  `json:"driver_name"`
+	TractorUnitLicensePlate string  `json:"tractor_unit_license_plate"`
+	TrailerLicensePlate     string  `json:"trailer_license_p_late"`
+	TypeMessage             string  `json:"type_message"`
+}
+
 func (c *Client) writeMessage() {
 	defer func() {
 		err := c.Conn.Close()

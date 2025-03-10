@@ -163,3 +163,36 @@ func (h *Handler) UpdateMessageOffer(c echo.Context) error {
 
 	return c.String(http.StatusOK, "Success")
 }
+
+func (h *Handler) UpdateFreightLocation(c echo.Context) error {
+	var request UpdateFreightData
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+
+	res, err := h.InterfaceService.FreightLocationDetailsService(c.Request().Context(), request, payload.ID)
+
+	if err != nil {
+		return err
+	}
+	updateFreightMessage := &UpdateFreightMessage{
+		AdvertisementId:         request.AdvertisementId,
+		Latitude:                request.OriginLatitude,
+		Longitude:               request.OriginLongitude,
+		DurationText:            res.DurationText,
+		DistanceText:            res.DistanceText,
+		DriverName:              res.DriverName,
+		TractorUnitLicensePlate: res.TractorUnitLicensePlate,
+		TrailerLicensePlate:     res.TrailerLicensePlate,
+		TypeMessage:             "update_freight",
+	}
+
+	if cl, ok := h.hub.Clients[res.AdvertisementUserId]; ok {
+		err = cl.Conn.WriteJSON(updateFreightMessage)
+	}
+
+	return c.JSON(http.StatusOK, res)
+}

@@ -103,6 +103,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
+	chat.POST("/update-freight", container.WsHandler.UpdateFreightLocation)
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
 	//simpplify
