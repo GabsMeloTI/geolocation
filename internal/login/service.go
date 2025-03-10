@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	db "geolocation/db/sqlc"
 	"geolocation/infra/token"
 	"geolocation/pkg/crypt"
@@ -48,6 +49,9 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		}
 		emailSearch = googleToken.Email
 		googleIDSearch = googleToken.UserId
+
+		fmt.Println(googleToken.Audience)
+		fmt.Println(s.googleClientID)
 
 		if googleToken.Audience != s.googleClientID {
 			return response, ErrInvalidClientID
