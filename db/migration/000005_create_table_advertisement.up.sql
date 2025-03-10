@@ -53,3 +53,18 @@ ALTER TABLE advertisement
     FOREIGN KEY ("user_id")
     REFERENCES users ("id");
 
+
+
+CREATE TABLE active_freights (
+                                 id BIGSERIAL NOT NULL,
+                                 advertisement_id BIGINT NOT NULL,
+                                 advertisement_user_id BIGINT NOT NULL,
+                                 latitude float NOT NULL,
+                                 longitude float NOT NULL,
+                                 duration VARCHAR(50) NOT NULL,
+                                 distance VARCHAR(50) NOT NULL,
+                                 driver_name VARCHAR(255) NOT NULL,
+                                 tractor_unit_license_plate VARCHAR(20),
+                                 trailer_license_plate VARCHAR(20),
+                                 updated_at TIMESTAMP NOT NULL
+);

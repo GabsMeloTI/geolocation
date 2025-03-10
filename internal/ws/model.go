@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	db "geolocation/db/sqlc"
 	"geolocation/internal/get_token"
+	routes "geolocation/internal/new_routes"
 	"time"
 )
 
@@ -20,8 +21,20 @@ type CreateChatRoomResponse struct {
 }
 
 type HomeResponse struct {
-	Advertisement []RoomResponse `json:"advertisements"`
-	Interested    []RoomResponse `json:"interested"`
+	Advertisement  []RoomResponse  `json:"advertisements"`
+	Interested     []RoomResponse  `json:"interested"`
+	ActiveFreights []ActiveFreight `json:"active_freights"`
+}
+
+type ActiveFreight struct {
+	AdvertisementId         int64   `json:"advertisement_id"`
+	Latitude                float64 `json:"latitude"`
+	Longitude               float64 `json:"longitude"`
+	DurationText            string  `json:"duration"`
+	DistanceText            string  `json:"distance"`
+	DriverName              string  `json:"driver_name"`
+	TractorUnitLicensePlate string  `json:"tractor_unit_license_plate"`
+	TrailerLicensePlate     string  `json:"trailer_license_p_late"`
 }
 
 type RoomResponse struct {
@@ -130,4 +143,35 @@ type UpdateFreightData struct {
 	AdvertisementId int64   `json:"advertisement_id"`
 	OriginLatitude  float64 `json:"latitude"`
 	OriginLongitude float64 `json:"longitude"`
+}
+
+func (u UpdateFreightData) ToCreateActiveFreightParams(route routes.SimpleRouteResponse, freightDetails db.GetAppointmentDetailsByAdvertisementIdRow) db.CreateActiveFreightParams {
+	return db.CreateActiveFreightParams{
+		AdvertisementID:     u.AdvertisementId,
+		AdvertisementUserID: freightDetails.AdvertisementUserID.Int64,
+		Latitude:            u.OriginLatitude,
+		Longitude:           u.OriginLongitude,
+		Duration:            route.Summary.SimpleRoute.Duration.Text,
+		Distance:            route.Summary.SimpleRoute.Distance.Text,
+		DriverName:          freightDetails.Name,
+		TractorUnitLicensePlate: sql.NullString{
+			String: freightDetails.TractorUnitLicensePlate.String,
+			Valid:  true,
+		},
+		TrailerLicensePlate: sql.NullString{
+			String: freightDetails.TrailerLicensePlate.String,
+			Valid:  true,
+		},
+	}
+}
+
+func (u UpdateFreightData) ToUpdateActiveFreightParams(route routes.SimpleRouteResponse, freightId int64) db.UpdateActiveFreightParams {
+	return db.UpdateActiveFreightParams{
+		Latitude:  u.OriginLatitude,
+		Longitude: u.OriginLongitude,
+		Duration:  route.Summary.SimpleRoute.Duration.Text,
+		Distance:  route.Summary.SimpleRoute.Distance.Text,
+		ID:        freightId,
+	}
+
 }

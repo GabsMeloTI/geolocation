@@ -21,6 +21,10 @@ type InterfaceRepository interface {
 	CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error)
 	CreateAppointmentRepository(ctx context.Context, arg db.CreateAppointmentParams) (db.Appointment, error)
 	GetAppointmentDetailsByAdvertisementIdRepository(ctx context.Context, advertisementId int64) (db.GetAppointmentDetailsByAdvertisementIdRow, error)
+	CreateActiveFreightRepository(ctx context.Context, arg db.CreateActiveFreightParams) error
+	UpdateActiveFreightRepository(ctx context.Context, arg db.UpdateActiveFreightParams) error
+	GetAllActiveFreightsRepository(ctx context.Context, advertisementId int64) ([]db.ActiveFreight, error)
+	GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error)
 }
 
 type Repository struct {
@@ -94,4 +98,20 @@ func (r *Repository) CreateAppointmentRepository(ctx context.Context, arg db.Cre
 
 func (r *Repository) GetAppointmentDetailsByAdvertisementIdRepository(ctx context.Context, advertisementId int64) (db.GetAppointmentDetailsByAdvertisementIdRow, error) {
 	return r.Queries.GetAppointmentDetailsByAdvertisementId(ctx, advertisementId)
+}
+
+func (r *Repository) CreateActiveFreightRepository(ctx context.Context, arg db.CreateActiveFreightParams) error {
+	return r.Queries.CreateActiveFreight(ctx, arg)
+}
+
+func (r *Repository) UpdateActiveFreightRepository(ctx context.Context, arg db.UpdateActiveFreightParams) error {
+	return r.Queries.UpdateActiveFreight(ctx, arg)
+}
+
+func (r *Repository) GetAllActiveFreightsRepository(ctx context.Context, advertisementUserId int64) ([]db.ActiveFreight, error) {
+	return r.Queries.GetAllActiveFreights(ctx, advertisementUserId)
+}
+
+func (r *Repository) GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error) {
+	return r.Queries.GetActiveFreight(ctx, advertisementId)
 }
