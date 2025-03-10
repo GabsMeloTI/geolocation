@@ -10,6 +10,20 @@ import (
 	"time"
 )
 
+type ActiveFreight struct {
+	ID                      int64          `json:"id"`
+	AdvertisementID         int64          `json:"advertisement_id"`
+	AdvertisementUserID     int64          `json:"advertisement_user_id"`
+	Latitude                float64        `json:"latitude"`
+	Longitude               float64        `json:"longitude"`
+	Duration                string         `json:"duration"`
+	Distance                string         `json:"distance"`
+	DriverName              string         `json:"driver_name"`
+	TractorUnitLicensePlate sql.NullString `json:"tractor_unit_license_plate"`
+	TrailerLicensePlate     sql.NullString `json:"trailer_license_plate"`
+	UpdatedAt               time.Time      `json:"updated_at"`
+}
+
 type Address struct {
 	ID         int32           `json:"id"`
 	StreetID   int32           `json:"street_id"`
