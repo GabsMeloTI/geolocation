@@ -44,6 +44,10 @@ func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoom
 		return CreateChatRoomResponse{}, err
 	}
 
+	if a.UserID == userId {
+		return CreateChatRoomResponse{}, errors.New("you cannot create a room to your own advertisement")
+	}
+
 	ok, err := s.InterfaceService.GetChatRoomByAdvertisementAndInterestedUserRepository(ctx, db.GetChatRoomByAdvertisementAndInterestedUserParams{
 		AdvertisementID:  data.AdvertisementID,
 		InterestedUserID: userId,
