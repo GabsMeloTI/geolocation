@@ -8,6 +8,7 @@ type Maker interface {
 	VerifyToken(token string) (*PayloadSimp, error)
 	VerifyTokenUser(token string) (*PayloadUser, error)
 	VerifyPublicToken(token string) (*Payload, error)
+	VerifyTokenUserID(token string) (*PayloadUserID, error)
 	CreateToken(
 		tokenHistID int64,
 		ip string,

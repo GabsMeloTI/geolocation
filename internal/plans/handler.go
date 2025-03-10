@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"fmt"
 	"geolocation/infra/token"
 	"geolocation/internal/get_token"
 	"github.com/labstack/echo/v4"
@@ -48,9 +49,10 @@ func (p *Handler) CreateUserPlanHandler(c echo.Context) error {
 }
 
 func (p *Handler) GetTokenUserHandler(c echo.Context) error {
-	payload := get_token.GetUserIDPayloadToken(c)
+	payload := get_token.GetUserPayloadToken(c)
+	fmt.Println(payload.ID)
 
-	newToken, err := p.InterfaceService.GenerateUserToken(payload.UserID)
+	newToken, err := p.InterfaceService.GenerateUserToken(payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
 	}
