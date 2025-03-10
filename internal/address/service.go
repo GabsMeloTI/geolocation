@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	db "geolocation/db/sqlc"
+	"golang.org/x/text/unicode/norm"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type InterfaceService interface {
@@ -47,14 +49,12 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		if err != nil {
 			return nil, err
 		}
-		for _, result := range addressLatLon {
-			var addressResponse AddressResponse
-			err = addressResponse.ParseFromLatLonRow(&result)
-			if err != nil {
-				return nil, err
-			}
-			addressResponses = append(addressResponses, addressResponse)
+
+		addressResponses, err = ParseFromLatLonRow(addressLatLon)
+		if err != nil {
+			return nil, err
 		}
+
 		return addressResponses, nil
 	}
 
@@ -63,13 +63,9 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		if err != nil {
 			return nil, err
 		}
-		for _, result := range addressCEP {
-			var addressResponse AddressResponse
-			err = addressResponse.ParseFromCEPRow(&result)
-			if err != nil {
-				return nil, err
-			}
-			addressResponses = append(addressResponses, addressResponse)
+		addressResponses, err = ParseFromCEPRow(addressCEP)
+		if err != nil {
+			return nil, err
 		}
 		return addressResponses, nil
 	}
@@ -79,6 +75,18 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 
 	for _, term := range terms {
 		term = strings.TrimSpace(term)
+
+		normalized := norm.NFD.String(term)
+		var result strings.Builder
+		for _, r := range normalized {
+			if unicode.Is(unicode.Mn, r) {
+				continue
+			}
+			result.WriteRune(r)
+		}
+
+		term = strings.ToLower(result.String())
+
 		if _, err := strconv.Atoi(term); err == nil {
 			numero = term
 			continue
@@ -112,14 +120,10 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, result := range addressesQuery {
-		var addressResponse AddressResponse
-		err = addressResponse.ParseFromQueryRow(&result)
-		if err != nil {
-			return nil, err
-		}
-		addressResponses = append(addressResponses, addressResponse)
+	addressResponses, err = ParseFromQueryRow(addressesQuery, numero)
+	if err != nil {
+		return nil, err
 	}
+
 	return addressResponses, nil
 }

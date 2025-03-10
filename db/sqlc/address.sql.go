@@ -14,6 +14,7 @@ const findAddressesByCEP = `-- name: FindAddressesByCEP :many
 SELECT
     a.id AS address_id,
     s.name AS street_name,
+    s.id AS street_id,
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
@@ -27,12 +28,12 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
-LIMIT 10
 `
 
 type FindAddressesByCEPRow struct {
 	AddressID        int32           `json:"address_id"`
 	StreetName       string          `json:"street_name"`
+	StreetID         int32           `json:"street_id"`
 	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
 	CityName         string          `json:"city_name"`
 	StateUf          string          `json:"state_uf"`
@@ -54,6 +55,7 @@ func (q *Queries) FindAddressesByCEP(ctx context.Context, cep string) ([]FindAdd
 		if err := rows.Scan(
 			&i.AddressID,
 			&i.StreetName,
+			&i.StreetID,
 			&i.NeighborhoodName,
 			&i.CityName,
 			&i.StateUf,
@@ -79,6 +81,7 @@ const findAddressesByLatLon = `-- name: FindAddressesByLatLon :many
 SELECT
     a.id AS address_id,
     s.name AS street_name,
+    s.id AS street_id,
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
@@ -92,7 +95,6 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 ORDER BY (a.lat - $1) * (a.lat - $1) + (a.lon - $2) * (a.lon - $2) ASC
-LIMIT 10
 `
 
 type FindAddressesByLatLonParams struct {
@@ -103,6 +105,7 @@ type FindAddressesByLatLonParams struct {
 type FindAddressesByLatLonRow struct {
 	AddressID        int32           `json:"address_id"`
 	StreetName       string          `json:"street_name"`
+	StreetID         int32           `json:"street_id"`
 	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
 	CityName         string          `json:"city_name"`
 	StateUf          string          `json:"state_uf"`
@@ -124,6 +127,7 @@ func (q *Queries) FindAddressesByLatLon(ctx context.Context, arg FindAddressesBy
 		if err := rows.Scan(
 			&i.AddressID,
 			&i.StreetName,
+			&i.StreetID,
 			&i.NeighborhoodName,
 			&i.CityName,
 			&i.StateUf,
@@ -152,6 +156,7 @@ SELECT
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
+    a.id AS address_id,
     a.number,
     a.cep,
     a.lat,
@@ -168,9 +173,7 @@ WHERE
   AND (st.search_vector @@ plainto_tsquery('portuguese', $3) OR $3 = '')
   AND (n.search_vector @@ plainto_tsquery('portuguese', $4) OR $4 = '')
   AND ($5 = '' OR a.number ILIKE $5 || '%')
-ORDER BY
-    random()
-LIMIT 10
+ORDER BY random()
 `
 
 type FindAddressesByQueryParams struct {
@@ -187,6 +190,7 @@ type FindAddressesByQueryRow struct {
 	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
 	CityName         string          `json:"city_name"`
 	StateUf          string          `json:"state_uf"`
+	AddressID        sql.NullInt32   `json:"address_id"`
 	Number           sql.NullString  `json:"number"`
 	Cep              sql.NullString  `json:"cep"`
 	Lat              sql.NullFloat64 `json:"lat"`
@@ -214,6 +218,7 @@ func (q *Queries) FindAddressesByQuery(ctx context.Context, arg FindAddressesByQ
 			&i.NeighborhoodName,
 			&i.CityName,
 			&i.StateUf,
+			&i.AddressID,
 			&i.Number,
 			&i.Cep,
 			&i.Lat,
