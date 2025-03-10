@@ -140,6 +140,14 @@ func ParseFromQueryRow(results []db.FindAddressesByQueryRow, numero string) ([]A
 		grouped[result.StreetID].Addresses = append(grouped[result.StreetID].Addresses, addressDetail)
 	}
 
+	addressResponses := calculateGroupedLatitudes(grouped)
+
+	for _, response := range addressResponses {
+		sort.Slice(response.Addresses, func(i, j int) bool {
+			return response.Addresses[i].IsExactly && !response.Addresses[j].IsExactly
+		})
+	}
+
 	return calculateGroupedLatitudes(grouped), nil
 }
 
@@ -166,8 +174,8 @@ func calculateGroupedLatitudes(grouped map[int32]*AddressResponse) []AddressResp
 			sort.Float64s(longitudes)
 
 			if len(latitudes)%2 == 0 {
-				lat = (latitudes[len(latitudes)/2-1] + latitudes[len(latitudes)/2]) / 2
-				lon = (longitudes[len(longitudes)/2-1] + longitudes[len(longitudes)/2]) / 2
+				lat = latitudes[len(latitudes)/2-1]
+				lon = longitudes[len(longitudes)/2-1]
 			} else {
 				lat = latitudes[len(latitudes)/2]
 				lon = longitudes[len(longitudes)/2]

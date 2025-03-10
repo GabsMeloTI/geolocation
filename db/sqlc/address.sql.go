@@ -28,7 +28,6 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
-LIMIT 100
 `
 
 type FindAddressesByCEPRow struct {
@@ -96,7 +95,6 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 ORDER BY (a.lat - $1) * (a.lat - $1) + (a.lon - $2) * (a.lon - $2) ASC
-LIMIT 100
 `
 
 type FindAddressesByLatLonParams struct {
@@ -175,9 +173,7 @@ WHERE
   AND (st.search_vector @@ plainto_tsquery('portuguese', $3) OR $3 = '')
   AND (n.search_vector @@ plainto_tsquery('portuguese', $4) OR $4 = '')
   AND ($5 = '' OR a.number ILIKE $5 || '%')
-ORDER BY
-    random()
-LIMIT 100
+ORDER BY random()
 `
 
 type FindAddressesByQueryParams struct {
