@@ -5,6 +5,7 @@ SELECT
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
+    a.id AS address_id,
     a.number,
     a.cep,
     a.lat,
@@ -23,12 +24,13 @@ WHERE
   AND ($5 = '' OR a.number ILIKE $5 || '%')
 ORDER BY
     random()
-LIMIT 10;
+LIMIT 100;
 
 -- name: FindAddressesByLatLon :many
 SELECT
     a.id AS address_id,
     s.name AS street_name,
+    s.id AS street_id,
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
@@ -42,12 +44,13 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 ORDER BY (a.lat - $1) * (a.lat - $1) + (a.lon - $2) * (a.lon - $2) ASC
-LIMIT 10;
+LIMIT 100;
 
 -- name: FindAddressesByCEP :many
 SELECT
     a.id AS address_id,
     s.name AS street_name,
+    s.id AS street_id,
     n.name AS neighborhood_name,
     c.name AS city_name,
     st.uf AS state_uf,
@@ -61,7 +64,7 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
-LIMIT 10;
+LIMIT 100;
 
 -- name: IsState :one
 SELECT EXISTS(
