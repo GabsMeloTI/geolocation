@@ -44,6 +44,21 @@ func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoom
 		return CreateChatRoomResponse{}, err
 	}
 
+	ok, err := s.InterfaceService.GetChatRoomByAdvertisementAndInterestedUserRepository(ctx, db.GetChatRoomByAdvertisementAndInterestedUserParams{
+		AdvertisementID:  data.AdvertisementID,
+		InterestedUserID: userId,
+	})
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return CreateChatRoomResponse{}, err
+		}
+	}
+
+	if ok.ID != 0 {
+		return CreateChatRoomResponse{}, errors.New("chat room already exists")
+	}
+
 	chatRoom, err := s.InterfaceService.CreateChatRoomRepository(ctx, db.CreateChatRoomParams{
 		AdvertisementID:     a.ID,
 		AdvertisementUserID: a.UserID,

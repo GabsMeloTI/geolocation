@@ -25,6 +25,7 @@ type InterfaceRepository interface {
 	UpdateActiveFreightRepository(ctx context.Context, arg db.UpdateActiveFreightParams) error
 	GetAllActiveFreightsRepository(ctx context.Context, advertisementId int64) ([]db.ActiveFreight, error)
 	GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error)
+	GetChatRoomByAdvertisementAndInterestedUserRepository(ctx context.Context, arg db.GetChatRoomByAdvertisementAndInterestedUserParams) (db.ChatRoom, error)
 }
 
 type Repository struct {
@@ -114,4 +115,8 @@ func (r *Repository) GetAllActiveFreightsRepository(ctx context.Context, adverti
 
 func (r *Repository) GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error) {
 	return r.Queries.GetActiveFreight(ctx, advertisementId)
+}
+
+func (r *Repository) GetChatRoomByAdvertisementAndInterestedUserRepository(ctx context.Context, arg db.GetChatRoomByAdvertisementAndInterestedUserParams) (db.ChatRoom, error) {
+	return r.Queries.GetChatRoomByAdvertisementAndInterestedUser(ctx, arg)
 }
