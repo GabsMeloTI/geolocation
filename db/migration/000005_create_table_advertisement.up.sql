@@ -3,10 +3,10 @@ CREATE TABLE advertisement (
                               user_id BIGINT not null,
                               destination VARCHAR(255) NOT NULL,
                               origin VARCHAR(255) NOT NULL,
-                              destination_lat FLOAT NOT NULL,
-                              destination_lng FLOAT NOT NULL,
-                              origin_lat FLOAT NOT NULL,
-                              origin_lng FLOAT NOT NULL,
+                              destination_lat FLOAT NULL,
+                              destination_lng FLOAT NULL,
+                              origin_lat FLOAT NULL,
+                              origin_lng FLOAT NULL,
                               distance BIGINT NOT NULL,
                               pickup_date TIMESTAMP NOT NULL,
                               delivery_date TIMESTAMP NOT NULL,
@@ -68,3 +68,26 @@ CREATE TABLE active_freights (
                                  trailer_license_plate VARCHAR(20),
                                  updated_at TIMESTAMP NOT NULL
 );
+
+create table advertisement_route (
+                                     id BIGSERIAL primary key,
+                                     advertisement_id BIGINT NOT NULL,
+                                     route_hist_id BIGINT NOT NULL,
+                                     user_id BIGINT NOT NULL,
+                                     route_choose BIGINT NOT NULL,
+                                     created_at TIMESTAMP default now()
+);
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_user"
+    FOREIGN KEY ("user_id")
+    REFERENCES users ("id");
+
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_advertisement"
+    FOREIGN KEY ("advertisement_id")
+    REFERENCES advertisement ("id");
+
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_route_hist"
+    FOREIGN KEY ("route_hist_id")
+    REFERENCES route_hist ("id");

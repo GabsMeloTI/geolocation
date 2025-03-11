@@ -60,6 +60,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
+	advertisement.POST("/finish/create", container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate)
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
