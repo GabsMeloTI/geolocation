@@ -83,6 +83,15 @@ type Advertisement struct {
 	UpdatedWho              sql.NullString  `json:"updated_who"`
 }
 
+type AdvertisementRoute struct {
+	ID              int64        `json:"id"`
+	AdvertisementID int64        `json:"advertisement_id"`
+	RouteHistID     int64        `json:"route_hist_id"`
+	UserID          int64        `json:"user_id"`
+	RouteChoose     int64        `json:"route_choose"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+}
+
 type Appointment struct {
 	ID                  int64          `json:"id"`
 	AdvertisementUserID int64          `json:"advertisement_user_id"`

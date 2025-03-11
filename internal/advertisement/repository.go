@@ -16,6 +16,7 @@ type InterfaceRepository interface {
 	CountAdvertisementByUserID(ctx context.Context, arg int64) (int64, error)
 	GetProfileById(ctx context.Context, arg int64) (db.Profile, error)
 	UpdatedAdvertisementFinishedCreate(ctx context.Context, arg db.UpdatedAdvertisementFinishedCreateParams) (db.UpdatedAdvertisementFinishedCreateRow, error)
+	CreateAdvertisementRoute(ctx context.Context, arg db.CreateAdvertisementRouteParams) (db.AdvertisementRoute, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -60,4 +61,7 @@ func (r *Repository) GetProfileById(ctx context.Context, arg int64) (db.Profile,
 }
 func (r *Repository) UpdatedAdvertisementFinishedCreate(ctx context.Context, arg db.UpdatedAdvertisementFinishedCreateParams) (db.UpdatedAdvertisementFinishedCreateRow, error) {
 	return r.Queries.UpdatedAdvertisementFinishedCreate(ctx, arg)
+}
+func (r *Repository) CreateAdvertisementRoute(ctx context.Context, arg db.CreateAdvertisementRouteParams) (db.AdvertisementRoute, error) {
+	return r.Queries.CreateAdvertisementRoute(ctx, arg)
 }

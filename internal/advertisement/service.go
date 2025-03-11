@@ -3,7 +3,9 @@ package advertisement
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"geolocation/internal/new_routes"
 	"geolocation/validation"
 	"strings"
 )
@@ -66,8 +68,14 @@ func (p *Service) UpdatedAdvertisementFinishedCreate(ctx context.Context, data U
 		return ResponseUpdatedAdvertisementFinishedCreate{}, err
 	}
 
+	argAdRoute := data.ParseCreateToAdvertisementRoute()
+	resultAdRoute, errAdRoute := p.InterfaceService.CreateAdvertisementRoute(ctx, argAdRoute)
+	if errAdRoute != nil {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errAdRoute
+	}
+
 	var response ResponseUpdatedAdvertisementFinishedCreate
-	response.ParseFromUpdatedAdvertisementFinishedCreateObject(result)
+	response.ParseFromUpdatedAdvertisementFinishedCreateObject(resultAdRoute.RouteHistID, resultAdRoute.RouteChoose, result)
 
 	return response, nil
 }
@@ -132,12 +140,24 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 
 	var announcementResponses []AdvertisementResponseAll
 	for _, result := range results {
+		index := int(result.RouteChoose)
+		var route new_routes.FinalOutput
+		if index >= 0 && index < len(result.ResponseRoutes) {
+			errRoute := json.Unmarshal(result.ResponseRoutes, &route)
+			if errRoute != nil {
+				return announcementResponses, errRoute
+			}
+		} else {
+			result.ResponseRoutes = nil
+		}
+
 		totalFreights, err := p.InterfaceService.CountAdvertisementByUserID(ctx, result.UserID)
 		if err != nil {
 			return nil, err
 		}
 
 		var response AdvertisementResponseAll
+		response.RouteChoose = route.Routes[index]
 		response.ActiveFreight = totalFreights
 		response.ActiveDuration = validation.FormatActiveDuration(response.ActiveThere)
 		response.ParseFromAdvertisementObject(result)

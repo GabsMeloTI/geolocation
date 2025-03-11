@@ -2,6 +2,7 @@ package advertisement
 
 import (
 	"database/sql"
+	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
@@ -40,7 +41,7 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 		UserID:                     payload.ID,
 		CreatedWho:                 payload.Name,
 	}
-
+	fmt.Println(payload.Name)
 	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -56,6 +57,7 @@ func (p *Handler) UpdatedAdvertisementFinishedCreate(c echo.Context) error {
 	}
 
 	payload := get_token.GetUserPayloadToken(c)
+	request.UserID = payload.ID
 	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(c.Request().Context(), request, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())

@@ -41,12 +41,14 @@ WHERE id=$1 AND
     status=true;
 
 -- name: GetAllAdvertisementUsers :many
-SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
-       destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
+SELECT a.id, a.user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
+       a.destination, a.origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
        a.state_origin, a.city_origin, a.complement_origin, a.neighborhood_origin, a.street_origin, a.street_number_origin, a.cep_origin,
-       a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination
+       a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination, rh.response as response_routes, ar.route_choose
 FROM public.advertisement a
          INNER JOIN users u ON u.id = a.user_id
+         INNER JOIN advertisement_route ar on a.id = ar.advertisement_id
+         INNER JOIN route_hist rh on rh.id = ar.route_hist_id
 WHERE a.status=true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
 ORDER BY expiration_date;
 
@@ -69,3 +71,9 @@ ORDER BY expiration_date;
 UPDATE public.advertisement
 SET situation=$1, updated_at=now(), updated_who=$2
 WHERE id=$3;
+
+-- name: CreateAdvertisementRoute :one
+INSERT INTO public.advertisement_route
+(id, advertisement_id, route_hist_id, user_id, route_choose, created_at)
+VALUES(nextval('advertisement_route_id_seq'::regclass), $1, $2, $3, $4, now())
+    RETURNING *;
