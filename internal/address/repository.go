@@ -7,12 +7,14 @@ import (
 )
 
 type InterfaceRepository interface {
-	FindAddressesByQueryRepository(ctx context.Context, arg db.FindAddressesByQueryParams) ([]db.FindAddressesByQueryRow, error)
-	FindAddressesByCEPRepository(ctx context.Context, arg string) ([]db.FindAddressesByCEPRow, error)
-	FindAddressesByLatLonRepository(ctx context.Context, arg db.FindAddressesByLatLonParams) ([]db.FindAddressesByLatLonRow, error)
-	IsStateRepository(ctx context.Context, arg string) (bool, error)
-	IsCityRepository(ctx context.Context, arg string) (bool, error)
-	IsNeighborhoodRepository(ctx context.Context, arg string) (bool, error)
+	FindAddressesByQueryRepository(context.Context, db.FindAddressesByQueryParams) ([]db.FindAddressesByQueryRow, error)
+	FindAddressesByCEPRepository(context.Context, string) ([]db.FindAddressesByCEPRow, error)
+	FindAddressesByLatLonRepository(context.Context, db.FindAddressesByLatLonParams) ([]db.FindAddressesByLatLonRow, error)
+	IsStateRepository(context.Context, string) (bool, error)
+	IsCityRepository(context.Context, string) (bool, error)
+	IsNeighborhoodRepository(context.Context, string) (bool, error)
+	FindStateAll(context.Context) ([]db.State, error)
+	FindCityAll(context.Context, int32) ([]db.City, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -52,4 +54,12 @@ func (r *Repository) IsCityRepository(ctx context.Context, arg string) (bool, er
 
 func (r *Repository) IsNeighborhoodRepository(ctx context.Context, arg string) (bool, error) {
 	return r.Queries.IsNeighborhood(ctx, arg)
+}
+
+func (r *Repository) FindStateAll(ctx context.Context) ([]db.State, error) {
+	return r.Queries.FindStateAll(ctx)
+}
+
+func (r *Repository) FindCityAll(ctx context.Context, arg int32) ([]db.City, error) {
+	return r.Queries.FindCityAll(ctx, arg)
 }
