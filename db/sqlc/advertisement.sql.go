@@ -8,9 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
-
-	"github.com/sqlc-dev/pqtype"
 )
 
 const countAdvertisementByUserID = `-- name: CountAdvertisementByUserID :one
@@ -455,7 +454,7 @@ type GetAllAdvertisementUsersRow struct {
 	StreetDestination       string                `json:"street_destination"`
 	StreetNumberDestination string                `json:"street_number_destination"`
 	CepDestination          string                `json:"cep_destination"`
-	ResponseRoutes          pqtype.NullRawMessage `json:"response_routes"`
+	ResponseRoutes          json.RawMessage `json:"response_routes"`
 	RouteChoose             sql.NullInt64         `json:"route_choose"`
 }
 
