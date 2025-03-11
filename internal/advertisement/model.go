@@ -217,6 +217,7 @@ type AdvertisementResponseAll struct {
 
 type AdvertisementResponseNoUser struct {
 	ID                      int64     `json:"id"`
+	UserID                  int64     `json:"user_id"`
 	Destination             string    `json:"destination"`
 	Origin                  string    `json:"origin"`
 	PickupDate              time.Time `json:"pickup_date"`
@@ -470,6 +471,7 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 
 func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.GetAllAdvertisementPublicRow) {
 	p.ID = result.ID
+	p.UserID = result.UserID
 	p.Destination = result.Destination
 	p.Origin = result.Origin
 	p.PickupDate = result.PickupDate
