@@ -20,6 +20,14 @@ type Response struct {
 	TractUnitEnterprise   []TractUnitEnterprise `json:"tract_unit_enterprise"`
 }
 
+type DashboardDriver struct {
+	UserID                 int64   `json:"user_id"`
+	DriverID               int64   `json:"driver_id"`
+	TotalFretesFinalizados float64 `json:"total_fretes_finalizados"`
+	TotalAReceber          float64 `json:"total_a_receber"`
+	ClientesAtendidos      int64   `json:"clientes_atendidos"`
+}
+
 type FreightHistory struct {
 	NameEnterprise string  `json:"name_enterprise"`
 	Freight        int64   `json:"freight"`
