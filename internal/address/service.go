@@ -12,7 +12,9 @@ import (
 )
 
 type InterfaceService interface {
-	FindAddressesByQueryService(ctx context.Context, query string) ([]AddressResponse, error)
+	FindAddressesByQueryService(context.Context, string) ([]AddressResponse, error)
+	FindStateAll(context.Context) ([]StateResponse, error)
+	FindCityAll(context.Context, int32) ([]CityResponse, error)
 }
 
 type Service struct {
@@ -23,7 +25,7 @@ func NewAddresssService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) FindAddressesByQueryService(ctx context.Context, query string) ([]AddressResponse, error) {
+func (s *Service) FindAddressesByQueryService(ctx context.Context, query string) ([]AddressResponse, error) {
 	var addressResponses []AddressResponse
 
 	cepRegex := regexp.MustCompile(`^\d{8}$`)
@@ -38,7 +40,7 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
-		addressLatLon, err := p.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
+		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
 			},
@@ -59,7 +61,7 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	if isCEP {
-		addressCEP, err := p.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
+		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err
 		}
@@ -92,17 +94,17 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			continue
 		}
 
-		if isBairro, err := p.InterfaceService.IsNeighborhoodRepository(ctx, term); err == nil && isBairro {
+		if isBairro, err := s.InterfaceService.IsNeighborhoodRepository(ctx, term); err == nil && isBairro {
 			bairro = term
 			continue
 		}
 
-		if isCidade, err := p.InterfaceService.IsCityRepository(ctx, term); err == nil && isCidade {
+		if isCidade, err := s.InterfaceService.IsCityRepository(ctx, term); err == nil && isCidade {
 			cidade = term
 			continue
 		}
 
-		if isEstado, err := p.InterfaceService.IsStateRepository(ctx, term); err == nil && isEstado {
+		if isEstado, err := s.InterfaceService.IsStateRepository(ctx, term); err == nil && isEstado {
 			estado = term
 			continue
 		}
@@ -110,7 +112,7 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		rua = term
 	}
 
-	addressesQuery, err := p.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
+	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
 		Column1: rua,
 		Column2: cidade,
 		Column3: estado,
@@ -126,4 +128,41 @@ func (p *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	return addressResponses, nil
+}
+
+func (s *Service) FindStateAll(ctx context.Context) ([]StateResponse, error) {
+	var stateResponse []StateResponse
+
+	states, err := s.InterfaceService.FindStateAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, state := range states {
+		stateResponse = append(stateResponse, StateResponse{
+			ID:   state.ID,
+			Name: state.Name,
+			Uf:   state.Uf,
+		})
+	}
+
+	return stateResponse, nil
+}
+
+func (s *Service) FindCityAll(ctx context.Context, idState int32) ([]CityResponse, error) {
+	var cityResponse []CityResponse
+
+	cities, err := s.InterfaceService.FindCityAll(ctx, idState)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, city := range cities {
+		cityResponse = append(cityResponse, CityResponse{
+			ID:   city.ID,
+			Name: city.Name,
+		})
+	}
+
+	return cityResponse, nil
 }

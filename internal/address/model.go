@@ -201,3 +201,14 @@ func calculateGroupedLatitudes(grouped map[int32]*AddressResponse) []AddressResp
 
 	return addressResponses
 }
+
+type StateResponse struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+	Uf   string `json:"uf"`
+}
+
+type CityResponse struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
