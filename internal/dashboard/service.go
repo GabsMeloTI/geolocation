@@ -25,7 +25,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 	if err != nil {
 		return Response{}, err
 	}
-	fmt.Println(resultGetPlans)
 
 	result, err := p.repo.GetDashboardDriver(ctx, id)
 	if err != nil {
