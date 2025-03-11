@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	db "geolocation/db/sqlc"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/get_token"
@@ -352,8 +351,6 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 			return FreightLocationDetailsResponse{}, err
 		}
 	}
-
-	fmt.Println("ta chegando aqui")
 
 	return FreightLocationDetailsResponse{
 		DurationText:            route.Summary.SimpleRoute.Duration.Text,

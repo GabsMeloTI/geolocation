@@ -68,7 +68,7 @@ func (h *Handler) CreateUser(e echo.Context) error {
 		return e.JSON(http.StatusBadRequest, "invalid email address")
 	}
 
-	if request.Token != "" {
+	if request.Token == "" {
 		if ok := validation.ValidatePassword(request.Password); !ok {
 			return e.JSON(http.StatusBadRequest, "invalid password")
 		}

@@ -60,7 +60,7 @@ WHERE user_id = $1
 
 
 -- name: GetAllAdvertisementPublic :many
-SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at,
+SELECT id, user_id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at,
        state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
        state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination
 FROM public.advertisement
