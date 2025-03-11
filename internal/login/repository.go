@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"database/sql"
+
 	db "geolocation/db/sqlc"
 )
 
@@ -10,7 +11,7 @@ type RepositoryInterface interface {
 	GetUser(context.Context, db.LoginParams) (db.User, error)
 	CreateUser(context.Context, db.NewCreateUserParams) (db.User, error)
 	GetProfileById(ctx context.Context, id int64) (db.Profile, error)
-GetUserByEmail(ctx context.Context, email string) (db.User, error)
+	GetUserByEmail(ctx context.Context, email string) (db.User, error)
 }
 
 type Repository struct {
@@ -42,6 +43,6 @@ func (r *Repository) GetProfileById(ctx context.Context, id int64) (db.Profile, 
 	return r.Queries.GetProfileById(ctx, id)
 }
 
-func (r *Repository) GetUserByEmail(ctx context.Context, email string) (db.User, error){
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (db.User, error) {
 	return r.Queries.GetUserByEmail(ctx, email)
 }
