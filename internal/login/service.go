@@ -4,16 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+
 	db "geolocation/db/sqlc"
 	"geolocation/infra/token"
 	"geolocation/pkg/crypt"
 	"geolocation/pkg/sso"
-	"time"
 )
 
-var ErrUserNotFound = errors.New("user not found")
-var ErrInvalidCredentials = errors.New("invalid credentials")
-var ErrInvalidClientID = errors.New("invalid client ID")
+var (
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidClientID    = errors.New("invalid client ID")
+)
 
 type ServiceInterface interface {
 	Login(context.Context, RequestLogin) (ResponseLogin, error)
@@ -36,7 +39,10 @@ func NewService(
 	return &Service{googleToken, repository, maker, googleClientID}
 }
 
-func (s *Service) Login(ctx context.Context, data RequestLogin) (response ResponseLogin, err error) {
+func (s *Service) Login(
+	ctx context.Context,
+	data RequestLogin,
+) (response ResponseLogin, err error) {
 	var emailSearch string
 	var googleIDSearch string
 	emailSearch = data.Username
@@ -65,8 +71,10 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		return response, err
 	}
 
-	if !crypt.CheckPasswordHash(data.Password, result.Password.String) {
-		return response, ErrInvalidCredentials
+	if data.Token == "" {
+		if !crypt.CheckPasswordHash(data.Password, result.Password.String) {
+			return response, ErrInvalidCredentials
+		}
 	}
 
 	tokenStr, err := s.maker.CreateTokenUser(
@@ -82,21 +90,41 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		return response, err
 	}
 
+	profile, err := s.repository.GetProfileById(ctx, result.ProfileID.Int64)
+	if err != nil {
+		return response, err
+	}
+
 	responseData := ResponseLogin{
-		ID:    result.ID,
-		Name:  result.Name,
-		Email: result.Email,
-		Token: tokenStr,
+		ID:      result.ID,
+		Name:    result.Name,
+		Email:   result.Email,
+		Token:   tokenStr,
+		Profile: profile.Name,
 	}
 
 	return responseData, err
 }
 
-func (s *Service) CreateUser(ctx context.Context, data RequestCreateUser) (response ResponseCreateUser, err error) {
+func (s *Service) CreateUser(
+	ctx context.Context,
+	data RequestCreateUser,
+) (response ResponseCreateUser, err error) {
 	var userEmail, userGoogleID string
 	var newPassword sql.NullString
 	userEmail = data.Email
 	userGoogleID = ""
+
+	u, err := s.repository.GetUserByEmail(ctx, userEmail)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return ResponseCreateUser{}, err
+		}
+	}
+
+	if u.ID != 0 {
+		return ResponseCreateUser{}, errors.New("user already exists")
+	}
 
 	hashedPassword, err := crypt.HashPassword(data.Password)
 	if err != nil {

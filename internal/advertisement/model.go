@@ -3,16 +3,13 @@ package advertisement
 import (
 	"database/sql"
 	db "geolocation/db/sqlc"
+	"geolocation/internal/new_routes"
 	"time"
 )
 
 type CreateAdvertisementRequest struct {
 	Destination             string    `json:"destination"`
 	Origin                  string    `json:"origin"`
-	DestinationLat          float64   `json:"destination_lat"`
-	DestinationLng          float64   `json:"destination_lng"`
-	OriginLat               float64   `json:"origin_lat"`
-	OriginLng               float64   `json:"origin_lng"`
 	Distance                int64     `json:"distance"`
 	PickupDate              time.Time `json:"pickup_date"`
 	DeliveryDate            time.Time `json:"delivery_date"`
@@ -30,7 +27,6 @@ type CreateAdvertisementRequest struct {
 	PaymentType             string    `json:"payment_type"`
 	Advance                 string    `json:"advance"`
 	Toll                    bool      `json:"toll"`
-	Situation               string    `json:"situation"`
 	Price                   float64   `json:"price"`
 	CreatedWho              string    `json:"created_who"`
 	StateOrigin             string    `json:"state_origin"`
@@ -160,63 +156,65 @@ type AdvertisementResponse struct {
 }
 
 type AdvertisementResponseAll struct {
-	ID                      int64      `json:"id"`
-	UserID                  int64      `json:"user_id"`
-	UserName                string     `json:"user_name"`
-	ActiveThere             time.Time  `json:"active_there"`
-	ActiveDuration          string     `json:"active_duration"`
-	UserCity                string     `json:"user_city"`
-	UserState               string     `json:"user_state"`
-	UserPhone               string     `json:"user_phone"`
-	UserEmail               string     `json:"user_email"`
-	Destination             string     `json:"destination"`
-	Origin                  string     `json:"origin"`
-	DestinationLat          float64    `json:"destination_lat"`
-	DestinationLng          float64    `json:"destination_lng"`
-	OriginLat               float64    `json:"origin_lat"`
-	OriginLng               float64    `json:"origin_lng"`
-	Distance                int64      `json:"distance"`
-	PickupDate              time.Time  `json:"pickup_date"`
-	DeliveryDate            time.Time  `json:"delivery_date"`
-	ExpirationDate          time.Time  `json:"expiration_date"`
-	Title                   string     `json:"title"`
-	CargoType               string     `json:"cargo_type"`
-	CargoSpecies            string     `json:"cargo_species"`
-	CargoWeight             float64    `json:"cargo_weight"`
-	VehiclesAccepted        string     `json:"vehicles_accepted"`
-	Trailer                 string     `json:"trailer"`
-	RequiresTarp            bool       `json:"requires_tarp"`
-	Tracking                bool       `json:"tracking"`
-	Agency                  bool       `json:"agency"`
-	Description             string     `json:"description"`
-	PaymentType             string     `json:"payment_type"`
-	Advance                 string     `json:"advance"`
-	Toll                    bool       `json:"toll"`
-	Situation               string     `json:"situation"`
-	ActiveFreight           int64      `json:"active_freight"`
-	Price                   float64    `json:"price"`
-	StateOrigin             string     `json:"state_origin"`
-	CityOrigin              string     `json:"city_origin"`
-	ComplementOrigin        string     `json:"complement_origin"`
-	NeighborhoodOrigin      string     `json:"neighborhood_origin"`
-	StreetOrigin            string     `json:"street_origin"`
-	StreetNumberOrigin      string     `json:"street_number_origin"`
-	CEPOrigin               string     `json:"cep_origin"`
-	StateDestination        string     `json:"state_destination"`
-	CityDestination         string     `json:"city_destination"`
-	ComplementDestination   string     `json:"complement_destination"`
-	NeighborhoodDestination string     `json:"neighborhood_destination"`
-	StreetDestination       string     `json:"street_destination"`
-	StreetNumberDestination string     `json:"street_number_destination"`
-	CEPDestination          string     `json:"cep_destination"`
-	CreatedAt               time.Time  `json:"created_at"`
-	CreatedWho              string     `json:"created_who"`
-	UpdatedAt               *time.Time `json:"updated_at,omitempty"`
-	UpdatedWho              *string    `json:"updated_who,omitempty"`
+	ID                      int64                  `json:"id"`
+	UserID                  int64                  `json:"user_id"`
+	UserName                string                 `json:"user_name"`
+	ActiveThere             time.Time              `json:"active_there"`
+	ActiveDuration          string                 `json:"active_duration"`
+	UserCity                string                 `json:"user_city"`
+	UserState               string                 `json:"user_state"`
+	UserPhone               string                 `json:"user_phone"`
+	UserEmail               string                 `json:"user_email"`
+	Destination             string                 `json:"destination"`
+	Origin                  string                 `json:"origin"`
+	DestinationLat          float64                `json:"destination_lat"`
+	DestinationLng          float64                `json:"destination_lng"`
+	OriginLat               float64                `json:"origin_lat"`
+	OriginLng               float64                `json:"origin_lng"`
+	Distance                int64                  `json:"distance"`
+	PickupDate              time.Time              `json:"pickup_date"`
+	DeliveryDate            time.Time              `json:"delivery_date"`
+	ExpirationDate          time.Time              `json:"expiration_date"`
+	Title                   string                 `json:"title"`
+	CargoType               string                 `json:"cargo_type"`
+	CargoSpecies            string                 `json:"cargo_species"`
+	CargoWeight             float64                `json:"cargo_weight"`
+	VehiclesAccepted        string                 `json:"vehicles_accepted"`
+	Trailer                 string                 `json:"trailer"`
+	RequiresTarp            bool                   `json:"requires_tarp"`
+	Tracking                bool                   `json:"tracking"`
+	Agency                  bool                   `json:"agency"`
+	Description             string                 `json:"description"`
+	PaymentType             string                 `json:"payment_type"`
+	Advance                 string                 `json:"advance"`
+	Toll                    bool                   `json:"toll"`
+	Situation               string                 `json:"situation"`
+	ActiveFreight           int64                  `json:"active_freight"`
+	Price                   float64                `json:"price"`
+	StateOrigin             string                 `json:"state_origin"`
+	CityOrigin              string                 `json:"city_origin"`
+	ComplementOrigin        string                 `json:"complement_origin"`
+	NeighborhoodOrigin      string                 `json:"neighborhood_origin"`
+	StreetOrigin            string                 `json:"street_origin"`
+	StreetNumberOrigin      string                 `json:"street_number_origin"`
+	CEPOrigin               string                 `json:"cep_origin"`
+	StateDestination        string                 `json:"state_destination"`
+	CityDestination         string                 `json:"city_destination"`
+	ComplementDestination   string                 `json:"complement_destination"`
+	NeighborhoodDestination string                 `json:"neighborhood_destination"`
+	StreetDestination       string                 `json:"street_destination"`
+	StreetNumberDestination string                 `json:"street_number_destination"`
+	CEPDestination          string                 `json:"cep_destination"`
+	RouteChoose             new_routes.RouteOutput `json:"route_choose"`
+	CreatedAt               time.Time              `json:"created_at"`
+	CreatedWho              string                 `json:"created_who"`
+	UpdatedAt               *time.Time             `json:"updated_at,omitempty"`
+	UpdatedWho              *string                `json:"updated_who,omitempty"`
 }
 
 type AdvertisementResponseNoUser struct {
 	ID                      int64     `json:"id"`
+	UserID                  int64     `json:"user_id"`
 	Destination             string    `json:"destination"`
 	Origin                  string    `json:"origin"`
 	PickupDate              time.Time `json:"pickup_date"`
@@ -253,15 +251,119 @@ type AdvertisementResponseNoUser struct {
 	CreatedAt               time.Time `json:"created_at"`
 }
 
+type UpdatedAdvertisementFinishedCreate struct {
+	ID             int64   `json:"id"`
+	RouteHistID    int64   `json:"route_hist_id"`
+	RouteChoose    int64   `json:"route_choose"`
+	UserID         int64   `json:"user_id"`
+	DestinationLat float64 `json:"destination_lat"`
+	DestinationLng float64 `json:"destination_lng"`
+	OriginLat      float64 `json:"origin_lat"`
+	OriginLng      float64 `json:"origin_lng"`
+}
+
+type ResponseUpdatedAdvertisementFinishedCreate struct {
+	ID             int64   `json:"id"`
+	UserID         int64   `json:"user_id"`
+	RouteHistID    int64   `json:"route_hist_id"`
+	RouteChoose    int64   `json:"route_choose"`
+	DestinationLat float64 `json:"destination_lat"`
+	DestinationLng float64 `json:"destination_lng"`
+	OriginLat      float64 `json:"origin_lat"`
+	OriginLng      float64 `json:"origin_lng"`
+	Situation      string  `json:"situation"`
+}
+
+type RouteOutput struct {
+	Summary      RouteSummary           `json:"summary"`
+	Costs        Costs                  `json:"costs"`
+	Tolls        []Toll                 `json:"tolls,omitempty"`
+	Balances     interface{}            `json:"balances"`
+	GasStations  []GasStation           `json:"gas_stations"`
+	Instructions []Instruction          `json:"instructions"`
+	FreightLoad  map[string]interface{} `json:"freight_load"`
+	Polyline     string                 `json:"polyline"`
+}
+
+type RouteSummary struct {
+	RouteType string   `json:"route_type"`
+	HasTolls  bool     `json:"hasTolls"`
+	Distance  Distance `json:"distance"`
+	Duration  Duration `json:"duration"`
+	URL       string   `json:"url"`
+	URLWaze   string   `json:"url_waze"`
+}
+
+type Costs struct {
+	TagAndCash      float64 `json:"tagAndCash"`
+	FuelInTheCity   float64 `json:"fuel_in_the_city"`
+	FuelInTheHwy    float64 `json:"fuel_in_the_hwy"`
+	Tag             float64 `json:"tag"`
+	Cash            float64 `json:"cash"`
+	PrepaidCard     float64 `json:"prepaidCard"`
+	MaximumTollCost float64 `json:"maximumTollCost"`
+	MinimumTollCost float64 `json:"minimumTollCost"`
+	Axles           int     `json:"axles"`
+}
+
+type Instruction struct {
+	Text string `json:"text"`
+	Img  string `json:"img"`
+}
+
+type Toll struct {
+	ID              int             `json:"id"`
+	Latitude        float64         `json:"lat"`
+	Longitude       float64         `json:"lng"`
+	Name            string          `json:"name"`
+	Concession      string          `json:"concession"`
+	ConcessionImg   string          `json:"concession_img"`
+	Road            string          `json:"road"`
+	State           string          `json:"state"`
+	Country         string          `json:"country"`
+	Type            string          `json:"type"`
+	TagCost         float64         `json:"tagCost"`
+	CashCost        float64         `json:"cashCost"`
+	Currency        string          `json:"currency"`
+	PrepaidCardCost float64         `json:"prepaidCardCost"`
+	ArrivalResponse ArrivalResponse `json:"arrival"`
+	TagPrimary      []string        `json:"tagPrimary"`
+	TagImg          []string        `json:"tagImg"`
+	FreeFlow        bool            `json:"free_flow"`
+	PayFreeFlow     string          `json:"pay_free_flow"`
+}
+
+type GasStation struct {
+	Name     string   `json:"name"`
+	Address  string   `json:"address"`
+	Location Location `json:"location"`
+}
+
+type Distance struct {
+	Text  string  `json:"text"`
+	Value float64 `json:"value"`
+}
+
+type Duration struct {
+	Text  string  `json:"text"`
+	Value float64 `json:"value"`
+}
+
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+type ArrivalResponse struct {
+	Distance string `json:"distance"`
+	Time     string `json:"time"`
+}
+
 func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertisementParams {
 	arg := db.CreateAdvertisementParams{
 		UserID:                  p.UserID,
 		Destination:             p.CreateAdvertisementRequest.Destination,
 		Origin:                  p.CreateAdvertisementRequest.Origin,
-		DestinationLat:          p.CreateAdvertisementRequest.DestinationLat,
-		DestinationLng:          p.CreateAdvertisementRequest.DestinationLng,
-		OriginLat:               p.CreateAdvertisementRequest.OriginLat,
-		OriginLng:               p.CreateAdvertisementRequest.OriginLng,
 		Distance:                p.CreateAdvertisementRequest.Distance,
 		PickupDate:              p.CreateAdvertisementRequest.PickupDate,
 		DeliveryDate:            p.CreateAdvertisementRequest.DeliveryDate,
@@ -279,9 +381,7 @@ func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertise
 		PaymentType:             p.CreateAdvertisementRequest.PaymentType,
 		Advance:                 p.CreateAdvertisementRequest.Advance,
 		Toll:                    p.CreateAdvertisementRequest.Toll,
-		Situation:               p.CreateAdvertisementRequest.Situation,
 		Price:                   p.CreateAdvertisementRequest.Price,
-		CreatedWho:              p.CreatedWho,
 		StateOrigin:             p.CreateAdvertisementRequest.StateOrigin,
 		CityOrigin:              p.CreateAdvertisementRequest.CityOrigin,
 		ComplementOrigin:        p.CreateAdvertisementRequest.ComplementOrigin,
@@ -296,19 +396,66 @@ func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertise
 		StreetDestination:       p.CreateAdvertisementRequest.StreetDestination,
 		StreetNumberDestination: p.CreateAdvertisementRequest.StreetNumberDestination,
 		CepDestination:          p.CreateAdvertisementRequest.CEPDestination,
+		CreatedWho:              p.CreatedWho,
+	}
+	return arg
+}
+
+func (p *UpdatedAdvertisementFinishedCreate) ParseUpdatedToAdvertisementFinishedCreate() db.UpdatedAdvertisementFinishedCreateParams {
+	arg := db.UpdatedAdvertisementFinishedCreateParams{
+		ID:     p.ID,
+		UserID: p.UserID,
+		DestinationLat: sql.NullFloat64{
+			Float64: p.DestinationLat,
+			Valid:   true,
+		},
+		DestinationLng: sql.NullFloat64{
+			Float64: p.DestinationLng,
+			Valid:   true,
+		},
+		OriginLat: sql.NullFloat64{
+			Float64: p.OriginLat,
+			Valid:   true,
+		},
+		OriginLng: sql.NullFloat64{
+			Float64: p.OriginLng,
+			Valid:   true,
+		},
+	}
+	return arg
+}
+
+func (p *UpdatedAdvertisementFinishedCreate) ParseCreateToAdvertisementRoute() db.CreateAdvertisementRouteParams {
+	arg := db.CreateAdvertisementRouteParams{
+		AdvertisementID: p.ID,
+		RouteHistID:     p.RouteHistID,
+		UserID:          p.UserID,
+		RouteChoose:     p.RouteChoose,
 	}
 	return arg
 }
 
 func (p *UpdateAdvertisementDto) ParseUpdateToAdvertisement() db.UpdateAdvertisementParams {
 	arg := db.UpdateAdvertisementParams{
-		UserID:                  p.UserID,
-		Destination:             p.UpdateAdvertisementRequest.Destination,
-		Origin:                  p.UpdateAdvertisementRequest.Origin,
-		DestinationLat:          p.UpdateAdvertisementRequest.DestinationLat,
-		DestinationLng:          p.UpdateAdvertisementRequest.DestinationLng,
-		OriginLat:               p.UpdateAdvertisementRequest.OriginLat,
-		OriginLng:               p.UpdateAdvertisementRequest.OriginLng,
+		UserID:      p.UserID,
+		Destination: p.UpdateAdvertisementRequest.Destination,
+		Origin:      p.UpdateAdvertisementRequest.Origin,
+		DestinationLat: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.DestinationLat,
+			Valid:   true,
+		},
+		DestinationLng: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.DestinationLng,
+			Valid:   true,
+		},
+		OriginLat: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.OriginLat,
+			Valid:   true,
+		},
+		OriginLng: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.OriginLng,
+			Valid:   true,
+		},
 		Distance:                p.UpdateAdvertisementRequest.Distance,
 		PickupDate:              p.UpdateAdvertisementRequest.PickupDate,
 		DeliveryDate:            p.UpdateAdvertisementRequest.DeliveryDate,
@@ -362,10 +509,10 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	p.UserID = result.UserID
 	p.Destination = result.Destination
 	p.Origin = result.Origin
-	p.DestinationLat = result.DestinationLat
-	p.DestinationLng = result.DestinationLng
-	p.OriginLat = result.OriginLat
-	p.OriginLng = result.OriginLng
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
 	p.Distance = result.Distance
 	p.DeliveryDate = result.DeliveryDate
 	p.PickupDate = result.PickupDate
@@ -421,10 +568,10 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	p.UserEmail = result.UserEmail
 	p.Destination = result.Destination
 	p.Origin = result.Origin
-	p.DestinationLat = result.DestinationLat
-	p.DestinationLng = result.DestinationLng
-	p.OriginLat = result.OriginLat
-	p.OriginLng = result.OriginLng
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
 	p.Distance = result.Distance
 	p.PickupDate = result.PickupDate
 	p.DeliveryDate = result.DeliveryDate
@@ -470,6 +617,7 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 
 func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.GetAllAdvertisementPublicRow) {
 	p.ID = result.ID
+	p.UserID = result.UserID
 	p.Destination = result.Destination
 	p.Origin = result.Origin
 	p.PickupDate = result.PickupDate
@@ -504,4 +652,16 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.StreetNumberDestination = result.StreetNumberDestination
 	p.CEPDestination = result.CepDestination
 	p.CreatedAt = result.CreatedAt
+}
+
+func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertisementFinishedCreateObject(idRouteHist, idRouteChoose int64, result db.UpdatedAdvertisementFinishedCreateRow) {
+	p.ID = result.ID
+	p.UserID = result.UserID
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.RouteHistID = idRouteHist
+	p.RouteChoose = idRouteChoose
+	p.Situation = result.Situation
 }

@@ -60,6 +60,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
+	advertisement.POST("/finish/create", container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate)
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
@@ -123,6 +124,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
 	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
+	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
+	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
 
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
@@ -130,6 +133,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
 
 	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
+
+	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"

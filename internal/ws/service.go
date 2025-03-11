@@ -43,6 +43,25 @@ func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoom
 		return CreateChatRoomResponse{}, err
 	}
 
+	if a.UserID == userId {
+		return CreateChatRoomResponse{}, errors.New("you cannot create a room to your own advertisement")
+	}
+
+	ok, err := s.InterfaceService.GetChatRoomByAdvertisementAndInterestedUserRepository(ctx, db.GetChatRoomByAdvertisementAndInterestedUserParams{
+		AdvertisementID:  data.AdvertisementID,
+		InterestedUserID: userId,
+	})
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return CreateChatRoomResponse{}, err
+		}
+	}
+
+	if ok.ID != 0 {
+		return CreateChatRoomResponse{}, errors.New("chat room already exists")
+	}
+
 	chatRoom, err := s.InterfaceService.CreateChatRoomRepository(ctx, db.CreateChatRoomParams{
 		AdvertisementID:     a.ID,
 		AdvertisementUserID: a.UserID,
@@ -171,6 +190,27 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 		})
 	}
 
+	activeFreights, err := s.InterfaceService.GetAllActiveFreightsRepository(ctx, payload.ID)
+
+	if err != nil {
+		return res, err
+	}
+
+	if len(activeFreights) > 0 {
+		for _, f := range activeFreights {
+			res.ActiveFreights = append(res.ActiveFreights, ActiveFreight{
+				AdvertisementId:         f.AdvertisementID,
+				Latitude:                f.Latitude,
+				Longitude:               f.Longitude,
+				DurationText:            f.Duration,
+				DistanceText:            f.Distance,
+				DriverName:              f.DriverName,
+				TractorUnitLicensePlate: f.TractorUnitLicensePlate.String,
+				TrailerLicensePlate:     f.TrailerLicensePlate.String,
+			})
+		}
+	}
+
 	return res, nil
 }
 
@@ -275,18 +315,41 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 	}
 
 	if freightDetails.InterestedUserID.Int64 != userId {
-		return FreightLocationDetailsResponse{}, errors.New("invalid user_id")
+		return FreightLocationDetailsResponse{}, errors.New("invalid user id")
 	}
 
 	route, err := s.ServiceRoutes.GetSimpleRoute(new_routes.SimpleRouteRequest{
 		OriginLat: data.OriginLatitude,
 		OriginLng: data.OriginLongitude,
-		DestLat:   freightDetails.DestinationLat,
-		DestLng:   freightDetails.DestinationLng,
+		DestLat:   freightDetails.DestinationLat.Float64,
+		DestLng:   freightDetails.DestinationLng.Float64,
 	})
 
 	if err != nil {
 		return FreightLocationDetailsResponse{}, err
+	}
+
+	activeFreight, err := s.InterfaceService.GetActiveFreightRepository(ctx, data.AdvertisementId)
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return FreightLocationDetailsResponse{}, err
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			err = s.InterfaceService.CreateActiveFreightRepository(ctx, data.ToCreateActiveFreightParams(route, freightDetails))
+
+			if err != nil {
+				return FreightLocationDetailsResponse{}, err
+			}
+		}
+	}
+
+	if activeFreight.ID != 0 {
+		err = s.InterfaceService.UpdateActiveFreightRepository(ctx, data.ToUpdateActiveFreightParams(route, activeFreight.ID))
+
+		if err != nil {
+			return FreightLocationDetailsResponse{}, err
+		}
 	}
 
 	return FreightLocationDetailsResponse{

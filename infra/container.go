@@ -9,10 +9,12 @@ import (
 	"geolocation/internal/advertisement"
 	"geolocation/internal/appointments"
 	"geolocation/internal/attachment"
+	"geolocation/internal/dashboard"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
 	"geolocation/internal/login"
 	new_routes "geolocation/internal/new_routes"
+	"geolocation/internal/payment"
 	"geolocation/internal/plans"
 	"geolocation/internal/routes"
 	"geolocation/internal/tractor_unit"
@@ -48,9 +50,15 @@ type ContainerDI struct {
 	HandlerUserPlan         *plans.Handler
 	ServiceUserPlan         *plans.Service
 	RepositoryUserPlan      *plans.Repository
+	HandlerDashboard        *dashboard.Handler
+	ServiceDashboard        *dashboard.Service
+	RepositoryDashboard     *dashboard.Repository
 	HandlerAttachment       *attachment.Handler
 	ServiceAttachment       *attachment.Service
 	RepositoryAttachment    *attachment.Repository
+	HandlerPayment          *payment.Handler
+	ServicePayment          *payment.Service
+	RepositoryPayment       *payment.Repository
 	UserHandler             *user.Handler
 	UserService             *user.Service
 	UserRepository          *user.Repository
@@ -109,6 +117,8 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.RepositoryAttachment = attachment.NewAttachmentRepository(c.ConnDB)
+	c.RepositoryPayment = payment.NewPaymentRepository(c.ConnDB)
+	c.RepositoryDashboard = dashboard.NewDashboardRepository(c.ConnDB)
 	c.UserRepository = user.NewUserRepository(c.ConnDB)
 	c.RepositoryUserPlan = plans.NewUserPlanRepository(c.ConnDB)
 	c.LoginRepository = login.NewRepository(c.ConnDB)
@@ -126,6 +136,8 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
 	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
+	c.ServicePayment = payment.NewPaymentService(c.RepositoryPayment, *c.PasetoMaker)
+	c.ServiceDashboard = dashboard.NewDashboardService(c.RepositoryDashboard)
 	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
 	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
 	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
@@ -143,6 +155,8 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerTrailer = trailer.NewTrailersHandler(c.ServiceTrailer)
 	c.HandlerAdvertisement = advertisement.NewAdvertisementHandler(c.ServiceAdvertisement)
 	c.HandlerAttachment = attachment.NewAttachmentHandler(c.ServiceAttachment)
+	c.HandlerPayment = payment.NewPaymentHandler(c.ServicePayment)
+	c.HandlerDashboard = dashboard.NewDashboardHandler(c.ServiceDashboard)
 	c.UserHandler = user.NewUserHandler(c.UserService, c.Config.GoogleClientId)
 	c.HandlerUserPlan = plans.NewUserPlanHandler(c.ServiceUserPlan)
 	c.LoginHandler = login.NewHandler(c.LoginService)

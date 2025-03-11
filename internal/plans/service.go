@@ -83,7 +83,7 @@ func (p *Service) CreateUserPlanService(ctx context.Context, data CreateUserPlan
 }
 
 func (p *Service) GenerateUserToken(userID int64) (string, error) {
-	tokenStr, err := p.maker.CreateTokenUserID(int64(userID))
+	tokenStr, err := p.maker.CreateTokenUserID(userID)
 	if err != nil {
 		return "", err
 	}

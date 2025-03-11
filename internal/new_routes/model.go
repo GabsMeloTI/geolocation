@@ -1,4 +1,4 @@
-package routes
+package new_routes
 
 import (
 	"encoding/json"
@@ -42,6 +42,7 @@ type Summary struct {
 	AllStoppingPoints   []interface{}  `json:"all_stopping_points"`
 	FuelPrice           FuelPrice      `json:"fuel_price"`
 	FuelEfficiency      FuelEfficiency `json:"fuel_efficiency"`
+	RouteHistID         int64          `json:"route_hist_id"`
 }
 
 type Toll struct {

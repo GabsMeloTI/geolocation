@@ -178,6 +178,7 @@ func (h *Handler) UpdateFreightLocation(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	
 	updateFreightMessage := &UpdateFreightMessage{
 		AdvertisementId:         request.AdvertisementId,
 		Latitude:                request.OriginLatitude,
