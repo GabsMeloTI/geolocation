@@ -7,6 +7,7 @@ import (
 	"errors"
 	"geolocation/internal/new_routes"
 	"geolocation/validation"
+	"github.com/sqlc-dev/pqtype"
 	"strings"
 )
 
@@ -140,15 +141,16 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 
 	var announcementResponses []AdvertisementResponseAll
 	for _, result := range results {
-		index := int(result.RouteChoose)
+		index := int(result.RouteChoose.Int64)
 		var route new_routes.FinalOutput
-		if index >= 0 && index < len(result.ResponseRoutes) {
-			errRoute := json.Unmarshal(result.ResponseRoutes, &route)
+		//if index >= 0 && index < len(result.ResponseRoutes) {
+		if index >= 0 {
+			errRoute := json.Unmarshal(result.ResponseRoutes.RawMessage, &route)
 			if errRoute != nil {
 				return announcementResponses, errRoute
 			}
 		} else {
-			result.ResponseRoutes = nil
+			result.ResponseRoutes = pqtype.NullRawMessage{}
 		}
 
 		totalFreights, err := p.InterfaceService.CountAdvertisementByUserID(ctx, result.UserID)
