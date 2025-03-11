@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"geolocation/internal/get_token"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -29,6 +30,7 @@ func NewDashboardHandler(InterfaceService InterfaceService) *Handler {
 func (p *Handler) GetDashboardHandler(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
 
+	fmt.Println(payload.ID)
 	result, err := p.InterfaceService.GetDashboardService(c.Request().Context(), payload.ID, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())

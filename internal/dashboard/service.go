@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	db "geolocation/db/sqlc"
 )
 
 type InterfaceService interface {
@@ -24,48 +25,81 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 	if err != nil {
 		return Response{}, err
 	}
+	fmt.Println(resultGetPlans)
 
 	result, err := p.repo.GetDashboardDriver(ctx, id)
 	if err != nil {
-		return Response{}, err
+		if errors.Is(err, sql.ErrNoRows) {
+			result = db.GetDashboardDriverRow(DashboardDriver{})
+		} else {
+			return Response{}, err
+		}
 	}
 
 	resultHist, errHist := p.repo.GetDashboardHist(ctx, id)
 	if errHist != nil {
-		return Response{}, errHist
+		if errors.Is(errHist, sql.ErrNoRows) {
+			resultHist = nil
+		} else {
+			return Response{}, errHist
+		}
 	}
 
 	resultFuture, errFuture := p.repo.GetDashboardFuture(ctx, id)
 	if errFuture != nil {
-		return Response{}, errFuture
+		if errors.Is(errFuture, sql.ErrNoRows) {
+			resultFuture = nil
+		} else {
+			return Response{}, errFuture
+		}
 	}
 
 	resultCalendar, errCalendar := p.repo.GetDashboardCalendar(ctx, id)
 	if errCalendar != nil {
-		return Response{}, errCalendar
+		if errors.Is(errCalendar, sql.ErrNoRows) {
+			resultCalendar = nil
+		} else {
+			return Response{}, errCalendar
+		}
 	}
 
 	resultFaturamento, errFaturamento := p.repo.GetDashboardFaturamento(ctx, id)
 	if errFaturamento != nil {
-		return Response{}, errFaturamento
+		if errors.Is(errFaturamento, sql.ErrNoRows) {
+			resultFaturamento = nil
+		} else {
+			return Response{}, errFaturamento
+		}
 	}
 
 	resultDriverEnterprise, errDriverEnterprise := p.repo.GetDashboardDriverEnterprise(ctx, id)
 	if errDriverEnterprise != nil {
-		return Response{}, errDriverEnterprise
+		if errors.Is(errDriverEnterprise, sql.ErrNoRows) {
+			resultDriverEnterprise = nil
+		} else {
+			return Response{}, errDriverEnterprise
+		}
 	}
 
 	resultTractUnitEnterprise, errTractUnitEnterprise := p.repo.GetDashboardTractUnitEnterprise(ctx, id)
 	if errTractUnitEnterprise != nil {
-		return Response{}, errTractUnitEnterprise
+		if errors.Is(errTractUnitEnterprise, sql.ErrNoRows) {
+			resultTractUnitEnterprise = nil
+		} else {
+			return Response{}, errTractUnitEnterprise
+		}
 	}
 
 	resultTrailerEnterprise, errTrailerEnterprise := p.repo.GetDashboardTrailerEnterprise(ctx, id)
 	if errTrailerEnterprise != nil {
-		return Response{}, errTrailerEnterprise
+		if errors.Is(errTrailerEnterprise, sql.ErrNoRows) {
+			resultTrailerEnterprise = nil
+		} else {
+			return Response{}, errTrailerEnterprise
+		}
 	}
 
-	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, id)
+	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, idProfile)
 	if errOffersFor != nil {
 		if errors.Is(errOffersFor, sql.ErrNoRows) {
 			resultOffersFor.TotalOffers = 0
@@ -96,7 +130,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 			TotalFreightCompleted: result.TotalFretesFinalizados,
 			TotalReceivable:       result.TotalAReceber,
 			CustomersServed:       result.ClientesAtendidos,
-			Proposals:             resultOffersFor.TotalOffers,
 			FreightHistory:        convertFreightHistory(resultHist),
 			FutureFreights:        convertFutureFreights(resultFuture),
 			Calendar:              convertCalendar(resultCalendar),
@@ -112,7 +145,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 			TotalFreightCompleted: result.TotalFretesFinalizados,
 			TotalReceivable:       result.TotalAReceber,
 			CustomersServed:       result.ClientesAtendidos,
-			Proposals:             resultOffersFor.TotalOffers,
 			FreightHistory:        convertFreightHistory(resultHist),
 			FutureFreights:        convertFutureFreights(resultFuture),
 			Calendar:              convertCalendar(resultCalendar),
