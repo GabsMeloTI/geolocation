@@ -47,8 +47,8 @@ SELECT a.id, a.user_id, u.name as user_name, u.created_at as active_there, u.cit
        a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination, rh.response as response_routes, ar.route_choose
 FROM public.advertisement a
          INNER JOIN users u ON u.id = a.user_id
-         INNER JOIN advertisement_route ar on a.id = ar.advertisement_id
-         INNER JOIN route_hist rh on rh.id = ar.route_hist_id
+         left JOIN advertisement_route ar on a.id = ar.advertisement_id
+         left JOIN route_hist rh on rh.id = ar.route_hist_id
 WHERE a.status=true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
 ORDER BY expiration_date;
 
