@@ -105,6 +105,20 @@ func (s *Service) CreateUser(ctx context.Context, data RequestCreateUser) (respo
 	var newPassword sql.NullString
 	userEmail = data.Email
 	userGoogleID = ""
+	
+	
+	u, err := s.repository.GetUserByEmail(ctx, userEmail)
+	
+	
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return ResponseCreateUser{}, err
+		}
+	}
+
+	if u.ID != 0 {
+		return ResponseCreateUser{}, errors.New("user already exists")
+	}
 
 	hashedPassword, err := crypt.HashPassword(data.Password)
 	if err != nil {
