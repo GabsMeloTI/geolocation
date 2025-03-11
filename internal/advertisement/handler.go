@@ -156,6 +156,15 @@ func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+func (p *Handler) GetAllAdvertisementHandler2(c echo.Context) error {
+	result, err := p.InterfaceService.GetAllAdvertisementUser2(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
 // GetAllAdvertisementPublicHandler godoc
 // @Summary Get All Advertisement
 // @Description Retrieve all Advertisement

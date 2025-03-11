@@ -17,6 +17,7 @@ type InterfaceService interface {
 	GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementResponseAll, error)
 	GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error)
 	UpdatedAdvertisementFinishedCreate(ctx context.Context, data UpdatedAdvertisementFinishedCreate, idProfile int64) (ResponseUpdatedAdvertisementFinishedCreate, error)
+	GetAllAdvertisementUser2(ctx context.Context) ([]AdvertisementResponseAll, error)
 }
 
 type Service struct {
@@ -181,5 +182,62 @@ func (p *Service) GetAllAdvertisementPublic(ctx context.Context) ([]Advertisemen
 
 		announcementResponses = append(announcementResponses, response)
 	}
+	return announcementResponses, nil
+}
+
+func (p *Service) GetAllAdvertisementUser2(ctx context.Context) ([]AdvertisementResponseAll, error) {
+	result, err := p.InterfaceService.GetAllAdvertisementUsersNotComplete(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var announcementResponses []AdvertisementResponseAll
+	for _, item := range result {
+		announcementResponses = append(announcementResponses, AdvertisementResponseAll{
+			ID:                      item.ID,
+			UserID:                  item.UserID,
+			UserName:                item.UserName,
+			ActiveThere:             item.ActiveThere.Time,
+			UserCity:                item.UserCity.String,
+			UserState:               item.UserState.String,
+			UserPhone:               item.UserPhone.String,
+			UserEmail:               item.UserEmail,
+			Destination:             item.Destination,
+			Origin:                  item.Origin,
+			PickupDate:              item.PickupDate,
+			DeliveryDate:            item.DeliveryDate,
+			ExpirationDate:          item.ExpirationDate,
+			Title:                   item.Title,
+			CargoType:               item.CargoType,
+			CargoSpecies:            item.CargoSpecies,
+			CargoWeight:             item.CargoWeight,
+			VehiclesAccepted:        item.VehiclesAccepted,
+			Trailer:                 item.Trailer,
+			RequiresTarp:            item.RequiresTarp,
+			Tracking:                item.Tracking,
+			Agency:                  item.Agency,
+			Description:             item.Description,
+			PaymentType:             item.PaymentType,
+			Advance:                 item.Advance,
+			Toll:                    item.Toll,
+			Situation:               item.Situation,
+			Price:                   item.Price,
+			StateOrigin:             item.StateOrigin,
+			CityOrigin:              item.CityOrigin,
+			ComplementOrigin:        item.ComplementOrigin,
+			NeighborhoodOrigin:      item.NeighborhoodOrigin,
+			StreetOrigin:            item.StreetOrigin,
+			StreetNumberOrigin:      item.StreetNumberOrigin,
+			CEPOrigin:               item.CepOrigin,
+			StateDestination:        item.StateDestination,
+			CityDestination:         item.CityDestination,
+			ComplementDestination:   item.ComplementDestination,
+			NeighborhoodDestination: item.NeighborhoodDestination,
+			StreetDestination:       item.StreetDestination,
+			StreetNumberDestination: item.StreetNumberDestination,
+			CEPDestination:          item.CepDestination,
+		})
+	}
+
 	return announcementResponses, nil
 }
