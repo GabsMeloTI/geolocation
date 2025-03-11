@@ -22,3 +22,7 @@ SELECT r.id as room_id, r.created_at, r.advertisement_user_id, a.id as advertise
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.advertisement_user_id = $1;
 
+
+-- name: GetChatRoomByAdvertisementAndInterestedUser :one
+select r.* from chat_rooms r
+where r.advertisement_id = $1 and r.interested_user_id = $2 AND status;

@@ -58,6 +58,7 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		Email:    emailSearch,
 		GoogleID: sql.NullString{String: googleIDSearch, Valid: true},
 	})
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return response, ErrUserNotFound
@@ -82,11 +83,18 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		return response, err
 	}
 
+	profile, err := s.repository.GetProfileById(ctx, result.ProfileID.Int64)
+
+	if err != nil {
+		return response, err
+	}
+
 	responseData := ResponseLogin{
-		ID:    result.ID,
-		Name:  result.Name,
-		Email: result.Email,
-		Token: tokenStr,
+		ID:      result.ID,
+		Name:    result.Name,
+		Email:   result.Email,
+		Token:   tokenStr,
+		Profile: profile.Name,
 	}
 
 	return responseData, err
