@@ -140,7 +140,7 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 
 	var announcementResponses []AdvertisementResponseAll
 	for _, result := range results {
-		index := int(result.RouteChoose.Int64)
+		index := int(result.RouteChoose)
 		var route new_routes.FinalOutput
 		if index >= 0 && index < len(result.ResponseRoutes) {
 			errRoute := json.Unmarshal(result.ResponseRoutes, &route)
