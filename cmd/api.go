@@ -131,6 +131,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
 
+	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
+
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
 
