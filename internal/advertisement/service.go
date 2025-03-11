@@ -14,6 +14,7 @@ type InterfaceService interface {
 	DeleteAdvertisementService(ctx context.Context, data DeleteAdvertisementRequest) error
 	GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementResponseAll, error)
 	GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error)
+	UpdatedAdvertisementFinishedCreate(ctx context.Context, data UpdatedAdvertisementFinishedCreate, idProfile int64) (ResponseUpdatedAdvertisementFinishedCreate, error)
 }
 
 type Service struct {
@@ -39,7 +40,6 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 	}
 
 	arg := data.ParseCreateToAdvertisement()
-	arg.Situation = strings.ToLower(data.CreateAdvertisementRequest.Situation)
 	result, err := p.InterfaceService.CreateAdvertisement(ctx, arg)
 	if err != nil {
 		return AdvertisementResponse{}, err
@@ -47,6 +47,27 @@ func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdv
 
 	var response AdvertisementResponse
 	response.ParseFromAdvertisementObject(result)
+
+	return response, nil
+}
+
+func (p *Service) UpdatedAdvertisementFinishedCreate(ctx context.Context, data UpdatedAdvertisementFinishedCreate, idProfile int64) (ResponseUpdatedAdvertisementFinishedCreate, error) {
+	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
+	if errProfile != nil {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errProfile
+	}
+	if resultProfile.Name == "Driver" {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errors.New("motoristas não podem criar anúncios")
+	}
+
+	arg := data.ParseUpdatedToAdvertisementFinishedCreate()
+	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(ctx, arg)
+	if err != nil {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, err
+	}
+
+	var response ResponseUpdatedAdvertisementFinishedCreate
+	response.ParseFromUpdatedAdvertisementFinishedCreateObject(result)
 
 	return response, nil
 }

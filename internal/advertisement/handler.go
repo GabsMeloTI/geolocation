@@ -49,6 +49,21 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+func (p *Handler) UpdatedAdvertisementFinishedCreate(c echo.Context) error {
+	var request UpdatedAdvertisementFinishedCreate
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(c.Request().Context(), request, payload.ProfileID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
 // UpdateAdvertisementHandler godoc
 // @Summary Update a Advertisement.
 // @Description Update a Advertisement.

@@ -1,13 +1,20 @@
 -- name: CreateAdvertisement :one
 INSERT INTO public.advertisement
-(id, user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who,
- state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
- state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination)
+(id, user_id, destination, origin, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer,
+ requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, status, created_at, created_who, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin,
+ cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination)
 VALUES(nextval('advertisement_id_seq'::regclass), $1, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, true, now(), $27,
-       $28, $29, $30, $31, $32, $33, $34,
-       $35, $36, $37, $38, $39, $40, $41)
+       $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 'pendente', $21,
+       true, now(),$22,$23, $24, $25, $26, $27,$28, $29, $30, $31,
+       $32, $33, $34,$35, $36)
     RETURNING *;
+
+-- name: UpdatedAdvertisementFinishedCreate :one
+UPDATE public.advertisement
+SET destination_lat=$3, destination_lng=$4, origin_lat=$5, origin_lng=$6, situation='ativo'
+WHERE user_id=$1 AND
+      id=$2
+      RETURNING id, user_id, destination_lat, destination_lng, origin_lat, origin_lng, situation;
 
 
 -- name: UpdateAdvertisement :one
@@ -40,15 +47,14 @@ SELECT a.id, user_id, u.name as user_name, u.created_at as active_there, u.city 
        a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination
 FROM public.advertisement a
          INNER JOIN users u ON u.id = a.user_id
-WHERE a.status=true
+WHERE a.status=true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
 ORDER BY expiration_date;
 
 -- name: CountAdvertisementByUserID :one
 SELECT COUNT(*)
 FROM public.advertisement
 WHERE user_id = $1
-  AND status = true
-  AND situation = 'ativo';
+  AND status = true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL AND situation = 'ativo';
 
 
 -- name: GetAllAdvertisementPublic :many
@@ -56,7 +62,7 @@ SELECT id, destination, origin, pickup_date, delivery_date, expiration_date, tit
        state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
        state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination
 FROM public.advertisement
-WHERE status=true
+WHERE status=true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
 ORDER BY expiration_date;
 
 -- name: UpdateAdvertisementSituation :exec

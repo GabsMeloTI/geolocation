@@ -9,10 +9,6 @@ import (
 type CreateAdvertisementRequest struct {
 	Destination             string    `json:"destination"`
 	Origin                  string    `json:"origin"`
-	DestinationLat          float64   `json:"destination_lat"`
-	DestinationLng          float64   `json:"destination_lng"`
-	OriginLat               float64   `json:"origin_lat"`
-	OriginLng               float64   `json:"origin_lng"`
 	Distance                int64     `json:"distance"`
 	PickupDate              time.Time `json:"pickup_date"`
 	DeliveryDate            time.Time `json:"delivery_date"`
@@ -30,7 +26,6 @@ type CreateAdvertisementRequest struct {
 	PaymentType             string    `json:"payment_type"`
 	Advance                 string    `json:"advance"`
 	Toll                    bool      `json:"toll"`
-	Situation               string    `json:"situation"`
 	Price                   float64   `json:"price"`
 	CreatedWho              string    `json:"created_who"`
 	StateOrigin             string    `json:"state_origin"`
@@ -253,15 +248,31 @@ type AdvertisementResponseNoUser struct {
 	CreatedAt               time.Time `json:"created_at"`
 }
 
+type UpdatedAdvertisementFinishedCreate struct {
+	ID             int64   `json:"id"`
+	UserID         int64   `json:"user_id"`
+	DestinationLat float64 `json:"destination_lat"`
+	DestinationLng float64 `json:"destination_lng"`
+	OriginLat      float64 `json:"origin_lat"`
+	OriginLng      float64 `json:"origin_lng"`
+	Situation      string  `json:"situation"`
+}
+
+type ResponseUpdatedAdvertisementFinishedCreate struct {
+	ID             int64   `json:"id"`
+	UserID         int64   `json:"user_id"`
+	DestinationLat float64 `json:"destination_lat"`
+	DestinationLng float64 `json:"destination_lng"`
+	OriginLat      float64 `json:"origin_lat"`
+	OriginLng      float64 `json:"origin_lng"`
+	Situation      string  `json:"situation"`
+}
+
 func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertisementParams {
 	arg := db.CreateAdvertisementParams{
 		UserID:                  p.UserID,
 		Destination:             p.CreateAdvertisementRequest.Destination,
 		Origin:                  p.CreateAdvertisementRequest.Origin,
-		DestinationLat:          p.CreateAdvertisementRequest.DestinationLat,
-		DestinationLng:          p.CreateAdvertisementRequest.DestinationLng,
-		OriginLat:               p.CreateAdvertisementRequest.OriginLat,
-		OriginLng:               p.CreateAdvertisementRequest.OriginLng,
 		Distance:                p.CreateAdvertisementRequest.Distance,
 		PickupDate:              p.CreateAdvertisementRequest.PickupDate,
 		DeliveryDate:            p.CreateAdvertisementRequest.DeliveryDate,
@@ -279,9 +290,7 @@ func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertise
 		PaymentType:             p.CreateAdvertisementRequest.PaymentType,
 		Advance:                 p.CreateAdvertisementRequest.Advance,
 		Toll:                    p.CreateAdvertisementRequest.Toll,
-		Situation:               p.CreateAdvertisementRequest.Situation,
 		Price:                   p.CreateAdvertisementRequest.Price,
-		CreatedWho:              p.CreatedWho,
 		StateOrigin:             p.CreateAdvertisementRequest.StateOrigin,
 		CityOrigin:              p.CreateAdvertisementRequest.CityOrigin,
 		ComplementOrigin:        p.CreateAdvertisementRequest.ComplementOrigin,
@@ -300,15 +309,51 @@ func (p *CreateAdvertisementDto) ParseCreateToAdvertisement() db.CreateAdvertise
 	return arg
 }
 
+func (p *UpdatedAdvertisementFinishedCreate) ParseUpdatedToAdvertisementFinishedCreate() db.UpdatedAdvertisementFinishedCreateParams {
+	arg := db.UpdatedAdvertisementFinishedCreateParams{
+		ID:     p.ID,
+		UserID: p.UserID,
+		DestinationLat: sql.NullFloat64{
+			Float64: p.DestinationLat,
+			Valid:   true,
+		},
+		DestinationLng: sql.NullFloat64{
+			Float64: p.DestinationLng,
+			Valid:   true,
+		},
+		OriginLat: sql.NullFloat64{
+			Float64: p.OriginLat,
+			Valid:   true,
+		},
+		OriginLng: sql.NullFloat64{
+			Float64: p.OriginLng,
+			Valid:   true,
+		},
+	}
+	return arg
+}
+
 func (p *UpdateAdvertisementDto) ParseUpdateToAdvertisement() db.UpdateAdvertisementParams {
 	arg := db.UpdateAdvertisementParams{
-		UserID:                  p.UserID,
-		Destination:             p.UpdateAdvertisementRequest.Destination,
-		Origin:                  p.UpdateAdvertisementRequest.Origin,
-		DestinationLat:          p.UpdateAdvertisementRequest.DestinationLat,
-		DestinationLng:          p.UpdateAdvertisementRequest.DestinationLng,
-		OriginLat:               p.UpdateAdvertisementRequest.OriginLat,
-		OriginLng:               p.UpdateAdvertisementRequest.OriginLng,
+		UserID:      p.UserID,
+		Destination: p.UpdateAdvertisementRequest.Destination,
+		Origin:      p.UpdateAdvertisementRequest.Origin,
+		DestinationLat: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.DestinationLat,
+			Valid:   true,
+		},
+		DestinationLng: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.DestinationLng,
+			Valid:   true,
+		},
+		OriginLat: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.OriginLat,
+			Valid:   true,
+		},
+		OriginLng: sql.NullFloat64{
+			Float64: p.UpdateAdvertisementRequest.OriginLng,
+			Valid:   true,
+		},
 		Distance:                p.UpdateAdvertisementRequest.Distance,
 		PickupDate:              p.UpdateAdvertisementRequest.PickupDate,
 		DeliveryDate:            p.UpdateAdvertisementRequest.DeliveryDate,
@@ -362,10 +407,10 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	p.UserID = result.UserID
 	p.Destination = result.Destination
 	p.Origin = result.Origin
-	p.DestinationLat = result.DestinationLat
-	p.DestinationLng = result.DestinationLng
-	p.OriginLat = result.OriginLat
-	p.OriginLng = result.OriginLng
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
 	p.Distance = result.Distance
 	p.DeliveryDate = result.DeliveryDate
 	p.PickupDate = result.PickupDate
@@ -421,10 +466,10 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	p.UserEmail = result.UserEmail
 	p.Destination = result.Destination
 	p.Origin = result.Origin
-	p.DestinationLat = result.DestinationLat
-	p.DestinationLng = result.DestinationLng
-	p.OriginLat = result.OriginLat
-	p.OriginLng = result.OriginLng
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
 	p.Distance = result.Distance
 	p.PickupDate = result.PickupDate
 	p.DeliveryDate = result.DeliveryDate
@@ -504,4 +549,13 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.StreetNumberDestination = result.StreetNumberDestination
 	p.CEPDestination = result.CepDestination
 	p.CreatedAt = result.CreatedAt
+}
+
+func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertisementFinishedCreateObject(result db.UpdatedAdvertisementFinishedCreateRow) {
+	p.ID = result.ID
+	p.UserID = result.UserID
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
 }
