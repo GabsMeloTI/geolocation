@@ -5,7 +5,7 @@ VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8)
 RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT * FROM users WHERE email = $1;
+SELECT * FROM users WHERE email = $1 and status;
 
 -- name: DeleteUserById :exec
 UPDATE users SET status = false WHERE id = $1;
