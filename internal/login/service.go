@@ -65,9 +65,11 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		}
 		return response, err
 	}
-
+	
+	if data.Token == "" {
 	if !crypt.CheckPasswordHash(data.Password, result.Password.String) {
 		return response, ErrInvalidCredentials
+	}
 	}
 
 	tokenStr, err := s.maker.CreateTokenUser(
