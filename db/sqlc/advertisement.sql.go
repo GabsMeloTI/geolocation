@@ -395,67 +395,67 @@ SELECT a.id, a.user_id, u.name as user_name, u.created_at as active_there, u.cit
        a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination, rh.response as response_routes, ar.route_choose
 FROM public.advertisement a
          INNER JOIN users u ON u.id = a.user_id
-         left JOIN advertisement_route ar on a.id = ar.advertisement_id
-         left JOIN route_hist rh on rh.id = ar.route_hist_id
+         INNER JOIN advertisement_route ar on a.id = ar.advertisement_id
+         INNER JOIN route_hist rh on rh.id = ar.route_hist_id
 WHERE a.status=true AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
 ORDER BY expiration_date
 `
 
 type GetAllAdvertisementUsersRow struct {
-	ID                      int64                 `json:"id"`
-	UserID                  int64                 `json:"user_id"`
-	UserName                string                `json:"user_name"`
-	ActiveThere             sql.NullTime          `json:"active_there"`
-	UserCity                sql.NullString        `json:"user_city"`
-	UserState               sql.NullString        `json:"user_state"`
-	UserPhone               sql.NullString        `json:"user_phone"`
-	UserEmail               string                `json:"user_email"`
-	UserProfilePicture      sql.NullString        `json:"user_profile_picture"`
-	Destination             string                `json:"destination"`
-	Origin                  string                `json:"origin"`
-	DestinationLat          sql.NullFloat64       `json:"destination_lat"`
-	DestinationLng          sql.NullFloat64       `json:"destination_lng"`
-	OriginLat               sql.NullFloat64       `json:"origin_lat"`
-	OriginLng               sql.NullFloat64       `json:"origin_lng"`
-	Distance                int64                 `json:"distance"`
-	PickupDate              time.Time             `json:"pickup_date"`
-	DeliveryDate            time.Time             `json:"delivery_date"`
-	ExpirationDate          time.Time             `json:"expiration_date"`
-	Title                   string                `json:"title"`
-	CargoType               string                `json:"cargo_type"`
-	CargoSpecies            string                `json:"cargo_species"`
-	CargoWeight             float64               `json:"cargo_weight"`
-	VehiclesAccepted        string                `json:"vehicles_accepted"`
-	Trailer                 string                `json:"trailer"`
-	RequiresTarp            bool                  `json:"requires_tarp"`
-	Tracking                bool                  `json:"tracking"`
-	Agency                  bool                  `json:"agency"`
-	Description             string                `json:"description"`
-	PaymentType             string                `json:"payment_type"`
-	Advance                 string                `json:"advance"`
-	Toll                    bool                  `json:"toll"`
-	Situation               string                `json:"situation"`
-	Price                   float64               `json:"price"`
-	CreatedAt               time.Time             `json:"created_at"`
-	CreatedWho              string                `json:"created_who"`
-	UpdatedAt               sql.NullTime          `json:"updated_at"`
-	UpdatedWho              sql.NullString        `json:"updated_who"`
-	StateOrigin             string                `json:"state_origin"`
-	CityOrigin              string                `json:"city_origin"`
-	ComplementOrigin        string                `json:"complement_origin"`
-	NeighborhoodOrigin      string                `json:"neighborhood_origin"`
-	StreetOrigin            string                `json:"street_origin"`
-	StreetNumberOrigin      string                `json:"street_number_origin"`
-	CepOrigin               string                `json:"cep_origin"`
-	StateDestination        string                `json:"state_destination"`
-	CityDestination         string                `json:"city_destination"`
-	ComplementDestination   string                `json:"complement_destination"`
-	NeighborhoodDestination string                `json:"neighborhood_destination"`
-	StreetDestination       string                `json:"street_destination"`
-	StreetNumberDestination string                `json:"street_number_destination"`
-	CepDestination          string                `json:"cep_destination"`
+	ID                      int64           `json:"id"`
+	UserID                  int64           `json:"user_id"`
+	UserName                string          `json:"user_name"`
+	ActiveThere             sql.NullTime    `json:"active_there"`
+	UserCity                sql.NullString  `json:"user_city"`
+	UserState               sql.NullString  `json:"user_state"`
+	UserPhone               sql.NullString  `json:"user_phone"`
+	UserEmail               string          `json:"user_email"`
+	UserProfilePicture      sql.NullString  `json:"user_profile_picture"`
+	Destination             string          `json:"destination"`
+	Origin                  string          `json:"origin"`
+	DestinationLat          sql.NullFloat64 `json:"destination_lat"`
+	DestinationLng          sql.NullFloat64 `json:"destination_lng"`
+	OriginLat               sql.NullFloat64 `json:"origin_lat"`
+	OriginLng               sql.NullFloat64 `json:"origin_lng"`
+	Distance                int64           `json:"distance"`
+	PickupDate              time.Time       `json:"pickup_date"`
+	DeliveryDate            time.Time       `json:"delivery_date"`
+	ExpirationDate          time.Time       `json:"expiration_date"`
+	Title                   string          `json:"title"`
+	CargoType               string          `json:"cargo_type"`
+	CargoSpecies            string          `json:"cargo_species"`
+	CargoWeight             float64         `json:"cargo_weight"`
+	VehiclesAccepted        string          `json:"vehicles_accepted"`
+	Trailer                 string          `json:"trailer"`
+	RequiresTarp            bool            `json:"requires_tarp"`
+	Tracking                bool            `json:"tracking"`
+	Agency                  bool            `json:"agency"`
+	Description             string          `json:"description"`
+	PaymentType             string          `json:"payment_type"`
+	Advance                 string          `json:"advance"`
+	Toll                    bool            `json:"toll"`
+	Situation               string          `json:"situation"`
+	Price                   float64         `json:"price"`
+	CreatedAt               time.Time       `json:"created_at"`
+	CreatedWho              string          `json:"created_who"`
+	UpdatedAt               sql.NullTime    `json:"updated_at"`
+	UpdatedWho              sql.NullString  `json:"updated_who"`
+	StateOrigin             string          `json:"state_origin"`
+	CityOrigin              string          `json:"city_origin"`
+	ComplementOrigin        string          `json:"complement_origin"`
+	NeighborhoodOrigin      string          `json:"neighborhood_origin"`
+	StreetOrigin            string          `json:"street_origin"`
+	StreetNumberOrigin      string          `json:"street_number_origin"`
+	CepOrigin               string          `json:"cep_origin"`
+	StateDestination        string          `json:"state_destination"`
+	CityDestination         string          `json:"city_destination"`
+	ComplementDestination   string          `json:"complement_destination"`
+	NeighborhoodDestination string          `json:"neighborhood_destination"`
+	StreetDestination       string          `json:"street_destination"`
+	StreetNumberDestination string          `json:"street_number_destination"`
+	CepDestination          string          `json:"cep_destination"`
 	ResponseRoutes          json.RawMessage `json:"response_routes"`
-	RouteChoose             sql.NullInt64         `json:"route_choose"`
+	RouteChoose             int64           `json:"route_choose"`
 }
 
 func (q *Queries) GetAllAdvertisementUsers(ctx context.Context) ([]GetAllAdvertisementUsersRow, error) {
