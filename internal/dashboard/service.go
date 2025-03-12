@@ -98,60 +98,85 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, idProfile)
+	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, id)
 	if errOffersFor != nil {
 		if errors.Is(errOffersFor, sql.ErrNoRows) {
-			resultOffersFor.TotalOffers = 0
+			resultOffersFor.TotalOffersMesAtual = 0
 		} else {
 			return Response{}, errOffersFor
 		}
 	}
 
+	comparisonFreight := calcPercentage(result.TotalFretesFinalizadosMesAtual, result.TotalFretesFinalizadosMesAnterior)
+	comparisonCustomers := calcPercentage(float64(result.ClientesAtendidosMesAtual), float64(result.ClientesAtendidosMesAnterior))
+	comparisonProposals := calcPercentage(float64(resultOffersFor.TotalOffersMesAtual), float64(resultOffersFor.TotalOffersMesAnterior))
+
 	var response Response
 	switch resultGetPlans.Name {
 	case "Driver":
 		response = Response{
-			UserID:                result.UserID,
-			DriverID:              result.DriverID,
-			TotalFreightCompleted: result.TotalFretesFinalizados,
-			TotalReceivable:       result.TotalAReceber,
-			CustomersServed:       result.ClientesAtendidos,
-			Proposals:             resultOffersFor.TotalOffers,
-			FreightHistory:        convertFreightHistory(resultHist),
-			FutureFreights:        convertFutureFreights(resultFuture),
-			Calendar:              convertCalendar(resultCalendar),
-			MonthlyBilling:        convertMonthlyBilling(resultFaturamento),
+			UserID:                                 result.UserID,
+			DriverID:                               result.DriverID,
+			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
+			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
+			TotalReceivable:                        result.TotalAReceberMesAtual,
+			CustomersServed:                        result.ClientesAtendidosMesAtual,
+			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
+			Proposals:                              resultOffersFor.TotalOffersMesAtual,
+			ComparisonPreviousMonthProposals:       comparisonProposals,
+			FreightHistory:                         convertFreightHistory(resultHist),
+			FutureFreights:                         convertFutureFreights(resultFuture),
+			Calendar:                               convertCalendar(resultCalendar),
+			MonthlyBilling:                         convertMonthlyBilling(resultFaturamento),
 		}
 	case "Carrier":
 		response = Response{
-			UserID:                result.UserID,
-			DriverID:              result.DriverID,
-			TotalFreightCompleted: result.TotalFretesFinalizados,
-			TotalReceivable:       result.TotalAReceber,
-			CustomersServed:       result.ClientesAtendidos,
-			FreightHistory:        convertFreightHistory(resultHist),
-			FutureFreights:        convertFutureFreights(resultFuture),
-			Calendar:              convertCalendar(resultCalendar),
-			MonthlyBilling:        convertMonthlyBilling(resultFaturamento),
-			DriverEnterprise:      convertDriverEnterprise(resultDriverEnterprise),
-			TrailerEnterprise:     convertTrailerEnterprise(resultTrailerEnterprise),
-			TractUnitEnterprise:   convertTractUnitEnterprise(resultTractUnitEnterprise),
+			UserID:                                 result.UserID,
+			DriverID:                               result.DriverID,
+			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
+			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
+			TotalReceivable:                        result.TotalAReceberMesAtual,
+			CustomersServed:                        result.ClientesAtendidosMesAtual,
+			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
+			Proposals:                              resultOffersFor.TotalOffersMesAtual,
+			ComparisonPreviousMonthProposals:       comparisonProposals,
+			FreightHistory:                         convertFreightHistory(resultHist),
+			FutureFreights:                         convertFutureFreights(resultFuture),
+			Calendar:                               convertCalendar(resultCalendar),
+			MonthlyBilling:                         convertMonthlyBilling(resultFaturamento),
+			DriverEnterprise:                       convertDriverEnterprise(resultDriverEnterprise),
+			TrailerEnterprise:                      convertTrailerEnterprise(resultTrailerEnterprise),
+			TractUnitEnterprise:                    convertTractUnitEnterprise(resultTractUnitEnterprise),
 		}
 	case "Shipper":
 		response = Response{
-			UserID:                result.UserID,
-			DriverID:              result.DriverID,
-			TotalFreightCompleted: result.TotalFretesFinalizados,
-			TotalReceivable:       result.TotalAReceber,
-			CustomersServed:       result.ClientesAtendidos,
-			FreightHistory:        convertFreightHistory(resultHist),
-			FutureFreights:        convertFutureFreights(resultFuture),
-			Calendar:              convertCalendar(resultCalendar),
-			MonthlyBilling:        convertMonthlyBilling(resultFaturamento),
+			UserID:                                 result.UserID,
+			DriverID:                               result.DriverID,
+			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
+			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
+			TotalReceivable:                        result.TotalAReceberMesAtual,
+			CustomersServed:                        result.ClientesAtendidosMesAtual,
+			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
+			Proposals:                              resultOffersFor.TotalOffersMesAtual,
+			ComparisonPreviousMonthProposals:       comparisonProposals,
+			FreightHistory:                         convertFreightHistory(resultHist),
+			FutureFreights:                         convertFutureFreights(resultFuture),
+			Calendar:                               convertCalendar(resultCalendar),
+			MonthlyBilling:                         convertMonthlyBilling(resultFaturamento),
 		}
 	default:
 		return Response{}, fmt.Errorf("plano inválido")
 	}
 
 	return response, nil
+}
+
+func calcPercentage(current, previous float64) float64 {
+	if previous == 0 {
+		if current == 0 {
+			return 0
+		}
+		return 100
+	}
+	return ((current - previous) / previous) * 100
 }

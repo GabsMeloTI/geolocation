@@ -24,10 +24,9 @@ SELECT
                             THEN a.price::float8
                         ELSE 0::float8
                         END
-            ),
-            0::float8
-    )::float8 AS total_fretes_finalizados,
-        COALESCE(
+            ), 0::float8
+    )::float8 AS total_fretes_finalizados_mes_atual,
+    COALESCE(
             SUM(
                     CASE
                         WHEN ap.situation != 'finalizado'
@@ -36,17 +35,35 @@ SELECT
                     THEN a.price::float8
                     ELSE 0::float8
                     END
-            ),
-                0::float8
-            )::float8 AS total_a_receber,
-        COUNT(
-                DISTINCT CASE
-                             WHEN ap.situation = 'finalizado'
-                                 AND EXTRACT(MONTH FROM a.delivery_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                                 AND EXTRACT(YEAR FROM a.delivery_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-                                 THEN ap.advertisement_user_id
-            END
-        ) AS clientes_atendidos
+            ), 0::float8
+    )::float8 AS total_a_receber_mes_atual,
+    COUNT(
+            DISTINCT CASE
+                         WHEN ap.situation = 'finalizado'
+                             AND EXTRACT(MONTH FROM a.delivery_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+                             AND EXTRACT(YEAR FROM a.delivery_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                             THEN ap.advertisement_user_id
+        END
+    ) AS clientes_atendidos_mes_atual,
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN ap.situation = 'finalizado'
+                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                            THEN a.price::float8
+                        ELSE 0::float8
+                        END
+            ), 0::float8
+    )::float8 AS total_fretes_finalizados_mes_anterior,
+    COUNT(
+            DISTINCT CASE
+                         WHEN ap.situation = 'finalizado'
+                             AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                             AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                             THEN ap.advertisement_user_id
+        END
+    ) AS clientes_atendidos_mes_anterior
 FROM users u
          INNER JOIN driver d ON d.user_id = u.id
          INNER JOIN appointments ap ON ap.interested_user_id = u.id
@@ -54,8 +71,6 @@ FROM users u
          LEFT JOIN faturamento_mensal fm ON fm.interested_user_id = u.id
 WHERE u.id = $1
 GROUP BY u.id, d.id;
-
-
 
 
 
@@ -161,7 +176,32 @@ WHERE tu.user_id = $1
 -- name: GetOffersForDashboard :one
 SELECT
     cr.advertisement_user_id AS recipient_user_id,
-    COUNT(*) AS total_offers
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN EXTRACT(MONTH FROM cm.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+                            AND EXTRACT(YEAR FROM cm.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+                            THEN 1
+                        ELSE 0
+                        END
+            ), 0::bigint
+    )::bigint AS total_offers_mes_atual,
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN EXTRACT(MONTH FROM cm.created_at) = CASE
+                                                                     WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12
+                                                                     ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1
+                            END
+                            AND EXTRACT(YEAR FROM cm.created_at) = CASE
+                                                                       WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1
+                                                                       ELSE EXTRACT(YEAR FROM CURRENT_DATE)
+                                END
+                            THEN 1
+                        ELSE 0
+                        END
+            ), 0::bigint
+    )::bigint AS total_offers_mes_anterior
 FROM chat_messages cm
          INNER JOIN chat_rooms cr ON cm.room_id = cr.id
 WHERE cm.type_message = 'offer'

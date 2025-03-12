@@ -17,7 +17,7 @@ type InterfaceRepository interface {
 	GetProfileById(ctx context.Context, arg int64) (db.Profile, error)
 	UpdatedAdvertisementFinishedCreate(ctx context.Context, arg db.UpdatedAdvertisementFinishedCreateParams) (db.UpdatedAdvertisementFinishedCreateRow, error)
 	CreateAdvertisementRoute(ctx context.Context, arg db.CreateAdvertisementRouteParams) (db.AdvertisementRoute, error)
-	GetAllAdvertisementUsersNotComplete(ctx context.Context) ([]db.GetAllAdvertisementUsersNotCompleteRow, error)
+	GetAllAdvertisementByUser(ctx context.Context, arg int64) ([]db.GetAllAdvertisementByUserRow, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -66,6 +66,6 @@ func (r *Repository) UpdatedAdvertisementFinishedCreate(ctx context.Context, arg
 func (r *Repository) CreateAdvertisementRoute(ctx context.Context, arg db.CreateAdvertisementRouteParams) (db.AdvertisementRoute, error) {
 	return r.Queries.CreateAdvertisementRoute(ctx, arg)
 }
-func (r *Repository) GetAllAdvertisementUsersNotComplete(ctx context.Context) ([]db.GetAllAdvertisementUsersNotCompleteRow, error) {
-	return r.Queries.GetAllAdvertisementUsersNotComplete(ctx)
+func (r *Repository) GetAllAdvertisementByUser(ctx context.Context, arg int64) ([]db.GetAllAdvertisementByUserRow, error) {
+	return r.Queries.GetAllAdvertisementByUser(ctx, arg)
 }

@@ -5,27 +5,32 @@ import (
 )
 
 type Response struct {
-	UserID                int64                 `json:"user_id"`
-	DriverID              int64                 `json:"driver_id"`
-	TotalFreightCompleted float64               `json:"total_freight_completed"`
-	TotalReceivable       float64               `json:"total_receivable"`
-	CustomersServed       int64                 `json:"customers_served"`
-	Proposals             int64                 `json:"proposals"`
-	FreightHistory        []FreightHistory      `json:"freight_history"`
-	FutureFreights        []FutureFreights      `json:"future_freights"`
-	Calendar              []Calendar            `json:"calendar"`
-	MonthlyBilling        []MonthlyBilling      `json:"monthly_billing"`
-	DriverEnterprise      []DriverEnterprise    `json:"driver_enterprise"`
-	TrailerEnterprise     []TrailerEnterprise   `json:"trailer_enterprise"`
-	TractUnitEnterprise   []TractUnitEnterprise `json:"tract_unit_enterprise"`
+	UserID                                 int64                 `json:"user_id"`
+	DriverID                               int64                 `json:"driver_id"`
+	TotalFreightCompleted                  float64               `json:"total_freight_completed"`
+	ComparisonPreviousMonthTotalFreight    float64               `json:"comparison_previous_month_total_freight"`
+	TotalReceivable                        float64               `json:"total_receivable"`
+	CustomersServed                        int64                 `json:"customers_served"`
+	ComparisonPreviousMonthCustomersServed float64               `json:"comparison_previous_month_customers_served"`
+	Proposals                              int64                 `json:"proposals"`
+	ComparisonPreviousMonthProposals       float64               `json:"comparison_previous_month_proposals"`
+	FreightHistory                         []FreightHistory      `json:"freight_history"`
+	FutureFreights                         []FutureFreights      `json:"future_freights"`
+	Calendar                               []Calendar            `json:"calendar"`
+	MonthlyBilling                         []MonthlyBilling      `json:"monthly_billing"`
+	DriverEnterprise                       []DriverEnterprise    `json:"driver_enterprise"`
+	TrailerEnterprise                      []TrailerEnterprise   `json:"trailer_enterprise"`
+	TractUnitEnterprise                    []TractUnitEnterprise `json:"tract_unit_enterprise"`
 }
 
 type DashboardDriver struct {
-	UserID                 int64   `json:"user_id"`
-	DriverID               int64   `json:"driver_id"`
-	TotalFretesFinalizados float64 `json:"total_fretes_finalizados"`
-	TotalAReceber          float64 `json:"total_a_receber"`
-	ClientesAtendidos      int64   `json:"clientes_atendidos"`
+	UserID                            int64   `json:"user_id"`
+	DriverID                          int64   `json:"driver_id"`
+	TotalFretesFinalizadosMesAtual    float64 `json:"total_fretes_finalizados_mes_atual"`
+	TotalAReceberMesAtual             float64 `json:"total_a_receber_mes_atual"`
+	ClientesAtendidosMesAtual         int64   `json:"clientes_atendidos_mes_atual"`
+	TotalFretesFinalizadosMesAnterior float64 `json:"total_fretes_finalizados_mes_anterior"`
+	ClientesAtendidosMesAnterior      int64   `json:"clientes_atendidos_mes_anterior"`
 }
 
 type FreightHistory struct {

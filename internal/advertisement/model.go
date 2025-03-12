@@ -654,6 +654,64 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.CreatedAt = result.CreatedAt
 }
 
+func (p *AdvertisementResponseAll) ParseFromAdvertisementByIDObject(result db.GetAllAdvertisementByUserRow) {
+	p.ID = result.ID
+	p.UserID = result.UserID
+	p.UserName = result.UserName
+	p.ActiveThere = result.ActiveThere.Time
+	p.UserCity = result.UserCity.String
+	p.UserState = result.UserState.String
+	p.UserPhone = result.UserPhone.String
+	p.UserEmail = result.UserEmail
+	p.Destination = result.Destination
+	p.Origin = result.Origin
+	p.DestinationLat = result.DestinationLat.Float64
+	p.DestinationLng = result.DestinationLng.Float64
+	p.OriginLat = result.OriginLat.Float64
+	p.OriginLng = result.OriginLng.Float64
+	p.Distance = result.Distance
+	p.PickupDate = result.PickupDate
+	p.DeliveryDate = result.DeliveryDate
+	p.ExpirationDate = result.ExpirationDate
+	p.Title = result.Title
+	p.CargoType = result.CargoType
+	p.CargoSpecies = result.CargoSpecies
+	p.CargoWeight = result.CargoWeight
+	p.VehiclesAccepted = result.VehiclesAccepted
+	p.Trailer = result.Trailer
+	p.RequiresTarp = result.RequiresTarp
+	p.Tracking = result.Tracking
+	p.Agency = result.Agency
+	p.Description = result.Description
+	p.PaymentType = result.PaymentType
+	p.Advance = result.Advance
+	p.Toll = result.Toll
+	p.Situation = result.Situation
+	p.Price = result.Price
+	p.StateOrigin = result.StateOrigin
+	p.CityOrigin = result.CityOrigin
+	p.ComplementOrigin = result.ComplementOrigin
+	p.NeighborhoodOrigin = result.NeighborhoodOrigin
+	p.StreetOrigin = result.StreetOrigin
+	p.StreetNumberOrigin = result.StreetNumberOrigin
+	p.CEPOrigin = result.CepOrigin
+	p.StateDestination = result.StateDestination
+	p.CityDestination = result.CityDestination
+	p.ComplementDestination = result.ComplementDestination
+	p.NeighborhoodDestination = result.NeighborhoodDestination
+	p.StreetDestination = result.StreetDestination
+	p.StreetNumberDestination = result.StreetNumberDestination
+	p.CEPDestination = result.CepDestination
+	p.CreatedAt = result.CreatedAt
+	p.CreatedWho = result.CreatedWho
+	if result.UpdatedAt.Valid {
+		p.UpdatedAt = &result.UpdatedAt.Time
+	}
+	if result.UpdatedWho.Valid {
+		p.UpdatedWho = &result.UpdatedWho.String
+	}
+}
+
 func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertisementFinishedCreateObject(idRouteHist, idRouteChoose int64, result db.UpdatedAdvertisementFinishedCreateRow) {
 	p.ID = result.ID
 	p.UserID = result.UserID

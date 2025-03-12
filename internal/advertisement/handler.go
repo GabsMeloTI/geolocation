@@ -156,8 +156,10 @@ func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-func (p *Handler) GetAllAdvertisementHandler2(c echo.Context) error {
-	result, err := p.InterfaceService.GetAllAdvertisementUser2(c.Request().Context())
+func (p *Handler) GetAllAdvertisementByUserHandler(c echo.Context) error {
+	payload := get_token.GetUserPayloadToken(c)
+
+	result, err := p.InterfaceService.GetAllAdvertisementByUser(c.Request().Context(), payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
