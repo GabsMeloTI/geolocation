@@ -2,45 +2,11 @@ package user
 
 import (
 	"database/sql"
+	"time"
+
 	db "geolocation/db/sqlc"
 	"geolocation/internal/get_token"
-	"time"
 )
-
-type CreateUserRequest struct {
-	Email           string `json:"email" validate:"required"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirm_password"`
-	Name            string `json:"name" validate:"required"`
-	ProfilePicture  string `json:"profile_picture"`
-	Provider        string `json:"provider"`
-	GoogleID        string `json:"google_id"`
-	Phone           string `json:"phone" validate:"required"`
-	Document        string `json:"document" validate:"required"`
-	ProfileId       int64  `json:"profile_id" validate:"required"`
-}
-
-type CreateUserResponse struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Provider string `json:"provider"`
-}
-
-type LoginUserResponse struct {
-	ID             int64  `json:"id"`
-	Name           string `json:"name"`
-	Email          string `json:"email"`
-	ProfilePicture string `json:"profile_picture"`
-	ProfileId      int64  `json:"profile_id"`
-	Document       string `json:"document"`
-	Token          string `json:"token"`
-}
 
 type UpdateUserRequest struct {
 	Name           string `json:"name"`
@@ -112,45 +78,6 @@ type UpdateUserAddressResponse struct {
 	Complement   string `json:"complement"`
 }
 
-func (u CreateUserRequest) ParseToCreateUserParams(hash string) db.CreateUserParams {
-	return db.CreateUserParams{
-		Name:  u.Name,
-		Email: u.Email,
-		Password: sql.NullString{
-			String: hash,
-			Valid:  u.Provider != "google",
-		},
-		GoogleID: sql.NullString{
-			String: u.GoogleID,
-			Valid:  u.Provider == "google",
-		},
-		ProfilePicture: sql.NullString{
-			String: u.ProfilePicture,
-			Valid:  u.Provider == "google",
-		},
-		Phone: sql.NullString{
-			String: u.Phone,
-			Valid:  true,
-		},
-		Document: sql.NullString{
-			String: u.Document,
-			Valid:  true,
-		},
-		ProfileID: sql.NullInt64{
-			Int64: u.ProfileId,
-			Valid: true,
-		},
-	}
-}
-
-func (u CreateUserRequest) ParseToCreateUserResponse(user db.User) CreateUserResponse {
-	return CreateUserResponse{
-		Name:  user.Name,
-		Email: user.Email,
-		ID:    user.ID,
-	}
-}
-
 func (u UpdateUserDTO) ParseToUpdateUserByIdParams() db.UpdateUserByIdParams {
 	return db.UpdateUserByIdParams{
 		Name: u.Request.Name,
@@ -184,7 +111,6 @@ func (u UpdateUserDTO) ParseToUpdateUserByIdParams() db.UpdateUserByIdParams {
 		},
 		ID: u.Payload.ID,
 	}
-
 }
 
 func (u UpdateUserAddressRequest) ParseToUpdateUserAddressParams() db.UpdateUserAddressParams {
@@ -219,7 +145,6 @@ func (u UpdateUserAddressRequest) ParseToUpdateUserAddressParams() db.UpdateUser
 			Valid:  true,
 		},
 	}
-
 }
 
 func (u UpdateUserPersonalInfoRequest) ParseToUpdateUserPersonalInfoParams() db.UpdateUserPersonalInfoParams {
@@ -236,7 +161,6 @@ func (u UpdateUserPersonalInfoRequest) ParseToUpdateUserPersonalInfoParams() db.
 		},
 		ID: u.ID,
 	}
-
 }
 
 func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserResponse {
@@ -257,7 +181,9 @@ func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserRespons
 	}
 }
 
-func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(user db.User) UpdateUserPersonalInfoResponse {
+func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(
+	user db.User,
+) UpdateUserPersonalInfoResponse {
 	return UpdateUserPersonalInfoResponse{
 		ID:       user.ID,
 		Name:     user.Name,
@@ -267,7 +193,9 @@ func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(us
 	}
 }
 
-func (u UpdateUserAddressResponse) ParseToUpdateUserAddressResponse(user db.User) UpdateUserAddressResponse {
+func (u UpdateUserAddressResponse) ParseToUpdateUserAddressResponse(
+	user db.User,
+) UpdateUserAddressResponse {
 	return UpdateUserAddressResponse{
 		ID:           user.ID,
 		State:        user.State.String,

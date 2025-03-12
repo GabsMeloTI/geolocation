@@ -1,16 +1,11 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"net/mail"
-	"strings"
 
 	"github.com/labstack/echo/v4"
 
 	"geolocation/internal/get_token"
-	"geolocation/pkg/sso"
-	"geolocation/validation"
 )
 
 type Handler struct {
@@ -20,85 +15,6 @@ type Handler struct {
 
 func NewUserHandler(InterfaceService InterfaceService, GoogleClientId string) *Handler {
 	return &Handler{InterfaceService, GoogleClientId}
-}
-
-func (h *Handler) CreateUser(c echo.Context) error {
-	var req CreateUserRequest
-
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	if err := validation.Validate(req); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	// if ok := validation.ValidatePassword(req.Password); !ok {
-	// return c.JSON(http.StatusBadRequest, "invalid password")
-	// }
-
-	if ok := req.Password == req.ConfirmPassword; !ok {
-		return c.JSON(http.StatusBadRequest, "password and confirm password are different")
-	}
-
-	_, err := mail.ParseAddress(req.Email)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "invalid email address")
-	}
-
-	if ok := validation.ValidatePhone(req.Phone); !ok {
-		return c.JSON(http.StatusBadRequest, "invalid phone number")
-	}
-
-	if req.Provider == "google" {
-		authorization := c.Request().Header.Get("Authorization")
-		token := strings.Replace(authorization, "Bearer ", "", 1)
-
-		payload, err := sso.ValidateGoogleToken(token)
-		if err != nil {
-			return c.JSON(http.StatusUnauthorized, err.Error())
-		}
-
-		if h.GoogleClientId != payload.Audience {
-			fmt.Println("invalid client")
-		}
-	}
-
-	res, err := h.InterfaceService.CreateUserService(c.Request().Context(), req)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	return c.JSON(http.StatusOK, res)
-}
-
-func (h *Handler) UserLogin(c echo.Context) error {
-	var req LoginRequest
-
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	if req.Provider == "google" {
-		authorization := c.Request().Header.Get("Authorization")
-		token := strings.Replace(authorization, "Bearer ", "", 1)
-
-		payload, err := sso.ValidateGoogleToken(token)
-		if err != nil {
-			return c.JSON(http.StatusUnauthorized, err.Error())
-		}
-
-		if h.GoogleClientId != payload.Audience {
-			fmt.Println("invalid client")
-		}
-	}
-
-	res, err := h.InterfaceService.UserLoginService(c.Request().Context(), req)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	return c.JSON(http.StatusOK, res)
 }
 
 // DeleteUser godoc
