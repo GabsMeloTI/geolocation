@@ -3,10 +3,12 @@ package advertisement
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+
 	"geolocation/internal/get_token"
 	"geolocation/validation"
-	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 type Handler struct {
@@ -42,7 +44,11 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 		CreatedWho:                 payload.Name,
 	}
 	fmt.Println(payload.Name)
-	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
+	result, err := p.InterfaceService.CreateAdvertisementService(
+		c.Request().Context(),
+		data,
+		payload.ProfileID,
+	)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -58,7 +64,11 @@ func (p *Handler) UpdatedAdvertisementFinishedCreate(c echo.Context) error {
 
 	payload := get_token.GetUserPayloadToken(c)
 	request.UserID = payload.ID
-	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(c.Request().Context(), request, payload.ProfileID)
+	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(
+		c.Request().Context(),
+		request,
+		payload.ProfileID,
+	)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -94,7 +104,11 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 		},
 	}
 
-	result, err := p.InterfaceService.UpdateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
+	result, err := p.InterfaceService.UpdateAdvertisementService(
+		c.Request().Context(),
+		data,
+		payload.ProfileID,
+	)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -183,4 +197,37 @@ func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+// UpdateAdvertisementRouteChoose godoc
+// @Summary Update Advertisement Route Choose
+// @Description Update the route choosen in the advertisement.
+// @Tags Advertisement
+// @Accept json
+// @Produce json
+// @Param user body UpdateAdsRouteChooseRequest true "Advertisement Request"
+// @Success 200 {string} string "Success"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /advertisement/route [put]
+// @Security ApiKeyAuth
+func (p *Handler) UpdateAdsRouteChoose(c echo.Context) error {
+	var request UpdateAdsRouteChooseRequest
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	payload := get_token.GetUserPayloadToken(c)
+
+	data := UpdateAdsRouteChooseDTO{
+		Request: request,
+		UserID:  payload.ID,
+	}
+
+	err := p.InterfaceService.UpdateAdsRouteChooseService(c.Request().Context(), data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "success")
 }

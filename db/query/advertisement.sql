@@ -90,3 +90,7 @@ FROM public.advertisement a
          LEFT JOIN route_hist rh on rh.id = ar.route_hist_id
 WHERE a.status=true AND a.user_id=$1
 ORDER BY expiration_date;
+
+-- name: UpdateAdsRouteChooseByUserId :exec
+UPDATE advertisement_route SET route_choose = $1 WHERE user_id = $2 AND advertisement_id = $3;
+

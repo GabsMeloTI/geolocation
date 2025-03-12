@@ -2,9 +2,10 @@ package advertisement
 
 import (
 	"database/sql"
+	"time"
+
 	db "geolocation/db/sqlc"
 	"geolocation/internal/new_routes"
-	"time"
 )
 
 type CreateAdvertisementRequest struct {
@@ -205,6 +206,7 @@ type AdvertisementResponseAll struct {
 	StreetDestination       string                 `json:"street_destination"`
 	StreetNumberDestination string                 `json:"street_number_destination"`
 	CEPDestination          string                 `json:"cep_destination"`
+	RouteIndexChoose        int                    `json:"route_index_choose"`
 	RouteChoose             new_routes.RouteOutput `json:"route_choose"`
 	CreatedAt               time.Time              `json:"created_at"`
 	CreatedWho              string                 `json:"created_who"`
@@ -557,7 +559,9 @@ func (p *AdvertisementResponse) ParseFromAdvertisementObject(result db.Advertise
 	}
 }
 
-func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAllAdvertisementUsersRow) {
+func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(
+	result db.GetAllAdvertisementUsersRow,
+) {
 	p.ID = result.ID
 	p.UserID = result.UserID
 	p.UserName = result.UserName
@@ -615,7 +619,9 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementObject(result db.GetAll
 	}
 }
 
-func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.GetAllAdvertisementPublicRow) {
+func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(
+	result db.GetAllAdvertisementPublicRow,
+) {
 	p.ID = result.ID
 	p.UserID = result.UserID
 	p.Destination = result.Destination
@@ -654,7 +660,9 @@ func (p *AdvertisementResponseNoUser) ParseFromAdvertisementObject(result db.Get
 	p.CreatedAt = result.CreatedAt
 }
 
-func (p *AdvertisementResponseAll) ParseFromAdvertisementByIDObject(result db.GetAllAdvertisementByUserRow) {
+func (p *AdvertisementResponseAll) ParseFromAdvertisementByIDObject(
+	result db.GetAllAdvertisementByUserRow,
+) {
 	p.ID = result.ID
 	p.UserID = result.UserID
 	p.UserName = result.UserName
@@ -712,7 +720,10 @@ func (p *AdvertisementResponseAll) ParseFromAdvertisementByIDObject(result db.Ge
 	}
 }
 
-func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertisementFinishedCreateObject(idRouteHist, idRouteChoose int64, result db.UpdatedAdvertisementFinishedCreateRow) {
+func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertisementFinishedCreateObject(
+	idRouteHist, idRouteChoose int64,
+	result db.UpdatedAdvertisementFinishedCreateRow,
+) {
 	p.ID = result.ID
 	p.UserID = result.UserID
 	p.OriginLat = result.OriginLat.Float64
@@ -722,4 +733,14 @@ func (p *ResponseUpdatedAdvertisementFinishedCreate) ParseFromUpdatedAdvertiseme
 	p.RouteHistID = idRouteHist
 	p.RouteChoose = idRouteChoose
 	p.Situation = result.Situation
+}
+
+type UpdateAdsRouteChooseRequest struct {
+	AdvertisementID int64 `json:"advertisement_id"`
+	NewRoute        int64 `json:"new_route"`
+}
+
+type UpdateAdsRouteChooseDTO struct {
+	Request UpdateAdsRouteChooseRequest `json:"request"`
+	UserID  int64                       `json:"user_id"`
 }
