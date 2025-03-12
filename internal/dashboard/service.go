@@ -108,7 +108,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 	}
 
 	comparisonFreight := calcPercentage(result.TotalFretesFinalizadosMesAtual, result.TotalFretesFinalizadosMesAnterior)
-	comparisonReceivable := calcPercentage(result.TotalAReceberMesAtual, result.TotalRecebidoMesAnterior)
 	comparisonCustomers := calcPercentage(float64(result.ClientesAtendidosMesAtual), float64(result.ClientesAtendidosMesAnterior))
 	comparisonProposals := calcPercentage(float64(resultOffersFor.TotalOffersMesAtual), float64(resultOffersFor.TotalOffersMesAnterior))
 
@@ -121,7 +120,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
 			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
 			TotalReceivable:                        result.TotalAReceberMesAtual,
-			ComparisonPreviousMonthTotalReceivable: comparisonReceivable,
 			CustomersServed:                        result.ClientesAtendidosMesAtual,
 			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
 			Proposals:                              resultOffersFor.TotalOffersMesAtual,
@@ -138,7 +136,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
 			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
 			TotalReceivable:                        result.TotalAReceberMesAtual,
-			ComparisonPreviousMonthTotalReceivable: comparisonReceivable,
 			CustomersServed:                        result.ClientesAtendidosMesAtual,
 			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
 			Proposals:                              resultOffersFor.TotalOffersMesAtual,
@@ -158,7 +155,6 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 			TotalFreightCompleted:                  result.TotalFretesFinalizadosMesAtual,
 			ComparisonPreviousMonthTotalFreight:    comparisonFreight,
 			TotalReceivable:                        result.TotalAReceberMesAtual,
-			ComparisonPreviousMonthTotalReceivable: comparisonReceivable,
 			CustomersServed:                        result.ClientesAtendidosMesAtual,
 			ComparisonPreviousMonthCustomersServed: comparisonCustomers,
 			Proposals:                              resultOffersFor.TotalOffersMesAtual,

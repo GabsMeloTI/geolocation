@@ -10,7 +10,6 @@ type Response struct {
 	TotalFreightCompleted                  float64               `json:"total_freight_completed"`
 	ComparisonPreviousMonthTotalFreight    float64               `json:"comparison_previous_month_total_freight"`
 	TotalReceivable                        float64               `json:"total_receivable"`
-	ComparisonPreviousMonthTotalReceivable float64               `json:"comparison_previous_month_total_receivable"`
 	CustomersServed                        int64                 `json:"customers_served"`
 	ComparisonPreviousMonthCustomersServed float64               `json:"comparison_previous_month_customers_served"`
 	Proposals                              int64                 `json:"proposals"`
@@ -31,7 +30,6 @@ type DashboardDriver struct {
 	TotalAReceberMesAtual             float64 `json:"total_a_receber_mes_atual"`
 	ClientesAtendidosMesAtual         int64   `json:"clientes_atendidos_mes_atual"`
 	TotalFretesFinalizadosMesAnterior float64 `json:"total_fretes_finalizados_mes_anterior"`
-	TotalRecebidoMesAnterior          float64 `json:"total_recebido_mes_anterior"`
 	ClientesAtendidosMesAnterior      int64   `json:"clientes_atendidos_mes_anterior"`
 }
 

@@ -119,17 +119,6 @@ SELECT
                         END
             ), 0::float8
     )::float8 AS total_fretes_finalizados_mes_anterior,
-    COALESCE(
-            SUM(
-                    CASE
-                        WHEN ap.situation = 'finalizado'
-                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
-                            THEN a.price::float8
-                        ELSE 0::float8
-                        END
-            ), 0::float8
-    )::float8 AS total_recebido_mes_anterior,
     COUNT(
             DISTINCT CASE
                          WHEN ap.situation = 'finalizado'
@@ -154,7 +143,6 @@ type GetDashboardDriverRow struct {
 	TotalAReceberMesAtual             float64 `json:"total_a_receber_mes_atual"`
 	ClientesAtendidosMesAtual         int64   `json:"clientes_atendidos_mes_atual"`
 	TotalFretesFinalizadosMesAnterior float64 `json:"total_fretes_finalizados_mes_anterior"`
-	TotalRecebidoMesAnterior          float64 `json:"total_recebido_mes_anterior"`
 	ClientesAtendidosMesAnterior      int64   `json:"clientes_atendidos_mes_anterior"`
 }
 
@@ -168,7 +156,6 @@ func (q *Queries) GetDashboardDriver(ctx context.Context, id int64) (GetDashboar
 		&i.TotalAReceberMesAtual,
 		&i.ClientesAtendidosMesAtual,
 		&i.TotalFretesFinalizadosMesAnterior,
-		&i.TotalRecebidoMesAnterior,
 		&i.ClientesAtendidosMesAnterior,
 	)
 	return i, err

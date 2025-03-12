@@ -56,17 +56,6 @@ SELECT
                         END
             ), 0::float8
     )::float8 AS total_fretes_finalizados_mes_anterior,
-    COALESCE(
-            SUM(
-                    CASE
-                        WHEN ap.situation = 'finalizado'
-                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
-                            THEN a.price::float8
-                        ELSE 0::float8
-                        END
-            ), 0::float8
-    )::float8 AS total_recebido_mes_anterior,
     COUNT(
             DISTINCT CASE
                          WHEN ap.situation = 'finalizado'
