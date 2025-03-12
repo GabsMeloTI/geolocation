@@ -1,10 +1,12 @@
 package login
 
 import (
-	"geolocation/validation"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"net/mail"
+
+	"github.com/labstack/echo/v4"
+
+	"geolocation/validation"
 )
 
 type Handler struct {
@@ -25,7 +27,7 @@ func NewHandler(service ServiceInterface) *Handler {
 // @Success 200 {object} ResponseLogin "Authenticated User Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /v2/login [post]
+// @Router /login [post]
 // @Security ApiKeyAuth
 func (h *Handler) Login(e echo.Context) error {
 	var request RequestLogin
@@ -51,7 +53,7 @@ func (h *Handler) Login(e echo.Context) error {
 // @Success 200 {object} ResponseCreateUser "Created User Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /v2/create [post]
+// @Router /create [post]
 // @Security ApiKeyAuth
 func (h *Handler) CreateUser(e echo.Context) error {
 	var request RequestCreateUser
