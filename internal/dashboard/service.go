@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	db "geolocation/db/sqlc"
+	"time"
 )
 
 type InterfaceService interface {
-	GetDashboardService(ctx context.Context, id int64, idProfile int64) (Response, error)
+	GetDashboardService(ctx context.Context, id int64, idProfile int64, startDate, endDate *time.Time) (Response, error)
 }
 
 type Service struct {
@@ -20,13 +21,25 @@ func NewDashboardService(repo InterfaceRepository) *Service {
 	return &Service{repo: repo}
 }
 
-func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile int64) (Response, error) {
+func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile int64, startDate, endDate *time.Time) (Response, error) {
 	resultGetPlans, err := p.repo.GetProfileById(ctx, idProfile)
 	if err != nil {
 		return Response{}, err
 	}
 
-	result, err := p.repo.GetDashboardDriver(ctx, id)
+	var startVal, endVal time.Time
+	if startDate != nil && !startDate.IsZero() {
+		startVal = *startDate
+	}
+	if endDate != nil && !endDate.IsZero() {
+		endVal = *endDate
+	}
+
+	result, err := p.repo.GetDashboardDriver(ctx, db.GetDashboardDriverParams{
+		ID:      id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			result = db.GetDashboardDriverRow(DashboardDriver{})
@@ -35,7 +48,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultHist, errHist := p.repo.GetDashboardHist(ctx, id)
+	resultHist, errHist := p.repo.GetDashboardHist(ctx, db.GetDashboardHistParams{
+		ID:      id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if errHist != nil {
 		if errors.Is(errHist, sql.ErrNoRows) {
 			resultHist = nil
@@ -44,7 +61,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultFuture, errFuture := p.repo.GetDashboardFuture(ctx, id)
+	resultFuture, errFuture := p.repo.GetDashboardFuture(ctx, db.GetDashboardFutureParams{
+		UserID:  id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if errFuture != nil {
 		if errors.Is(errFuture, sql.ErrNoRows) {
 			resultFuture = nil
@@ -53,7 +74,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultCalendar, errCalendar := p.repo.GetDashboardCalendar(ctx, id)
+	resultCalendar, errCalendar := p.repo.GetDashboardCalendar(ctx, db.GetDashboardCalendarParams{
+		UserID:  id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if errCalendar != nil {
 		if errors.Is(errCalendar, sql.ErrNoRows) {
 			resultCalendar = nil
@@ -62,7 +87,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultFaturamento, errFaturamento := p.repo.GetDashboardFaturamento(ctx, id)
+	resultFaturamento, errFaturamento := p.repo.GetDashboardFaturamento(ctx, db.GetDashboardFaturamentoParams{
+		InterestedUserID: id,
+		Column2:          startVal,
+		Column3:          endVal,
+	})
 	if errFaturamento != nil {
 		if errors.Is(errFaturamento, sql.ErrNoRows) {
 			resultFaturamento = nil
@@ -80,7 +109,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultTractUnitEnterprise, errTractUnitEnterprise := p.repo.GetDashboardTractUnitEnterprise(ctx, id)
+	resultTractUnitEnterprise, errTractUnitEnterprise := p.repo.GetDashboardTractUnitEnterprise(ctx, db.GetDashboardTractUnitEnterpriseParams{
+		UserID:  id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if errTractUnitEnterprise != nil {
 		if errors.Is(errTractUnitEnterprise, sql.ErrNoRows) {
 			resultTractUnitEnterprise = nil
@@ -89,7 +122,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultTrailerEnterprise, errTrailerEnterprise := p.repo.GetDashboardTrailerEnterprise(ctx, id)
+	resultTrailerEnterprise, errTrailerEnterprise := p.repo.GetDashboardTrailerEnterprise(ctx, db.GetDashboardTrailerEnterpriseParams{
+		UserID:  id,
+		Column2: startVal,
+		Column3: endVal,
+	})
 	if errTrailerEnterprise != nil {
 		if errors.Is(errTrailerEnterprise, sql.ErrNoRows) {
 			resultTrailerEnterprise = nil
@@ -98,7 +135,11 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 		}
 	}
 
-	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, id)
+	resultOffersFor, errOffersFor := p.repo.GetOffersForDashboard(ctx, db.GetOffersForDashboardParams{
+		AdvertisementUserID: id,
+		Column2:             startVal,
+		Column3:             endVal,
+	})
 	if errOffersFor != nil {
 		if errors.Is(errOffersFor, sql.ErrNoRows) {
 			resultOffersFor.TotalOffersMesAtual = 0

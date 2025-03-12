@@ -4,6 +4,7 @@ import (
 	"geolocation/internal/get_token"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"time"
 )
 
 type Handler struct {
@@ -21,15 +22,35 @@ func NewDashboardHandler(InterfaceService InterfaceService) *Handler {
 // @Accept json
 // @Produce json
 // @Param id path string true "Driver id"
+// @Param start query string false "Data de início (formato YYYY-MM-DD)"
+// @Param end query string false "Data de fim (formato YYYY-MM-DD)"
 // @Success 200 {object} DriverResponse "Driver Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /driver/list [put]
 // @Security ApiKeyAuth
 func (p *Handler) GetDashboardHandler(c echo.Context) error {
-	payload := get_token.GetUserPayloadToken(c)
+	startStr := c.QueryParam("start")
+	endStr := c.QueryParam("end")
 
-	result, err := p.InterfaceService.GetDashboardService(c.Request().Context(), payload.ID, payload.ProfileID)
+	var startDate, endDate *time.Time
+	if startStr != "" {
+		parsedStart, err := time.Parse("2006-01-02", startStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, "Formato de data de início inválido. Use YYYY-MM-DD")
+		}
+		startDate = &parsedStart
+	}
+	if endStr != "" {
+		parsedEnd, err := time.Parse("2006-01-02", endStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, "Formato de data de fim inválido. Use YYYY-MM-DD")
+		}
+		endDate = &parsedEnd
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	result, err := p.InterfaceService.GetDashboardService(c.Request().Context(), payload.ID, payload.ProfileID, startDate, endDate)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

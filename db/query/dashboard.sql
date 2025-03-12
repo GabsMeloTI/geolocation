@@ -45,12 +45,15 @@ SELECT
                              THEN ap.advertisement_user_id
         END
     ) AS clientes_atendidos_mes_atual,
+    -- Mês anterior
     COALESCE(
             SUM(
                     CASE
                         WHEN ap.situation = 'finalizado'
-                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                            AND EXTRACT(MONTH FROM a.delivery_date) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM a.delivery_date) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                             THEN a.price::float8
                         ELSE 0::float8
                         END
@@ -59,8 +62,10 @@ SELECT
     COUNT(
             DISTINCT CASE
                          WHEN ap.situation = 'finalizado'
-                             AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                             AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                             AND EXTRACT(MONTH FROM a.delivery_date) =
+                                 CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                             AND EXTRACT(YEAR FROM a.delivery_date) =
+                                 CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                              THEN ap.advertisement_user_id
         END
     ) AS clientes_atendidos_mes_anterior
@@ -70,6 +75,8 @@ FROM users u
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
          LEFT JOIN faturamento_mensal fm ON fm.interested_user_id = u.id
 WHERE u.id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (u.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY u.id, d.id;
 
 
@@ -86,6 +93,8 @@ FROM users u
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
          INNER JOIN users adv ON adv.id = ap.advertisement_user_id
 WHERE u.id = $1 AND ap.situation = 'finalizado'
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (u.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY adv.name, a.id, a.delivery_date, a.price;
 
 
@@ -99,6 +108,8 @@ SELECT
     a.pickup_date AS lembretes_pickup_date
 FROM advertisement a
 WHERE a.user_id = $1 AND a.pickup_date > NOW()
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (a.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY a.id, a.user_id, a.origin, a.destination, a.pickup_date
 ORDER BY a.pickup_date ASC;
 
@@ -113,6 +124,8 @@ SELECT
 FROM appointments ap
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
 WHERE a.user_id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (ap.created_at BETWEEN $2::date AND $3::date) )
 ORDER BY a.pickup_date ASC;
 
 
@@ -126,6 +139,8 @@ WITH faturamento_mensal AS (
     FROM appointments ap
              INNER JOIN advertisement a ON a.id = ap.advertisement_id
     WHERE ap.situation = 'finalizado'
+      AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+      OR (ap.created_at BETWEEN $2::date AND $3::date) )
     GROUP BY ap.interested_user_id,
              EXTRACT(YEAR FROM ap.created_at),
              EXTRACT(MONTH FROM ap.created_at)
@@ -140,18 +155,23 @@ ORDER BY ano DESC, mes DESC;
 
 
 
+
 -- name: GetDashboardDriverEnterprise :many
-select d.id, d.name, d.license_number,  d.license_category,
-       CASE
-           WHEN EXISTS (
-               SELECT 1
-               FROM truck t
-                        JOIN appointments a ON t.id = a.truck_id
-               WHERE t.driver_id = d.id
-                 AND a.situation = 'em andamento'
-           ) THEN 'em viagem'
-           ELSE 'disponivel'
-           END AS disponibilidade
+SELECT
+    d.id,
+    d.name,
+    d.license_number,
+    d.license_category,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM truck t
+                     JOIN appointments a ON t.id = a.truck_id
+            WHERE t.driver_id = d.id
+              AND a.situation = 'em andamento'
+        ) THEN 'em viagem'
+        ELSE 'disponivel'
+        END AS disponibilidade
 FROM driver d
 WHERE d.user_id = $1;
 
@@ -161,7 +181,10 @@ FROM tractor_unit tu
          LEFT JOIN truck t ON tu.id = t.tractor_unit_id
          LEFT JOIN appointments a ON t.id = a.truck_id
 WHERE tu.user_id = $1
-  AND (a.situation != 'em andamento' OR a.situation IS NULL);
+  AND (a.situation != 'em andamento' OR a.situation IS NULL)
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (tu.created_at BETWEEN $2::date AND $3::date) );
+
 
 
 -- name: GetDashboardTrailerEnterprise :many
@@ -170,7 +193,9 @@ FROM trailer tu
          LEFT JOIN truck t ON tu.id = t.trailer_id
          LEFT JOIN appointments a ON t.id = a.truck_id
 WHERE tu.user_id = $1
-  AND (a.situation != 'em andamento' OR a.situation IS NULL);
+  AND (a.situation != 'em andamento' OR a.situation IS NULL)
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (tu.created_at BETWEEN $2::date AND $3::date) );
 
 
 -- name: GetOffersForDashboard :one
@@ -186,24 +211,23 @@ SELECT
                         END
             ), 0::bigint
     )::bigint AS total_offers_mes_atual,
-    COALESCE(
+        COALESCE(
             SUM(
                     CASE
-                        WHEN EXTRACT(MONTH FROM cm.created_at) = CASE
-                                                                     WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12
-                                                                     ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1
-                            END
-                            AND EXTRACT(YEAR FROM cm.created_at) = CASE
-                                                                       WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1
-                                                                       ELSE EXTRACT(YEAR FROM CURRENT_DATE)
-                                END
+                        WHEN EXTRACT(MONTH FROM cm.created_at) =
+                             CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM cm.created_at) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                             THEN 1
                         ELSE 0
                         END
             ), 0::bigint
-    )::bigint AS total_offers_mes_anterior
+            )::bigint AS total_offers_mes_anterior
 FROM chat_messages cm
          INNER JOIN chat_rooms cr ON cm.room_id = cr.id
 WHERE cm.type_message = 'offer'
   AND cr.advertisement_user_id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (cm.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY cr.advertisement_user_id;
+

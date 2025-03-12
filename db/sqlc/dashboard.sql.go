@@ -21,8 +21,16 @@ SELECT
 FROM appointments ap
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
 WHERE a.user_id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (ap.created_at BETWEEN $2::date AND $3::date) )
 ORDER BY a.pickup_date ASC
 `
+
+type GetDashboardCalendarParams struct {
+	UserID  int64     `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardCalendarRow struct {
 	UserID          int64     `json:"user_id"`
@@ -32,8 +40,8 @@ type GetDashboardCalendarRow struct {
 	Situation       string    `json:"situation"`
 }
 
-func (q *Queries) GetDashboardCalendar(ctx context.Context, userID int64) ([]GetDashboardCalendarRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardCalendar, userID)
+func (q *Queries) GetDashboardCalendar(ctx context.Context, arg GetDashboardCalendarParams) ([]GetDashboardCalendarRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardCalendar, arg.UserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +116,15 @@ SELECT
                              THEN ap.advertisement_user_id
         END
     ) AS clientes_atendidos_mes_atual,
+    -- Mês anterior
     COALESCE(
             SUM(
                     CASE
                         WHEN ap.situation = 'finalizado'
-                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                            AND EXTRACT(MONTH FROM a.delivery_date) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM a.delivery_date) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                             THEN a.price::float8
                         ELSE 0::float8
                         END
@@ -122,8 +133,10 @@ SELECT
     COUNT(
             DISTINCT CASE
                          WHEN ap.situation = 'finalizado'
-                             AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
-                             AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                             AND EXTRACT(MONTH FROM a.delivery_date) =
+                                 CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                             AND EXTRACT(YEAR FROM a.delivery_date) =
+                                 CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                              THEN ap.advertisement_user_id
         END
     ) AS clientes_atendidos_mes_anterior
@@ -133,8 +146,16 @@ FROM users u
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
          LEFT JOIN faturamento_mensal fm ON fm.interested_user_id = u.id
 WHERE u.id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (u.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY u.id, d.id
 `
+
+type GetDashboardDriverParams struct {
+	ID      int64     `json:"id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardDriverRow struct {
 	UserID                            int64   `json:"user_id"`
@@ -146,8 +167,8 @@ type GetDashboardDriverRow struct {
 	ClientesAtendidosMesAnterior      int64   `json:"clientes_atendidos_mes_anterior"`
 }
 
-func (q *Queries) GetDashboardDriver(ctx context.Context, id int64) (GetDashboardDriverRow, error) {
-	row := q.db.QueryRowContext(ctx, getDashboardDriver, id)
+func (q *Queries) GetDashboardDriver(ctx context.Context, arg GetDashboardDriverParams) (GetDashboardDriverRow, error) {
+	row := q.db.QueryRowContext(ctx, getDashboardDriver, arg.ID, arg.Column2, arg.Column3)
 	var i GetDashboardDriverRow
 	err := row.Scan(
 		&i.UserID,
@@ -162,17 +183,21 @@ func (q *Queries) GetDashboardDriver(ctx context.Context, id int64) (GetDashboar
 }
 
 const getDashboardDriverEnterprise = `-- name: GetDashboardDriverEnterprise :many
-select d.id, d.name, d.license_number,  d.license_category,
-       CASE
-           WHEN EXISTS (
-               SELECT 1
-               FROM truck t
-                        JOIN appointments a ON t.id = a.truck_id
-               WHERE t.driver_id = d.id
-                 AND a.situation = 'em andamento'
-           ) THEN 'em viagem'
-           ELSE 'disponivel'
-           END AS disponibilidade
+SELECT
+    d.id,
+    d.name,
+    d.license_number,
+    d.license_category,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM truck t
+                     JOIN appointments a ON t.id = a.truck_id
+            WHERE t.driver_id = d.id
+              AND a.situation = 'em andamento'
+        ) THEN 'em viagem'
+        ELSE 'disponivel'
+        END AS disponibilidade
 FROM driver d
 WHERE d.user_id = $1
 `
@@ -224,6 +249,8 @@ WITH faturamento_mensal AS (
     FROM appointments ap
              INNER JOIN advertisement a ON a.id = ap.advertisement_id
     WHERE ap.situation = 'finalizado'
+      AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+      OR (ap.created_at BETWEEN $2::date AND $3::date) )
     GROUP BY ap.interested_user_id,
              EXTRACT(YEAR FROM ap.created_at),
              EXTRACT(MONTH FROM ap.created_at)
@@ -237,14 +264,20 @@ WHERE interested_user_id = $1
 ORDER BY ano DESC, mes DESC
 `
 
+type GetDashboardFaturamentoParams struct {
+	InterestedUserID int64     `json:"interested_user_id"`
+	Column2          time.Time `json:"column_2"`
+	Column3          time.Time `json:"column_3"`
+}
+
 type GetDashboardFaturamentoRow struct {
 	Ano           int64   `json:"ano"`
 	Mes           int64   `json:"mes"`
 	TotalFaturado float64 `json:"total_faturado"`
 }
 
-func (q *Queries) GetDashboardFaturamento(ctx context.Context, interestedUserID int64) ([]GetDashboardFaturamentoRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardFaturamento, interestedUserID)
+func (q *Queries) GetDashboardFaturamento(ctx context.Context, arg GetDashboardFaturamentoParams) ([]GetDashboardFaturamentoRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardFaturamento, arg.InterestedUserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -275,9 +308,17 @@ SELECT
     a.pickup_date AS lembretes_pickup_date
 FROM advertisement a
 WHERE a.user_id = $1 AND a.pickup_date > NOW()
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (a.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY a.id, a.user_id, a.origin, a.destination, a.pickup_date
 ORDER BY a.pickup_date ASC
 `
+
+type GetDashboardFutureParams struct {
+	UserID  int64     `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardFutureRow struct {
 	UserID               int64     `json:"user_id"`
@@ -287,8 +328,8 @@ type GetDashboardFutureRow struct {
 	LembretesPickupDate  time.Time `json:"lembretes_pickup_date"`
 }
 
-func (q *Queries) GetDashboardFuture(ctx context.Context, userID int64) ([]GetDashboardFutureRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardFuture, userID)
+func (q *Queries) GetDashboardFuture(ctx context.Context, arg GetDashboardFutureParams) ([]GetDashboardFutureRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardFuture, arg.UserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -328,8 +369,16 @@ FROM users u
          INNER JOIN advertisement a ON a.id = ap.advertisement_id
          INNER JOIN users adv ON adv.id = ap.advertisement_user_id
 WHERE u.id = $1 AND ap.situation = 'finalizado'
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (u.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY adv.name, a.id, a.delivery_date, a.price
 `
+
+type GetDashboardHistParams struct {
+	ID      int64     `json:"id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardHistRow struct {
 	HistoricoUserName     string    `json:"historico_user_name"`
@@ -338,8 +387,8 @@ type GetDashboardHistRow struct {
 	HistoricoPrice        float64   `json:"historico_price"`
 }
 
-func (q *Queries) GetDashboardHist(ctx context.Context, id int64) ([]GetDashboardHistRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardHist, id)
+func (q *Queries) GetDashboardHist(ctx context.Context, arg GetDashboardHistParams) ([]GetDashboardHistRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardHist, arg.ID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +422,15 @@ FROM tractor_unit tu
          LEFT JOIN appointments a ON t.id = a.truck_id
 WHERE tu.user_id = $1
   AND (a.situation != 'em andamento' OR a.situation IS NULL)
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (tu.created_at BETWEEN $2::date AND $3::date) )
 `
+
+type GetDashboardTractUnitEnterpriseParams struct {
+	UserID  int64     `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardTractUnitEnterpriseRow struct {
 	ID       int64          `json:"id"`
@@ -382,8 +439,8 @@ type GetDashboardTractUnitEnterpriseRow struct {
 	Capacity string         `json:"capacity"`
 }
 
-func (q *Queries) GetDashboardTractUnitEnterprise(ctx context.Context, userID int64) ([]GetDashboardTractUnitEnterpriseRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardTractUnitEnterprise, userID)
+func (q *Queries) GetDashboardTractUnitEnterprise(ctx context.Context, arg GetDashboardTractUnitEnterpriseParams) ([]GetDashboardTractUnitEnterpriseRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardTractUnitEnterprise, arg.UserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +474,15 @@ FROM trailer tu
          LEFT JOIN appointments a ON t.id = a.truck_id
 WHERE tu.user_id = $1
   AND (a.situation != 'em andamento' OR a.situation IS NULL)
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (tu.created_at BETWEEN $2::date AND $3::date) )
 `
+
+type GetDashboardTrailerEnterpriseParams struct {
+	UserID  int64     `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
+}
 
 type GetDashboardTrailerEnterpriseRow struct {
 	ID           int64           `json:"id"`
@@ -426,8 +491,8 @@ type GetDashboardTrailerEnterpriseRow struct {
 	LoadCapacity sql.NullFloat64 `json:"load_capacity"`
 }
 
-func (q *Queries) GetDashboardTrailerEnterprise(ctx context.Context, userID int64) ([]GetDashboardTrailerEnterpriseRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDashboardTrailerEnterprise, userID)
+func (q *Queries) GetDashboardTrailerEnterprise(ctx context.Context, arg GetDashboardTrailerEnterpriseParams) ([]GetDashboardTrailerEnterpriseRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDashboardTrailerEnterprise, arg.UserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -467,28 +532,32 @@ SELECT
                         END
             ), 0::bigint
     )::bigint AS total_offers_mes_atual,
-    COALESCE(
+        COALESCE(
             SUM(
                     CASE
-                        WHEN EXTRACT(MONTH FROM cm.created_at) = CASE
-                                                                     WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12
-                                                                     ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1
-                            END
-                            AND EXTRACT(YEAR FROM cm.created_at) = CASE
-                                                                       WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1
-                                                                       ELSE EXTRACT(YEAR FROM CURRENT_DATE)
-                                END
+                        WHEN EXTRACT(MONTH FROM cm.created_at) =
+                             CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM cm.created_at) =
+                                CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
                             THEN 1
                         ELSE 0
                         END
             ), 0::bigint
-    )::bigint AS total_offers_mes_anterior
+            )::bigint AS total_offers_mes_anterior
 FROM chat_messages cm
          INNER JOIN chat_rooms cr ON cm.room_id = cr.id
 WHERE cm.type_message = 'offer'
   AND cr.advertisement_user_id = $1
+  AND ( ($2::date = '0001-01-01'::date AND $3::date = '0001-01-01'::date)
+  OR (cm.created_at BETWEEN $2::date AND $3::date) )
 GROUP BY cr.advertisement_user_id
 `
+
+type GetOffersForDashboardParams struct {
+	AdvertisementUserID int64     `json:"advertisement_user_id"`
+	Column2             time.Time `json:"column_2"`
+	Column3             time.Time `json:"column_3"`
+}
 
 type GetOffersForDashboardRow struct {
 	RecipientUserID        int64 `json:"recipient_user_id"`
@@ -496,8 +565,8 @@ type GetOffersForDashboardRow struct {
 	TotalOffersMesAnterior int64 `json:"total_offers_mes_anterior"`
 }
 
-func (q *Queries) GetOffersForDashboard(ctx context.Context, advertisementUserID int64) (GetOffersForDashboardRow, error) {
-	row := q.db.QueryRowContext(ctx, getOffersForDashboard, advertisementUserID)
+func (q *Queries) GetOffersForDashboard(ctx context.Context, arg GetOffersForDashboardParams) (GetOffersForDashboardRow, error) {
+	row := q.db.QueryRowContext(ctx, getOffersForDashboard, arg.AdvertisementUserID, arg.Column2, arg.Column3)
 	var i GetOffersForDashboardRow
 	err := row.Scan(&i.RecipientUserID, &i.TotalOffersMesAtual, &i.TotalOffersMesAnterior)
 	return i, err
