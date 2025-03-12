@@ -82,3 +82,9 @@ SELECT EXISTS(
     FROM neighborhoods
     WHERE search_vector @@ plainto_tsquery('portuguese', $1)
 ) AS is_neighborhood;
+
+-- name: FindStateAll :many
+select * from states order by name;
+
+-- name: FindCityAll :many
+select * from cities c where c.state_id = $1 order by name;

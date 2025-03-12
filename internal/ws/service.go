@@ -321,8 +321,8 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 	route, err := s.ServiceRoutes.GetSimpleRoute(new_routes.SimpleRouteRequest{
 		OriginLat: data.OriginLatitude,
 		OriginLng: data.OriginLongitude,
-		DestLat:   freightDetails.DestinationLat,
-		DestLng:   freightDetails.DestinationLng,
+		DestLat:   freightDetails.DestinationLat.Float64,
+		DestLng:   freightDetails.DestinationLng.Float64,
 	})
 
 	if err != nil {

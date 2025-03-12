@@ -2,6 +2,7 @@ package advertisement
 
 import (
 	"database/sql"
+	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
@@ -40,8 +41,24 @@ func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
 		UserID:                     payload.ID,
 		CreatedWho:                 payload.Name,
 	}
-
+	fmt.Println(payload.Name)
 	result, err := p.InterfaceService.CreateAdvertisementService(c.Request().Context(), data, payload.ProfileID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+func (p *Handler) UpdatedAdvertisementFinishedCreate(c echo.Context) error {
+	var request UpdatedAdvertisementFinishedCreate
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	request.UserID = payload.ID
+	result, err := p.InterfaceService.UpdatedAdvertisementFinishedCreate(c.Request().Context(), request, payload.ProfileID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -132,6 +149,15 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 // @Security ApiKeyAuth
 func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
 	result, err := p.InterfaceService.GetAllAdvertisementUser(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+func (p *Handler) GetAllAdvertisementHandler2(c echo.Context) error {
+	result, err := p.InterfaceService.GetAllAdvertisementUser2(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

@@ -1,4 +1,4 @@
-package routes
+package new_routes
 
 import (
 	"context"
@@ -63,13 +63,15 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 			responseJSON, _ := json.Marshal(cachedOutput)
 			requestJSON, _ := json.Marshal(frontInfo)
 
-			errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+			routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
 				cachedOutput.Summary.LocationOrigin.Address,
 				cachedOutput.Summary.LocationDestination.Address,
 				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 			if errSavedRoutes != nil {
 				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
 			}
+			cachedOutput.Summary.RouteHistID = routeHistID
+
 			return cachedOutput, nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
@@ -376,17 +378,18 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	responseJSON, _ := json.Marshal(finalOutput)
 	requestJSON, _ := json.Marshal(frontInfo)
 
-	errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+	result, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
 		origin.FormattedAddress, destination.FormattedAddress,
 		waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 	if errSavedRoutes != nil {
 		return FinalOutput{}, errSavedRoutes
 	}
+	finalOutput.Summary.RouteHistID = result
 
 	return finalOutput, nil
 }
 
-func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) error {
+func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) (int64, error) {
 	var idTokenHist int64
 	if strings.ToLower(PublicOrPrivate) == "public" {
 		idTokenHist = idPublicToken
@@ -396,6 +399,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 
 	isPublic := strings.ToLower(PublicOrPrivate) == "public"
 
+	var routeHistID int64
 	existingRoute, err := s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
 		IDUser:      idTokenHist,
 		Origin:      origin,
@@ -409,7 +413,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			newCount := existingRoute.NumberRequest + 1
-			_, err = s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
+			newRouteHist, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
 				IDUser:      idTokenHist,
 				Origin:      origin,
 				Destination: destination,
@@ -422,34 +426,11 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 				NumberRequest: newCount,
 			})
 			if err != nil {
-				if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-					existingRoute, err = s.InterfaceService.GetRouteHistByUnique(ctx, db.GetRouteHistByUniqueParams{
-						IDUser:      idTokenHist,
-						Origin:      origin,
-						Destination: destination,
-						Waypoints: sql.NullString{
-							String: waypoints,
-							Valid:  true,
-						},
-						IsPublic: isPublic,
-					})
-					if err != nil {
-						return err
-					}
-					newCount := existingRoute.NumberRequest + 1
-					err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
-						ID:            existingRoute.ID,
-						NumberRequest: newCount,
-					})
-					if err != nil {
-						return err
-					}
-				} else {
-					return err
-				}
+				return 0, err
 			}
+			routeHistID = newRouteHist.ID
 		} else {
-			return err
+			return 0, err
 		}
 	} else {
 		newCount := existingRoute.NumberRequest + 1
@@ -458,8 +439,9 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 			NumberRequest: newCount,
 		})
 		if err != nil {
-			return err
+			return 0, err
 		}
+		routeHistID = existingRoute.ID
 	}
 
 	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
@@ -475,7 +457,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 	})
 	if err != nil {
 		if !strings.Contains(err.Error(), `duplicate key value violates unique constraint "idx_saved_routes_unique"`) {
-			return err
+			return 0, err
 		}
 	}
 
@@ -495,7 +477,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 		}
 	}
 
-	return nil
+	return routeHistID, nil
 }
 
 func (s *Service) getAllFreight(ctx context.Context, axles int64, kmValue float64) (map[string]interface{}, error) {

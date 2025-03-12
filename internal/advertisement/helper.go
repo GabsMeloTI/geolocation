@@ -35,9 +35,6 @@ func (data *CreateAdvertisementRequest) ValidateCreate() error {
 	if data.Advance == "" {
 		return errors.New("o campo de adiantamento é obrigatório")
 	}
-	if data.Situation == "" {
-		return errors.New("a situação é obrigatória")
-	}
 
 	if data.Distance <= 0 {
 		return errors.New("a distância deve ser maior que zero")

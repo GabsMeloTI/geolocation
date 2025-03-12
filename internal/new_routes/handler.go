@@ -1,4 +1,4 @@
-package routes
+package new_routes
 
 import (
 	"errors"
