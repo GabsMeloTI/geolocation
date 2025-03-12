@@ -2,16 +2,22 @@ package main
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
+
 	"geolocation/cmd"
 	_ "geolocation/docs"
 	"geolocation/infra"
 	"geolocation/pkg"
-	"os/signal"
-	"syscall"
 )
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGKILL,
+	)
 	defer stop()
 
 	loadingEnv := infra.NewConfig()

@@ -392,6 +392,7 @@ type User struct {
 	GoogleID       sql.NullString `json:"google_id"`
 	ProfilePicture sql.NullString `json:"profile_picture"`
 	Status         bool           `json:"status"`
+	DriverID       sql.NullInt64  `json:"driver_id"`
 	Cep            sql.NullString `json:"cep"`
 	Complement     sql.NullString `json:"complement"`
 }

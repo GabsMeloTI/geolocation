@@ -128,7 +128,7 @@ func (q *Queries) GetAppointmentDetailsByAdvertisementId(ctx context.Context, ad
 }
 
 const getListAppointmentByUserID = `-- name: GetListAppointmentByUserID :many
-SELECT DISTINCT ON (ap.id) ap.id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, u.name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, u.cep, u.complement, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, tu.state, tu.renavan, capacity, tu.width, tu.length, color, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, t.length, t.width, t.height, t.axles, t.status, t.created_at, t.updated_at, t.state, t.renavan, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at, d.name, d.cep, d.complement
+SELECT DISTINCT ON (ap.id) ap.id, advertisement_user_id, interested_user_id, offer_id, truck_id, advertisement_id, ap.situation, ap.status, ap.created_who, ap.created_at, ap.updated_who, ap.updated_at, u.id, u.name, email, password, u.created_at, u.updated_at, profile_id, document, u.state, u.city, u.neighborhood, u.street, u.street_number, u.phone, google_id, profile_picture, u.status, u.driver_id, u.cep, u.complement, ad.id, ad.user_id, destination, origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, ad.situation, price, state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin, state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination, ad.status, ad.created_at, ad.created_who, ad.updated_at, ad.updated_who, tr.id, tractor_unit_id, trailer_id, tr.driver_id, tu.id, tu.license_plate, tu.driver_id, tu.user_id, tu.chassis, brand, model, manufacture_year, engine_power, unit_type, can_couple, tu.height, tu.axles, tu.status, tu.created_at, tu.updated_at, tu.state, tu.renavan, capacity, tu.width, tu.length, color, t.id, t.license_plate, t.user_id, t.chassis, body_type, load_capacity, t.length, t.width, t.height, t.axles, t.status, t.created_at, t.updated_at, t.state, t.renavan, d.id, d.user_id, birth_date, cpf, license_number, license_category, license_expiration_date, d.state, d.city, d.neighborhood, d.street, d.street_number, d.phone, d.status, d.created_at, d.updated_at, d.name, d.cep, d.complement
 FROM appointments ap
          LEFT JOIN users u ON u.id IN (ap.advertisement_user_id, ap.interested_user_id) AND u.status = true
          LEFT JOIN advertisement ad ON ad.id = ap.advertisement_id AND ad.status = true
@@ -169,6 +169,7 @@ type GetListAppointmentByUserIDRow struct {
 	GoogleID                sql.NullString  `json:"google_id"`
 	ProfilePicture          sql.NullString  `json:"profile_picture"`
 	Status_2                sql.NullBool    `json:"status_2"`
+	DriverID                sql.NullInt64   `json:"driver_id"`
 	Cep                     sql.NullString  `json:"cep"`
 	Complement              sql.NullString  `json:"complement"`
 	ID_3                    sql.NullInt64   `json:"id_3"`
@@ -220,10 +221,10 @@ type GetListAppointmentByUserIDRow struct {
 	ID_4                    sql.NullInt64   `json:"id_4"`
 	TractorUnitID           sql.NullInt64   `json:"tractor_unit_id"`
 	TrailerID               sql.NullInt64   `json:"trailer_id"`
-	DriverID                sql.NullInt64   `json:"driver_id"`
+	DriverID_2              sql.NullInt64   `json:"driver_id_2"`
 	ID_5                    sql.NullInt64   `json:"id_5"`
 	LicensePlate            sql.NullString  `json:"license_plate"`
-	DriverID_2              sql.NullInt64   `json:"driver_id_2"`
+	DriverID_3              sql.NullInt64   `json:"driver_id_3"`
 	UserID_2                sql.NullInt64   `json:"user_id_2"`
 	Chassis                 sql.NullString  `json:"chassis"`
 	Brand                   sql.NullString  `json:"brand"`
@@ -318,6 +319,7 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, advertisementU
 			&i.GoogleID,
 			&i.ProfilePicture,
 			&i.Status_2,
+			&i.DriverID,
 			&i.Cep,
 			&i.Complement,
 			&i.ID_3,
@@ -369,10 +371,10 @@ func (q *Queries) GetListAppointmentByUserID(ctx context.Context, advertisementU
 			&i.ID_4,
 			&i.TractorUnitID,
 			&i.TrailerID,
-			&i.DriverID,
+			&i.DriverID_2,
 			&i.ID_5,
 			&i.LicensePlate,
-			&i.DriverID_2,
+			&i.DriverID_3,
 			&i.UserID_2,
 			&i.Chassis,
 			&i.Brand,

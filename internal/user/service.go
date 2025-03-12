@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"geolocation/infra/token"
 	"geolocation/internal/get_token"
 	"geolocation/pkg/crypt"
-	"time"
 )
 
 type InterfaceService interface {
@@ -16,8 +17,14 @@ type InterfaceService interface {
 	UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error)
 	DeleteUserService(ctx context.Context, payload get_token.PayloadUserDTO) error
 	UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error)
-	UpdateUserPersonalInfoService(ctx context.Context, data UpdateUserPersonalInfoRequest) (UpdateUserPersonalInfoResponse, error)
-	UpdateUserAddressService(ctx context.Context, data UpdateUserAddressRequest) (UpdateUserAddressResponse, error)
+	UpdateUserPersonalInfoService(
+		ctx context.Context,
+		data UpdateUserPersonalInfoRequest,
+	) (UpdateUserPersonalInfoResponse, error)
+	UpdateUserAddressService(
+		ctx context.Context,
+		data UpdateUserAddressRequest,
+	) (UpdateUserAddressResponse, error)
 	GetUserService(ctx context.Context, userId int64) (GetUserResponse, error)
 }
 
@@ -33,9 +40,11 @@ func NewUserService(interfaceService InterfaceRepository, SignatureString string
 	}
 }
 
-func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest) (CreateUserResponse, error) {
+func (s *Service) CreateUserService(
+	ctx context.Context,
+	data CreateUserRequest,
+) (CreateUserResponse, error) {
 	u, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
-
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return CreateUserResponse{}, err
@@ -47,19 +56,21 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest)
 	}
 
 	_, err = s.InterfaceService.GetProfileByIdRepository(ctx, data.ProfileId)
-
 	if err != nil {
 		return CreateUserResponse{}, err
 	}
 
 	hashedPassword, err := crypt.HashPassword(data.Password)
 
+	fmt.Println(hashedPassword)
 	if err != nil {
 		return CreateUserResponse{}, err
 	}
 
-	user, err := s.InterfaceService.CreateUserRepository(ctx, data.ParseToCreateUserParams(hashedPassword))
-
+	user, err := s.InterfaceService.CreateUserRepository(
+		ctx,
+		data.ParseToCreateUserParams(hashedPassword),
+	)
 	if err != nil {
 		return CreateUserResponse{}, err
 	}
@@ -69,7 +80,10 @@ func (s *Service) CreateUserService(ctx context.Context, data CreateUserRequest)
 	return res, nil
 }
 
-func (s *Service) UserLoginService(ctx context.Context, data LoginRequest) (LoginUserResponse, error) {
+func (s *Service) UserLoginService(
+	ctx context.Context,
+	data LoginRequest,
+) (LoginUserResponse, error) {
 	result, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -91,7 +105,15 @@ func (s *Service) UserLoginService(ctx context.Context, data LoginRequest) (Logi
 		return LoginUserResponse{}, fmt.Errorf("token creation error: %w", err)
 	}
 
-	tokenStr, err := maker.CreateTokenUser(result.ID, result.Name, result.Email, result.ProfileID.Int64, result.Document.String, result.GoogleID.String, time.Now().Add(24*time.Hour).UTC())
+	tokenStr, err := maker.CreateTokenUser(
+		result.ID,
+		result.Name,
+		result.Email,
+		result.ProfileID.Int64,
+		result.Document.String,
+		result.GoogleID.String,
+		time.Now().Add(24*time.Hour).UTC(),
+	)
 	if err != nil {
 		return LoginUserResponse{}, fmt.Errorf("token generation failed: %w", err)
 	}
@@ -115,9 +137,11 @@ func (s *Service) DeleteUserService(ctx context.Context, payload get_token.Paylo
 	return nil
 }
 
-func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (UpdateUserResponse, error) {
+func (s *Service) UpdateUserService(
+	ctx context.Context,
+	data UpdateUserDTO,
+) (UpdateUserResponse, error) {
 	u, err := s.InterfaceService.UpdateUserByIdRepository(ctx, data.ParseToUpdateUserByIdParams())
-
 	if err != nil {
 		return UpdateUserResponse{}, err
 	}
@@ -125,7 +149,10 @@ func (s *Service) UpdateUserService(ctx context.Context, data UpdateUserDTO) (Up
 	return data.ParseToUpdateUserResponse(u), nil
 }
 
-func (p *Service) UpdateUserPersonalInfoService(ctx context.Context, data UpdateUserPersonalInfoRequest) (UpdateUserPersonalInfoResponse, error) {
+func (p *Service) UpdateUserPersonalInfoService(
+	ctx context.Context,
+	data UpdateUserPersonalInfoRequest,
+) (UpdateUserPersonalInfoResponse, error) {
 	_, err := p.InterfaceService.GetUserById(ctx, data.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return UpdateUserPersonalInfoResponse{}, errors.New("user not found")
@@ -141,12 +168,17 @@ func (p *Service) UpdateUserPersonalInfoService(ctx context.Context, data Update
 		return UpdateUserPersonalInfoResponse{}, err
 	}
 
-	updateUserService := UpdateUserPersonalInfoResponse{}.ParseToUpdateUserPersonalInfoResponse(result)
+	updateUserService := UpdateUserPersonalInfoResponse{}.ParseToUpdateUserPersonalInfoResponse(
+		result,
+	)
 
 	return updateUserService, nil
 }
 
-func (p *Service) UpdateUserAddressService(ctx context.Context, data UpdateUserAddressRequest) (UpdateUserAddressResponse, error) {
+func (p *Service) UpdateUserAddressService(
+	ctx context.Context,
+	data UpdateUserAddressRequest,
+) (UpdateUserAddressResponse, error) {
 	_, err := p.InterfaceService.GetUserById(ctx, data.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return UpdateUserAddressResponse{}, errors.New("user not found")
@@ -171,7 +203,6 @@ func (s *Service) GetUserService(ctx context.Context, userId int64) (GetUserResp
 	var res GetUserResponse
 
 	user, err := s.InterfaceService.GetUserById(ctx, userId)
-
 	if err != nil {
 		return res, err
 	}

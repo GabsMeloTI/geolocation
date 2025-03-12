@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	db "geolocation/db/sqlc"
 )
 
@@ -22,12 +23,30 @@ func NewDriversService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverDto) (DriverResponse, error) {
+func (p *Service) CreateDriverService(
+	ctx context.Context,
+	data CreateDriverDto,
+) (DriverResponse, error) {
+	profile, err := p.InterfaceService.GetProfileById(ctx, data.ProfileId)
+	if err != nil {
+		return DriverResponse{}, err
+	}
+
 	arg := data.ParseCreateToDriver()
 
 	result, err := p.InterfaceService.CreateDriver(ctx, arg)
 	if err != nil {
 		return DriverResponse{}, err
+	}
+
+	if profile.Name == "Carrier" {
+		_, err := p.InterfaceService.CreateUserToCarrier(
+			ctx,
+			data.ParseToCreateUserParams(result.ID),
+		)
+		if err != nil {
+			return DriverResponse{}, err
+		}
 	}
 
 	createDriverService := DriverResponse{}
@@ -36,7 +55,10 @@ func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverDto)
 	return createDriverService, nil
 }
 
-func (p *Service) UpdateDriverService(ctx context.Context, data UpdateDriverDto) (DriverResponse, error) {
+func (p *Service) UpdateDriverService(
+	ctx context.Context,
+	data UpdateDriverDto,
+) (DriverResponse, error) {
 	_, err := p.InterfaceService.GetDriverById(ctx, data.UpdateDriverRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return DriverResponse{}, errors.New("driver not found")
