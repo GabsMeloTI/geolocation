@@ -87,10 +87,9 @@ SELECT
                             THEN a.price::float8
                         ELSE 0::float8
                         END
-            ),
-            0::float8
-    )::float8 AS total_fretes_finalizados,
-        COALESCE(
+            ), 0::float8
+    )::float8 AS total_fretes_finalizados_mes_atual,
+    COALESCE(
             SUM(
                     CASE
                         WHEN ap.situation != 'finalizado'
@@ -99,17 +98,46 @@ SELECT
                     THEN a.price::float8
                     ELSE 0::float8
                     END
-            ),
-                0::float8
-            )::float8 AS total_a_receber,
-        COUNT(
-                DISTINCT CASE
-                             WHEN ap.situation = 'finalizado'
-                                 AND EXTRACT(MONTH FROM a.delivery_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                                 AND EXTRACT(YEAR FROM a.delivery_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-                                 THEN ap.advertisement_user_id
-            END
-        ) AS clientes_atendidos
+            ), 0::float8
+    )::float8 AS total_a_receber_mes_atual,
+    COUNT(
+            DISTINCT CASE
+                         WHEN ap.situation = 'finalizado'
+                             AND EXTRACT(MONTH FROM a.delivery_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+                             AND EXTRACT(YEAR FROM a.delivery_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                             THEN ap.advertisement_user_id
+        END
+    ) AS clientes_atendidos_mes_atual,
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN ap.situation = 'finalizado'
+                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                            THEN a.price::float8
+                        ELSE 0::float8
+                        END
+            ), 0::float8
+    )::float8 AS total_fretes_finalizados_mes_anterior,
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN ap.situation = 'finalizado'
+                            AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                            AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                            THEN a.price::float8
+                        ELSE 0::float8
+                        END
+            ), 0::float8
+    )::float8 AS total_recebido_mes_anterior,
+    COUNT(
+            DISTINCT CASE
+                         WHEN ap.situation = 'finalizado'
+                             AND EXTRACT(MONTH FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12 ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1 END
+                             AND EXTRACT(YEAR FROM a.delivery_date) = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE) END
+                             THEN ap.advertisement_user_id
+        END
+    ) AS clientes_atendidos_mes_anterior
 FROM users u
          INNER JOIN driver d ON d.user_id = u.id
          INNER JOIN appointments ap ON ap.interested_user_id = u.id
@@ -120,11 +148,14 @@ GROUP BY u.id, d.id
 `
 
 type GetDashboardDriverRow struct {
-	UserID                 int64   `json:"user_id"`
-	DriverID               int64   `json:"driver_id"`
-	TotalFretesFinalizados float64 `json:"total_fretes_finalizados"`
-	TotalAReceber          float64 `json:"total_a_receber"`
-	ClientesAtendidos      int64   `json:"clientes_atendidos"`
+	UserID                            int64   `json:"user_id"`
+	DriverID                          int64   `json:"driver_id"`
+	TotalFretesFinalizadosMesAtual    float64 `json:"total_fretes_finalizados_mes_atual"`
+	TotalAReceberMesAtual             float64 `json:"total_a_receber_mes_atual"`
+	ClientesAtendidosMesAtual         int64   `json:"clientes_atendidos_mes_atual"`
+	TotalFretesFinalizadosMesAnterior float64 `json:"total_fretes_finalizados_mes_anterior"`
+	TotalRecebidoMesAnterior          float64 `json:"total_recebido_mes_anterior"`
+	ClientesAtendidosMesAnterior      int64   `json:"clientes_atendidos_mes_anterior"`
 }
 
 func (q *Queries) GetDashboardDriver(ctx context.Context, id int64) (GetDashboardDriverRow, error) {
@@ -133,9 +164,12 @@ func (q *Queries) GetDashboardDriver(ctx context.Context, id int64) (GetDashboar
 	err := row.Scan(
 		&i.UserID,
 		&i.DriverID,
-		&i.TotalFretesFinalizados,
-		&i.TotalAReceber,
-		&i.ClientesAtendidos,
+		&i.TotalFretesFinalizadosMesAtual,
+		&i.TotalAReceberMesAtual,
+		&i.ClientesAtendidosMesAtual,
+		&i.TotalFretesFinalizadosMesAnterior,
+		&i.TotalRecebidoMesAnterior,
+		&i.ClientesAtendidosMesAnterior,
 	)
 	return i, err
 }
@@ -436,7 +470,32 @@ func (q *Queries) GetDashboardTrailerEnterprise(ctx context.Context, userID int6
 const getOffersForDashboard = `-- name: GetOffersForDashboard :one
 SELECT
     cr.advertisement_user_id AS recipient_user_id,
-    COUNT(*) AS total_offers
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN EXTRACT(MONTH FROM cm.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+                            AND EXTRACT(YEAR FROM cm.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+                            THEN 1
+                        ELSE 0
+                        END
+            ), 0::bigint
+    )::bigint AS total_offers_mes_atual,
+    COALESCE(
+            SUM(
+                    CASE
+                        WHEN EXTRACT(MONTH FROM cm.created_at) = CASE
+                                                                     WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN 12
+                                                                     ELSE EXTRACT(MONTH FROM CURRENT_DATE) - 1
+                            END
+                            AND EXTRACT(YEAR FROM cm.created_at) = CASE
+                                                                       WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1 THEN EXTRACT(YEAR FROM CURRENT_DATE) - 1
+                                                                       ELSE EXTRACT(YEAR FROM CURRENT_DATE)
+                                END
+                            THEN 1
+                        ELSE 0
+                        END
+            ), 0::bigint
+    )::bigint AS total_offers_mes_anterior
 FROM chat_messages cm
          INNER JOIN chat_rooms cr ON cm.room_id = cr.id
 WHERE cm.type_message = 'offer'
@@ -445,13 +504,14 @@ GROUP BY cr.advertisement_user_id
 `
 
 type GetOffersForDashboardRow struct {
-	RecipientUserID int64 `json:"recipient_user_id"`
-	TotalOffers     int64 `json:"total_offers"`
+	RecipientUserID        int64 `json:"recipient_user_id"`
+	TotalOffersMesAtual    int64 `json:"total_offers_mes_atual"`
+	TotalOffersMesAnterior int64 `json:"total_offers_mes_anterior"`
 }
 
 func (q *Queries) GetOffersForDashboard(ctx context.Context, advertisementUserID int64) (GetOffersForDashboardRow, error) {
 	row := q.db.QueryRowContext(ctx, getOffersForDashboard, advertisementUserID)
 	var i GetOffersForDashboardRow
-	err := row.Scan(&i.RecipientUserID, &i.TotalOffers)
+	err := row.Scan(&i.RecipientUserID, &i.TotalOffersMesAtual, &i.TotalOffersMesAnterior)
 	return i, err
 }
