@@ -2,8 +2,9 @@ package drivers
 
 import (
 	"database/sql"
-	db "geolocation/db/sqlc"
 	"time"
+
+	db "geolocation/db/sqlc"
 )
 
 type CreateDriverRequest struct {
@@ -11,7 +12,7 @@ type CreateDriverRequest struct {
 	BirthDate             time.Time `json:"birth_date"`
 	Cpf                   string    `json:"cpf"`
 	LicenseNumber         string    `json:"license_number"`
-	LicenseCategory       string    `json:"license_category" validate:"oneof=a b c d e"`
+	LicenseCategory       string    `json:"license_category"        validate:"oneof=a b c d e"`
 	LicenseExpirationDate time.Time `json:"license_expiration_date"`
 	CEP                   string    `json:"cep"`
 	State                 string    `json:"state"`
@@ -21,11 +22,13 @@ type CreateDriverRequest struct {
 	StreetNumber          string    `json:"street_number"`
 	Complement            string    `json:"complement"`
 	Phone                 string    `json:"phone"`
+	Email                 string    `json:"email"`
 }
 
 type CreateDriverDto struct {
 	CreateDriverRequest CreateDriverRequest
 	UserID              int64 `json:"user_id"`
+	ProfileId           int64 `json:"profile_id"`
 }
 
 type UpdateDriverRequest struct {
@@ -33,7 +36,7 @@ type UpdateDriverRequest struct {
 	BirthDate             time.Time `json:"birth_date"`
 	Cpf                   string    `json:"cpf"`
 	LicenseNumber         string    `json:"license_number"`
-	LicenseCategory       string    `json:"license_category" validate:"oneof=a b c d e"`
+	LicenseCategory       string    `json:"license_category"        validate:"oneof=a b c d e"`
 	LicenseExpirationDate time.Time `json:"license_expiration_date"`
 	CEP                   string    `json:"cep"`
 	State                 string    `json:"state"`
@@ -170,5 +173,33 @@ func (p *DriverResponse) ParseFromDriverObject(result db.Driver) {
 	p.CreatedAt = result.CreatedAt
 	if result.UpdatedAt.Valid {
 		p.UpdatedAt = &result.UpdatedAt.Time
+	}
+}
+
+func (p CreateDriverDto) ParseToCreateUserParams(driverId int64) db.CreateUserParams {
+	defaultHash := "$2a$14$E4fX.uo.wKejvb2eq1o3m.IAAYbFxW5nF8fjPo1ESjhpv.eUeia8G"
+	return db.CreateUserParams{
+		Name:  p.CreateDriverRequest.Name,
+		Email: p.CreateDriverRequest.Email,
+		Password: sql.NullString{
+			String: defaultHash,
+			Valid:  true,
+		},
+		Phone: sql.NullString{
+			String: p.CreateDriverRequest.Phone,
+			Valid:  true,
+		},
+		Document: sql.NullString{
+			String: p.CreateDriverRequest.Cpf,
+			Valid:  true,
+		},
+		ProfileID: sql.NullInt64{
+			Int64: 4,
+			Valid: true,
+		},
+		DriverID: sql.NullInt64{
+			Int64: driverId,
+			Valid: true,
+		},
 	}
 }

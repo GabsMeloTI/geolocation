@@ -1,7 +1,7 @@
 -- name: CreateUser :one
 INSERT INTO users
-(name, email, password, google_id, profile_picture, status, phone, document, profile_id)
-VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8)
+(name, email, password, google_id, profile_picture, status, phone, document, profile_id, driver_id)
+VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetUserByEmail :one

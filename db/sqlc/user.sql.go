@@ -12,9 +12,9 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users
-(name, email, password, google_id, profile_picture, status, phone, document, profile_id)
-VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8)
-RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+(name, email, password, google_id, profile_picture, status, phone, document, profile_id, driver_id)
+VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $9)
+RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
 `
 
 type CreateUserParams struct {
@@ -26,6 +26,7 @@ type CreateUserParams struct {
 	Phone          sql.NullString `json:"phone"`
 	Document       sql.NullString `json:"document"`
 	ProfileID      sql.NullInt64  `json:"profile_id"`
+	DriverID       sql.NullInt64  `json:"driver_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -38,6 +39,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Phone,
 		arg.Document,
 		arg.ProfileID,
+		arg.DriverID,
 	)
 	var i User
 	err := row.Scan(
@@ -58,6 +60,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -74,7 +77,7 @@ func (q *Queries) DeleteUserById(ctx context.Context, id int64) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement FROM users WHERE email = $1 and status
+SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement FROM users WHERE email = $1 and status
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -98,6 +101,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -105,7 +109,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement FROM users WHERE id = $1
+SELECT id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
@@ -129,6 +133,7 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -139,7 +144,7 @@ const updateUserAddress = `-- name: UpdateUserAddress :one
 UPDATE users
 SET complement=$1, state = $2, city = $3, neighborhood = $4, street = $5, street_number=$6, cep = $7, updated_at = now()
 WHERE id = $8
-    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
 `
 
 type UpdateUserAddressParams struct {
@@ -183,6 +188,7 @@ func (q *Queries) UpdateUserAddress(ctx context.Context, arg UpdateUserAddressPa
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -201,7 +207,7 @@ SET name = $1,
     phone = $8,
     updated_at = now()
 WHERE id = $9
-    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
 `
 
 type UpdateUserByIdParams struct {
@@ -247,6 +253,7 @@ func (q *Queries) UpdateUserById(ctx context.Context, arg UpdateUserByIdParams) 
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -273,7 +280,7 @@ const updateUserPersonalInfo = `-- name: UpdateUserPersonalInfo :one
 UPDATE users
 SET name=$1, "document" = $2, email = $3, phone = $4, updated_at = now()
 WHERE id = $5
-    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, cep, complement
+    RETURNING id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
 `
 
 type UpdateUserPersonalInfoParams struct {
@@ -311,6 +318,7 @@ func (q *Queries) UpdateUserPersonalInfo(ctx context.Context, arg UpdateUserPers
 		&i.GoogleID,
 		&i.ProfilePicture,
 		&i.Status,
+		&i.DriverID,
 		&i.Cep,
 		&i.Complement,
 	)

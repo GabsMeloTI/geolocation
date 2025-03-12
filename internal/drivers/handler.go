@@ -1,10 +1,12 @@
 package drivers
 
 import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+
 	"geolocation/internal/get_token"
 	"geolocation/validation"
-	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 type Handler struct {
@@ -49,6 +51,7 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 	data := CreateDriverDto{
 		CreateDriverRequest: request,
 		UserID:              payload.ID,
+		ProfileId:           payload.ProfileID,
 	}
 
 	result, err := p.InterfaceService.CreateDriverService(c.Request().Context(), data)
