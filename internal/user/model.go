@@ -261,3 +261,7 @@ func (u GetUserResponse) ParseFromDbUser(user db.User) GetUserResponse {
 		Complement:     user.Complement.String,
 	}
 }
+
+type RecoveryPasswordRequest struct {
+	Email string `json:"email"`
+}

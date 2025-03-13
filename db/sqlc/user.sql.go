@@ -10,6 +10,24 @@ import (
 	"database/sql"
 )
 
+const createHistoryRecoverPassword = `-- name: CreateHistoryRecoverPassword :exec
+INSERT INTO history_recover_password 
+(user_id, email, token)
+VALUES
+($1, $2, $3)
+`
+
+type CreateHistoryRecoverPasswordParams struct {
+	UserID int64  `json:"user_id"`
+	Email  string `json:"email"`
+	Token  string `json:"token"`
+}
+
+func (q *Queries) CreateHistoryRecoverPassword(ctx context.Context, arg CreateHistoryRecoverPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, createHistoryRecoverPassword, arg.UserID, arg.Email, arg.Token)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users
 (name, email, password, google_id, profile_picture, status, phone, document, profile_id, driver_id)

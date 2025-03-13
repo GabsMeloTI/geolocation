@@ -4,7 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"time"
 
+	db "geolocation/db/sqlc"
+	"geolocation/infra/token"
 	"geolocation/internal/get_token"
 )
 
@@ -20,17 +24,18 @@ type InterfaceService interface {
 		data UpdateUserAddressRequest,
 	) (UpdateUserAddressResponse, error)
 	GetUserService(ctx context.Context, userId int64) (GetUserResponse, error)
+	RecoveryPasswordService(ctx context.Context, data RecoveryPasswordRequest) error
 }
 
 type Service struct {
 	InterfaceService InterfaceRepository
-	SignatureString  string
+	maker            token.Maker
 }
 
-func NewUserService(interfaceService InterfaceRepository, SignatureString string) *Service {
+func NewUserService(interfaceService InterfaceRepository, maker token.Maker) *Service {
 	return &Service{
 		InterfaceService: interfaceService,
-		SignatureString:  SignatureString,
+		maker:            maker,
 	}
 }
 
@@ -113,4 +118,42 @@ func (s *Service) GetUserService(ctx context.Context, userId int64) (GetUserResp
 	}
 
 	return res.ParseFromDbUser(user), nil
+}
+
+func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoveryPasswordRequest) error {
+	user, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
+	if err != nil {
+		return err
+	}
+
+	token, err := s.maker.CreateTokenUser(
+		user.ID,
+		user.Name,
+		user.Email,
+		user.ProfileID.Int64,
+		user.Document.String,
+		user.GoogleID.String,
+		time.Now().Add(24*time.Hour).UTC(),
+	)
+	if err != nil {
+		return err
+	}
+
+	urlBase := "https://easyfrete.com.br/"
+	linkProvider := fmt.Sprintf("%spassword_reset?token=%s", urlBase, token)
+
+	err = s.InterfaceService.CreateHistoryRecoverPasswordRepository(
+		ctx,
+		db.CreateHistoryRecoverPasswordParams{
+			UserID: user.ID,
+			Email:  user.Email,
+			Token:  token,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// TO DO send email to recovery password
+	return nil
 }
