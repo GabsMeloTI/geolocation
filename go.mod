@@ -16,6 +16,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/o1egl/paseto v1.0.0
 	github.com/prometheus/client_golang v1.20.5
+	github.com/sendgrid/sendgrid-go v3.16.0+incompatible
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.4
@@ -24,6 +25,7 @@ require (
 	golang.org/x/text v0.22.0
 	google.golang.org/api v0.169.0
 	googlemaps.github.io/maps v1.7.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
 require (
@@ -66,6 +68,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
@@ -82,6 +85,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240513163218-0867130af1f8 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
