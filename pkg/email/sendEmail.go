@@ -3,12 +3,11 @@ package email
 import (
 	"bytes"
 	"fmt"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"html/template"
 	"os"
 	"path"
-
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type SendEmail struct {
@@ -49,24 +48,15 @@ func (s *SendEmail) NewTemplate(
 	return &w, nil
 }
 
-func (s *SendEmail) SendEmailWithCC(template, toEmail, ccEmail, subject string) error {
+func (s *SendEmail) SendEmailNew(template, email, title string) error {
 	from := mail.NewEmail("Simpplify", s.SMTP.Email)
-	to := mail.NewEmail("Destinatário", toEmail)
-	cc := mail.NewEmail("Cópia", ccEmail)
-
-	personalization := mail.NewPersonalization()
-	personalization.AddTos(to)
-	personalization.AddCCs(cc)
-	personalization.Subject = subject
-
-	message := mail.NewV3Mail()
-	message.SetFrom(from)
-	message.AddPersonalizations(personalization)
+	subject := title
+	to := mail.NewEmail("Destinatário", email)
 
 	plainTextContent := "Versão texto do conteúdo do email."
 	htmlContent := template
-	message.AddContent(mail.NewContent("text/plain", plainTextContent))
-	message.AddContent(mail.NewContent("text/html", htmlContent))
+
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	if client == nil {
