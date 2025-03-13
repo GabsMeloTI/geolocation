@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"geolocation/internal/get_token"
+	"geolocation/validation"
 )
 
 type Handler struct {
@@ -168,6 +169,10 @@ func (h *Handler) ConfirmRecoverPassword(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if ok := validation.ValidatePassword(req.Password); !ok {
+		return c.JSON(http.StatusBadRequest, errors.New("invalid password"))
 	}
 
 	if req.ConfirmPassword != req.Password {

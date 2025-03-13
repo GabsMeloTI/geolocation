@@ -162,8 +162,13 @@ func (s *Service) RecoverPasswordService(ctx context.Context, data RecoverPasswo
 		return err
 	}
 
-	err = s.sendEmail.SendEmailWithCC(*tmp, user.Email, "", "Redefinição de senha")
+	err = s.sendEmail.SendEmailNew(
+		*tmp,
+		user.Email,
+		"Redefinição de senha",
+	)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	err = s.InterfaceService.CreateHistoryRecoverPasswordRepository(
