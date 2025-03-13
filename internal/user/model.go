@@ -193,9 +193,7 @@ func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserRespons
 	}
 }
 
-func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(
-	user db.User,
-) UpdateUserPersonalInfoResponse {
+func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(user db.User) UpdateUserPersonalInfoResponse {
 	return UpdateUserPersonalInfoResponse{
 		ID:               user.ID,
 		Name:             user.Name,
