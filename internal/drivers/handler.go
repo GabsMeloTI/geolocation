@@ -43,9 +43,9 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Telefone inválido")
 	}
 
-	if !validation.ValidateCNH(request.LicenseNumber) {
-		return c.JSON(http.StatusBadRequest, "CNH inválida")
-	}
+	//if !validation.ValidateCNH(request.LicenseNumber) {
+	//	return c.JSON(http.StatusBadRequest, "CNH inválida")
+	//}
 
 	payload := get_token.GetUserPayloadToken(c)
 	data := CreateDriverDto{
