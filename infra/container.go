@@ -2,6 +2,7 @@ package infra
 
 import (
 	"database/sql"
+	"geolocation/pkg/email"
 
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
@@ -68,6 +69,7 @@ type ContainerDI struct {
 	LoginService            *login.Service
 	LoginRepository         *login.Repository
 	GoogleToken             *sso.GoogleToken
+	SendEmail               *email.SendEmail
 	PasetoMaker             *token.Maker
 	PassetoMaker            *token.PasetoMaker
 	WsRepository            *ws.Repository
@@ -108,6 +110,13 @@ func (c *ContainerDI) buildPkg() {
 	c.GoogleToken = sso.NewGoogleToken(c.Config.GoogleClientId)
 	maker, _ := token.NewPasetoMaker(c.Config.SignatureToken)
 	c.PasetoMaker = &maker
+	c.SendEmail = email.NewSendEmail("assets/email/templates", email.SmtpConfig{
+		Email:    c.Config.EmailDomain,
+		Password: c.Config.EmailPassword,
+		Host:     c.Config.EmailHost,
+		Port:     c.Config.EmailPort,
+	})
+
 }
 
 func (c *ContainerDI) buildRepository() {

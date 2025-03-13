@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	db "geolocation/db/sqlc"
@@ -151,8 +150,8 @@ func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoverPassw
 		return err
 	}
 
-	urlBase := "https://easyfrete.com.br/"
-	linkProvider := fmt.Sprintf("%spassword_reset?token=%s", urlBase, token)
+	//urlBase := "https://easyfrete.com.br/"
+	//linkProvider := fmt.Sprintf("%spassword_reset?token=%s", urlBase, token)
 
 	err = s.InterfaceService.CreateHistoryRecoverPasswordRepository(
 		ctx,

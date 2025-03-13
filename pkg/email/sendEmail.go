@@ -49,15 +49,24 @@ func (s *SendEmail) NewTemplate(
 	return &w, nil
 }
 
-func (s *SendEmail) SendEmailNew(template, email, title string) error {
+func (s *SendEmail) SendEmailWithCC(template, toEmail, ccEmail, subject string) error {
 	from := mail.NewEmail("Simpplify", s.SMTP.Email)
-	subject := title
-	to := mail.NewEmail("Destinatário", email)
+	to := mail.NewEmail("Destinatário", toEmail)
+	cc := mail.NewEmail("Cópia", ccEmail)
+
+	personalization := mail.NewPersonalization()
+	personalization.AddTos(to)
+	personalization.AddCCs(cc)
+	personalization.Subject = subject
+
+	message := mail.NewV3Mail()
+	message.SetFrom(from)
+	message.AddPersonalizations(personalization)
 
 	plainTextContent := "Versão texto do conteúdo do email."
 	htmlContent := template
-
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	message.AddContent(mail.NewContent("text/plain", plainTextContent))
+	message.AddContent(mail.NewContent("text/html", htmlContent))
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	if client == nil {
