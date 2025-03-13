@@ -29,3 +29,14 @@ create table users
     date_of_birth     timestamp,
     secondary_contact varchar(255)
 );
+
+create table history_recover_password
+(
+    id                   bigserial
+        primary key,
+    user_id              bigint  not null,
+    email                varchar not null,
+    date_solicitation    timestamp default now(),
+    token                varchar not null,
+    date_update_password timestamp
+);

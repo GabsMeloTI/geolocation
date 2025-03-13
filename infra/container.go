@@ -2,6 +2,7 @@ package infra
 
 import (
 	"database/sql"
+
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
 	"geolocation/infra/token"
@@ -21,6 +22,7 @@ import (
 	"geolocation/internal/trailer"
 	"geolocation/internal/user"
 	"geolocation/internal/ws"
+	"geolocation/pkg/email"
 	"geolocation/pkg/sso"
 )
 
@@ -67,6 +69,7 @@ type ContainerDI struct {
 	LoginService            *login.Service
 	LoginRepository         *login.Repository
 	GoogleToken             *sso.GoogleToken
+	SendEmail               *email.SendEmail
 	PasetoMaker             *token.Maker
 	PassetoMaker            *token.PasetoMaker
 	WsRepository            *ws.Repository
@@ -107,6 +110,12 @@ func (c *ContainerDI) buildPkg() {
 	c.GoogleToken = sso.NewGoogleToken(c.Config.GoogleClientId)
 	maker, _ := token.NewPasetoMaker(c.Config.SignatureToken)
 	c.PasetoMaker = &maker
+	c.SendEmail = email.NewSendEmail("assets/email/templates", email.SmtpConfig{
+		Email:    c.Config.EmailDomain,
+		Password: c.Config.EmailPassword,
+		Host:     c.Config.EmailHost,
+		Port:     c.Config.EmailPort,
+	})
 }
 
 func (c *ContainerDI) buildRepository() {
@@ -135,12 +144,20 @@ func (c *ContainerDI) buildService() {
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
 	c.ServiceTrailer = trailer.NewTrailersService(c.RepositoryTrailer)
 	c.ServiceAdvertisement = advertisement.NewAdvertisementsService(c.RepositoryAdvertisement)
-	c.ServiceAttachment = attachment.NewAttachmentService(c.RepositoryAttachment, c.Config.AwsBucketName)
+	c.ServiceAttachment = attachment.NewAttachmentService(
+		c.RepositoryAttachment,
+		c.Config.AwsBucketName,
+	)
 	c.ServicePayment = payment.NewPaymentService(c.RepositoryPayment, *c.PasetoMaker)
 	c.ServiceDashboard = dashboard.NewDashboardService(c.RepositoryDashboard)
-	c.UserService = user.NewUserService(c.UserRepository, c.Config.SignatureToken)
+	c.UserService = user.NewUserService(c.UserRepository, *c.PasetoMaker, c.SendEmail)
 	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
-	c.LoginService = login.NewService(c.GoogleToken, c.LoginRepository, *c.PasetoMaker, c.Config.GoogleClientId)
+	c.LoginService = login.NewService(
+		c.GoogleToken,
+		c.LoginRepository,
+		*c.PasetoMaker,
+		c.Config.GoogleClientId,
+	)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 	c.ServiceAddress = address.NewAddresssService(c.RepositoryAddress)

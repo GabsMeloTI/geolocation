@@ -46,3 +46,18 @@ WHERE id = $8
 -- name: GetUserById :one
 SELECT * FROM users WHERE id = $1;
 
+-- name: CreateHistoryRecoverPassword :exec
+INSERT INTO history_recover_password 
+(user_id, email, token)
+VALUES
+($1, $2, $3);
+
+-- name: UpdatePasswordByUserId :exec
+UPDATE users
+SET password = $1
+WHERE id = $2;
+
+-- name: UpdateHistoryRecoverPassword :exec
+update history_recover_password
+set date_update_password = now()
+where token = $1;

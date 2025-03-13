@@ -1,8 +1,9 @@
 package infra
 
 import (
-	"github.com/joho/godotenv"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -25,6 +26,11 @@ type Config struct {
 	RedisUrl           string
 	GoogleClientId     string
 	AwsBucketName      string
+	SendGridApiKey     string
+	EmailDomain        string
+	EmailPassword      string
+	EmailHost          string
+	EmailPort          string
 }
 
 func NewConfig() Config {
@@ -54,5 +60,10 @@ func NewConfig() Config {
 		RedisUrl:           os.Getenv("REDIS_URL"),
 		GoogleClientId:     os.Getenv("GOOGLE_CLIENT_ID"),
 		AwsBucketName:      os.Getenv("AWS_BUCKET_NAME"),
+		SendGridApiKey:     os.Getenv("SENDGRID_API_KEY"),
+		EmailDomain:        os.Getenv("EMAIL_DOMAIN"),
+		EmailPassword:      os.Getenv("EMAIL_PASSWORD"),
+		EmailHost:          os.Getenv("EMAIL_HOST"),
+		EmailPort:          os.Getenv("EMAIL_PORT"),
 	}
 }

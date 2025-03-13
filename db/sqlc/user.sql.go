@@ -10,6 +10,24 @@ import (
 	"database/sql"
 )
 
+const createHistoryRecoverPassword = `-- name: CreateHistoryRecoverPassword :exec
+INSERT INTO history_recover_password 
+(user_id, email, token)
+VALUES
+($1, $2, $3)
+`
+
+type CreateHistoryRecoverPasswordParams struct {
+	UserID int64  `json:"user_id"`
+	Email  string `json:"email"`
+	Token  string `json:"token"`
+}
+
+func (q *Queries) CreateHistoryRecoverPassword(ctx context.Context, arg CreateHistoryRecoverPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, createHistoryRecoverPassword, arg.UserID, arg.Email, arg.Token)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users
 (name, email, password, google_id, profile_picture, status, phone, document, profile_id, driver_id)
@@ -144,6 +162,33 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 		&i.Complement,
 	)
 	return i, err
+}
+
+const updateHistoryRecoverPassword = `-- name: UpdateHistoryRecoverPassword :exec
+update history_recover_password
+set date_update_password = now()
+where token = $1
+`
+
+func (q *Queries) UpdateHistoryRecoverPassword(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, updateHistoryRecoverPassword, token)
+	return err
+}
+
+const updatePasswordByUserId = `-- name: UpdatePasswordByUserId :exec
+UPDATE users
+SET password = $1
+WHERE id = $2
+`
+
+type UpdatePasswordByUserIdParams struct {
+	Password sql.NullString `json:"password"`
+	ID       int64          `json:"id"`
+}
+
+func (q *Queries) UpdatePasswordByUserId(ctx context.Context, arg UpdatePasswordByUserIdParams) error {
+	_, err := q.db.ExecContext(ctx, updatePasswordByUserId, arg.Password, arg.ID)
+	return err
 }
 
 const updateUserAddress = `-- name: UpdateUserAddress :one
