@@ -2,7 +2,6 @@ package infra
 
 import (
 	"database/sql"
-	"geolocation/pkg/email"
 
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
@@ -23,6 +22,7 @@ import (
 	"geolocation/internal/trailer"
 	"geolocation/internal/user"
 	"geolocation/internal/ws"
+	"geolocation/pkg/email"
 	"geolocation/pkg/sso"
 )
 
@@ -116,7 +116,6 @@ func (c *ContainerDI) buildPkg() {
 		Host:     c.Config.EmailHost,
 		Port:     c.Config.EmailPort,
 	})
-
 }
 
 func (c *ContainerDI) buildRepository() {
@@ -151,7 +150,7 @@ func (c *ContainerDI) buildService() {
 	)
 	c.ServicePayment = payment.NewPaymentService(c.RepositoryPayment, *c.PasetoMaker)
 	c.ServiceDashboard = dashboard.NewDashboardService(c.RepositoryDashboard)
-	c.UserService = user.NewUserService(c.UserRepository, *c.PasetoMaker)
+	c.UserService = user.NewUserService(c.UserRepository, *c.PasetoMaker, c.SendEmail)
 	c.ServiceUserPlan = plans.NewUserPlanService(c.RepositoryUserPlan, *c.PasetoMaker)
 	c.LoginService = login.NewService(
 		c.GoogleToken,

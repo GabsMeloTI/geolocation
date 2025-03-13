@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	db "geolocation/db/sqlc"
@@ -131,7 +132,7 @@ func (s *Service) GetUserService(ctx context.Context, userId int64) (GetUserResp
 	return res.ParseFromDbUser(user), nil
 }
 
-func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoverPasswordRequest) error {
+func (s *Service) RecoverPasswordService(ctx context.Context, data RecoverPasswordRequest) error {
 	user, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 	if err != nil {
 		return err
@@ -150,9 +151,21 @@ func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoverPassw
 		return err
 	}
 
-	//urlBase := "https://easyfrete.com.br/"
-	//linkProvider := fmt.Sprintf("%spassword_reset?token=%s", urlBase, token)
+	urlBase := "https://easyfrete.com.br/"
+	linkProvider := fmt.Sprintf("%spassword_reset?token=%s", urlBase, token)
 
+	tmp, err := s.sendEmail.NewTemplate(email.EmailPlaceHolder{
+		NameProvider: user.Name,
+		Link:         linkProvider,
+	}, "recover_password.html")
+	if err != nil {
+		return err
+	}
+
+	err = s.sendEmail.SendEmailWithCC(*tmp, user.Email, "", "Redefinição de senha")
+	if err != nil {
+		return err
+	}
 	err = s.InterfaceService.CreateHistoryRecoverPasswordRepository(
 		ctx,
 		db.CreateHistoryRecoverPasswordParams{
@@ -165,7 +178,6 @@ func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoverPassw
 		return err
 	}
 
-	// TO DO send email to recovery password
 	return nil
 }
 

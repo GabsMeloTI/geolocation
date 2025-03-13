@@ -97,7 +97,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
 
 	e.POST("/recover-password", container.UserHandler.RecoverPassword)
-	e.PUT("/recover-password/confirm", container.UserHandler.ConfirmRecoverPassword)
+	e.PUT(
+		"/recover-password/confirm",
+		container.UserHandler.ConfirmRecoverPassword,
+		_midlleware.CheckUserAuthorization,
+	)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
