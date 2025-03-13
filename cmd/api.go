@@ -74,6 +74,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
+	advertisement.GET("/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDService)
 	advertisement.GET(
 		"/list/by-user",
 		container.HandlerAdvertisement.GetAllAdvertisementByUserHandler,
@@ -109,6 +110,10 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	public.GET(
 		"/advertisement/list",
 		container.HandlerAdvertisement.GetAllAdvertisementPublicHandler,
+	)
+	public.GET(
+		"/advertisement/list/:id",
+		container.HandlerAdvertisement.GetAdvertisementByIDPublicService,
 	)
 	// easyfrete no user
 	public.POST(

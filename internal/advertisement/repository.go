@@ -39,6 +39,8 @@ type InterfaceRepository interface {
 		arg db.UpdateAdsRouteChooseByUserIdParams,
 	) error
 	GetAdvertisementExist(ctx context.Context, arg db.GetAdvertisementExistParams) (db.AdvertisementRoute, error)
+	GetAllAdvertisementPublicById(ctx context.Context, arg int64) (db.GetAllAdvertisementPublicByIdRow, error)
+	GetAllAdvertisementById(ctx context.Context, arg int64) (db.GetAllAdvertisementByIdRow, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -124,4 +126,10 @@ func (r *Repository) UpdateAdvertismentRouteChoose(ctx context.Context, arg db.U
 
 func (r *Repository) GetAdvertisementExist(ctx context.Context, arg db.GetAdvertisementExistParams) (db.AdvertisementRoute, error) {
 	return r.Queries.GetAdvertisementExist(ctx, arg)
+}
+func (r *Repository) GetAllAdvertisementPublicById(ctx context.Context, arg int64) (db.GetAllAdvertisementPublicByIdRow, error) {
+	return r.Queries.GetAllAdvertisementPublicById(ctx, arg)
+}
+func (r *Repository) GetAllAdvertisementById(ctx context.Context, arg int64) (db.GetAllAdvertisementByIdRow, error) {
+	return r.Queries.GetAllAdvertisementById(ctx, arg)
 }

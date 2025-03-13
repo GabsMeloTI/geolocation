@@ -35,6 +35,8 @@ type InterfaceService interface {
 	UpdateAdsRouteChooseService(
 		ctx context.Context, data UpdateAdsRouteChooseDTO,
 	) error
+	GetAdvertisementByIDService(ctx context.Context, id int64) (AdvertisementResponseAll, error)
+	GetAdvertisementByIDPublicService(ctx context.Context, id int64) (AdvertisementResponseNoUser, error)
 }
 
 type Service struct {
@@ -45,11 +47,7 @@ func NewAdvertisementsService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateAdvertisementService(
-	ctx context.Context,
-	data CreateAdvertisementDto,
-	idProfile int64,
-) (AdvertisementResponse, error) {
+func (p *Service) CreateAdvertisementService(ctx context.Context, data CreateAdvertisementDto, idProfile int64) (AdvertisementResponse, error) {
 	if err := data.CreateAdvertisementRequest.ValidateCreate(); err != nil {
 		return AdvertisementResponse{}, err
 	}
@@ -75,11 +73,7 @@ func (p *Service) CreateAdvertisementService(
 	return response, nil
 }
 
-func (p *Service) UpdatedAdvertisementFinishedCreate(
-	ctx context.Context,
-	data UpdatedAdvertisementFinishedCreate,
-	idProfile int64,
-) (ResponseUpdatedAdvertisementFinishedCreate, error) {
+func (p *Service) UpdatedAdvertisementFinishedCreate(ctx context.Context, data UpdatedAdvertisementFinishedCreate, idProfile int64) (ResponseUpdatedAdvertisementFinishedCreate, error) {
 	resultProfile, errProfile := p.InterfaceService.GetProfileById(ctx, idProfile)
 	if errProfile != nil {
 		return ResponseUpdatedAdvertisementFinishedCreate{}, errProfile
@@ -122,11 +116,7 @@ func (p *Service) UpdatedAdvertisementFinishedCreate(
 	return response, nil
 }
 
-func (p *Service) UpdateAdvertisementService(
-	ctx context.Context,
-	data UpdateAdvertisementDto,
-	idProfile int64,
-) (AdvertisementResponse, error) {
+func (p *Service) UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementDto, idProfile int64) (AdvertisementResponse, error) {
 	_, err := p.InterfaceService.GetAdvertisementById(ctx, data.UpdateAdvertisementRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return AdvertisementResponse{}, errors.New("anúncio não encontrado")
@@ -160,10 +150,7 @@ func (p *Service) UpdateAdvertisementService(
 	return response, nil
 }
 
-func (p *Service) DeleteAdvertisementService(
-	ctx context.Context,
-	data DeleteAdvertisementRequest,
-) error {
+func (p *Service) DeleteAdvertisementService(ctx context.Context, data DeleteAdvertisementRequest) error {
 	_, err := p.InterfaceService.GetAdvertisementById(ctx, data.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("anúncio não encontrado")
@@ -217,9 +204,7 @@ func (p *Service) GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementR
 	return announcementResponses, nil
 }
 
-func (p *Service) GetAllAdvertisementPublic(
-	ctx context.Context,
-) ([]AdvertisementResponseNoUser, error) {
+func (p *Service) GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error) {
 	results, err := p.InterfaceService.GetAllAdvertisementPublic(ctx)
 	if err != nil {
 		return nil, err
@@ -236,10 +221,7 @@ func (p *Service) GetAllAdvertisementPublic(
 	return announcementResponses, nil
 }
 
-func (p *Service) GetAllAdvertisementByUser(
-	ctx context.Context,
-	id int64,
-) ([]AdvertisementResponseAll, error) {
+func (p *Service) GetAllAdvertisementByUser(ctx context.Context, id int64) ([]AdvertisementResponseAll, error) {
 	results, err := p.InterfaceService.GetAllAdvertisementByUser(ctx, id)
 	if err != nil {
 		return nil, err
@@ -300,4 +282,44 @@ func (p *Service) UpdateAdsRouteChooseService(ctx context.Context, data UpdateAd
 	}
 
 	return nil
+}
+
+func (p *Service) GetAdvertisementByIDService(ctx context.Context, id int64) (AdvertisementResponseAll, error) {
+	result, err := p.InterfaceService.GetAllAdvertisementById(ctx, id)
+	if err != nil {
+		return AdvertisementResponseAll{}, err
+	}
+
+	getAdvertisementResponse := AdvertisementResponseAll{}
+	getAdvertisementResponse.ParseFromAdvertisementObject(db.GetAllAdvertisementUsersRow(result))
+
+	var route new_routes.FinalOutput
+	if result.ResponseRoutes != nil && len(result.ResponseRoutes) > 0 {
+		if errRoute := json.Unmarshal(result.ResponseRoutes, &route); errRoute != nil {
+			return AdvertisementResponseAll{}, errRoute
+		}
+	}
+
+	index := int(result.RouteChoose)
+	var chosenRoute new_routes.RouteOutput
+	if index >= 0 && index < len(route.Routes) {
+		chosenRoute = route.Routes[index]
+	}
+
+	getAdvertisementResponse.RouteIndexChoose = index
+	getAdvertisementResponse.RouteChoose = chosenRoute
+
+	return getAdvertisementResponse, nil
+}
+
+func (p *Service) GetAdvertisementByIDPublicService(ctx context.Context, id int64) (AdvertisementResponseNoUser, error) {
+	result, err := p.InterfaceService.GetAllAdvertisementPublicById(ctx, id)
+	if err != nil {
+		return AdvertisementResponseNoUser{}, err
+	}
+
+	getAdvertisementResponse := AdvertisementResponseNoUser{}
+	getAdvertisementResponse.ParseFromAdvertisementObject(db.GetAllAdvertisementPublicRow(result))
+
+	return getAdvertisementResponse, nil
 }

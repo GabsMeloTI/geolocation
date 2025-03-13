@@ -199,7 +199,7 @@ func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-// UpdateAdvertisementRouteChoose godoc
+// UpdateAdsRouteChoose godoc
 // @Summary Update Advertisement Route Choose
 // @Description Update the route choosen in the advertisement.
 // @Tags Advertisement
@@ -230,4 +230,52 @@ func (p *Handler) UpdateAdsRouteChoose(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "success")
+}
+
+// GetAdvertisementByIDService godoc
+// @Summary Get By ID Advertisement
+// @Description Retrieve all Advertisement
+// @Tags Advertisement
+// @Accept json
+// @Produce json
+// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /public/advertisement/list [get]
+func (p *Handler) GetAdvertisementByIDService(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := p.InterfaceService.GetAdvertisementByIDService(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+// GetAdvertisementByIDPublicService godoc
+// @Summary Get By ID Advertisement
+// @Description Retrieve all Advertisement
+// @Tags Advertisement
+// @Accept json
+// @Produce json
+// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /public/advertisement/list [get]
+func (p *Handler) GetAdvertisementByIDPublicService(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := p.InterfaceService.GetAdvertisementByIDPublicService(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

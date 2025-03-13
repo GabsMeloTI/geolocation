@@ -310,6 +310,138 @@ func (q *Queries) GetAdvertisementExist(ctx context.Context, arg GetAdvertisemen
 	return i, err
 }
 
+const getAllAdvertisementById = `-- name: GetAllAdvertisementById :one
+SELECT a.id, a.user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
+       a.destination, a.origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
+       a.state_origin, a.city_origin, a.complement_origin, a.neighborhood_origin, a.street_origin, a.street_number_origin, a.cep_origin,
+       a.state_destination, a.city_destination, a.complement_destination, a.neighborhood_destination, a.street_destination, a.street_number_destination, a.cep_destination, rh.response as response_routes, ar.route_choose
+FROM public.advertisement a
+         INNER JOIN users u ON u.id = a.user_id
+         INNER JOIN advertisement_route ar on a.id = ar.advertisement_id
+         INNER JOIN route_hist rh on rh.id = ar.route_hist_id
+WHERE a.status=true AND a.id=$1 AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
+ORDER BY expiration_date
+`
+
+type GetAllAdvertisementByIdRow struct {
+	ID                      int64           `json:"id"`
+	UserID                  int64           `json:"user_id"`
+	UserName                string          `json:"user_name"`
+	ActiveThere             sql.NullTime    `json:"active_there"`
+	UserCity                sql.NullString  `json:"user_city"`
+	UserState               sql.NullString  `json:"user_state"`
+	UserPhone               sql.NullString  `json:"user_phone"`
+	UserEmail               string          `json:"user_email"`
+	UserProfilePicture      sql.NullString  `json:"user_profile_picture"`
+	Destination             string          `json:"destination"`
+	Origin                  string          `json:"origin"`
+	DestinationLat          sql.NullFloat64 `json:"destination_lat"`
+	DestinationLng          sql.NullFloat64 `json:"destination_lng"`
+	OriginLat               sql.NullFloat64 `json:"origin_lat"`
+	OriginLng               sql.NullFloat64 `json:"origin_lng"`
+	Distance                int64           `json:"distance"`
+	PickupDate              time.Time       `json:"pickup_date"`
+	DeliveryDate            time.Time       `json:"delivery_date"`
+	ExpirationDate          time.Time       `json:"expiration_date"`
+	Title                   string          `json:"title"`
+	CargoType               string          `json:"cargo_type"`
+	CargoSpecies            string          `json:"cargo_species"`
+	CargoWeight             float64         `json:"cargo_weight"`
+	VehiclesAccepted        string          `json:"vehicles_accepted"`
+	Trailer                 string          `json:"trailer"`
+	RequiresTarp            bool            `json:"requires_tarp"`
+	Tracking                bool            `json:"tracking"`
+	Agency                  bool            `json:"agency"`
+	Description             string          `json:"description"`
+	PaymentType             string          `json:"payment_type"`
+	Advance                 string          `json:"advance"`
+	Toll                    bool            `json:"toll"`
+	Situation               string          `json:"situation"`
+	Price                   float64         `json:"price"`
+	CreatedAt               time.Time       `json:"created_at"`
+	CreatedWho              string          `json:"created_who"`
+	UpdatedAt               sql.NullTime    `json:"updated_at"`
+	UpdatedWho              sql.NullString  `json:"updated_who"`
+	StateOrigin             string          `json:"state_origin"`
+	CityOrigin              string          `json:"city_origin"`
+	ComplementOrigin        string          `json:"complement_origin"`
+	NeighborhoodOrigin      string          `json:"neighborhood_origin"`
+	StreetOrigin            string          `json:"street_origin"`
+	StreetNumberOrigin      string          `json:"street_number_origin"`
+	CepOrigin               string          `json:"cep_origin"`
+	StateDestination        string          `json:"state_destination"`
+	CityDestination         string          `json:"city_destination"`
+	ComplementDestination   string          `json:"complement_destination"`
+	NeighborhoodDestination string          `json:"neighborhood_destination"`
+	StreetDestination       string          `json:"street_destination"`
+	StreetNumberDestination string          `json:"street_number_destination"`
+	CepDestination          string          `json:"cep_destination"`
+	ResponseRoutes          json.RawMessage `json:"response_routes"`
+	RouteChoose             int64           `json:"route_choose"`
+}
+
+func (q *Queries) GetAllAdvertisementById(ctx context.Context, id int64) (GetAllAdvertisementByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getAllAdvertisementById, id)
+	var i GetAllAdvertisementByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserName,
+		&i.ActiveThere,
+		&i.UserCity,
+		&i.UserState,
+		&i.UserPhone,
+		&i.UserEmail,
+		&i.UserProfilePicture,
+		&i.Destination,
+		&i.Origin,
+		&i.DestinationLat,
+		&i.DestinationLng,
+		&i.OriginLat,
+		&i.OriginLng,
+		&i.Distance,
+		&i.PickupDate,
+		&i.DeliveryDate,
+		&i.ExpirationDate,
+		&i.Title,
+		&i.CargoType,
+		&i.CargoSpecies,
+		&i.CargoWeight,
+		&i.VehiclesAccepted,
+		&i.Trailer,
+		&i.RequiresTarp,
+		&i.Tracking,
+		&i.Agency,
+		&i.Description,
+		&i.PaymentType,
+		&i.Advance,
+		&i.Toll,
+		&i.Situation,
+		&i.Price,
+		&i.CreatedAt,
+		&i.CreatedWho,
+		&i.UpdatedAt,
+		&i.UpdatedWho,
+		&i.StateOrigin,
+		&i.CityOrigin,
+		&i.ComplementOrigin,
+		&i.NeighborhoodOrigin,
+		&i.StreetOrigin,
+		&i.StreetNumberOrigin,
+		&i.CepOrigin,
+		&i.StateDestination,
+		&i.CityDestination,
+		&i.ComplementDestination,
+		&i.NeighborhoodDestination,
+		&i.StreetDestination,
+		&i.StreetNumberDestination,
+		&i.CepDestination,
+		&i.ResponseRoutes,
+		&i.RouteChoose,
+	)
+	return i, err
+}
+
 const getAllAdvertisementByUser = `-- name: GetAllAdvertisementByUser :many
 SELECT a.id, a.user_id, u.name as user_name, u.created_at as active_there, u.city as user_city, u.state as user_state, u.phone as user_phone, u.email as user_email, u.profile_picture as user_profile_picture,
        a.destination, a.origin, destination_lat, destination_lng, origin_lat, origin_lng, distance, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, price, a.created_at, created_who, a.updated_at, updated_who,
@@ -564,6 +696,98 @@ func (q *Queries) GetAllAdvertisementPublic(ctx context.Context) ([]GetAllAdvert
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAllAdvertisementPublicById = `-- name: GetAllAdvertisementPublicById :one
+SELECT id, user_id, destination, origin, pickup_date, delivery_date, expiration_date, title, cargo_type, cargo_species, cargo_weight, vehicles_accepted, trailer, requires_tarp, tracking, agency, description, payment_type, advance, toll, situation, created_at,
+       state_origin, city_origin, complement_origin, neighborhood_origin, street_origin, street_number_origin, cep_origin,
+       state_destination, city_destination, complement_destination, neighborhood_destination, street_destination, street_number_destination, cep_destination
+FROM public.advertisement
+WHERE status=true AND id=$1 AND destination_lat IS NOT NULL AND destination_lng IS NOT NULL AND origin_lat IS NOT NULL AND origin_lng IS NOT NULL
+ORDER BY expiration_date
+`
+
+type GetAllAdvertisementPublicByIdRow struct {
+	ID                      int64     `json:"id"`
+	UserID                  int64     `json:"user_id"`
+	Destination             string    `json:"destination"`
+	Origin                  string    `json:"origin"`
+	PickupDate              time.Time `json:"pickup_date"`
+	DeliveryDate            time.Time `json:"delivery_date"`
+	ExpirationDate          time.Time `json:"expiration_date"`
+	Title                   string    `json:"title"`
+	CargoType               string    `json:"cargo_type"`
+	CargoSpecies            string    `json:"cargo_species"`
+	CargoWeight             float64   `json:"cargo_weight"`
+	VehiclesAccepted        string    `json:"vehicles_accepted"`
+	Trailer                 string    `json:"trailer"`
+	RequiresTarp            bool      `json:"requires_tarp"`
+	Tracking                bool      `json:"tracking"`
+	Agency                  bool      `json:"agency"`
+	Description             string    `json:"description"`
+	PaymentType             string    `json:"payment_type"`
+	Advance                 string    `json:"advance"`
+	Toll                    bool      `json:"toll"`
+	Situation               string    `json:"situation"`
+	CreatedAt               time.Time `json:"created_at"`
+	StateOrigin             string    `json:"state_origin"`
+	CityOrigin              string    `json:"city_origin"`
+	ComplementOrigin        string    `json:"complement_origin"`
+	NeighborhoodOrigin      string    `json:"neighborhood_origin"`
+	StreetOrigin            string    `json:"street_origin"`
+	StreetNumberOrigin      string    `json:"street_number_origin"`
+	CepOrigin               string    `json:"cep_origin"`
+	StateDestination        string    `json:"state_destination"`
+	CityDestination         string    `json:"city_destination"`
+	ComplementDestination   string    `json:"complement_destination"`
+	NeighborhoodDestination string    `json:"neighborhood_destination"`
+	StreetDestination       string    `json:"street_destination"`
+	StreetNumberDestination string    `json:"street_number_destination"`
+	CepDestination          string    `json:"cep_destination"`
+}
+
+func (q *Queries) GetAllAdvertisementPublicById(ctx context.Context, id int64) (GetAllAdvertisementPublicByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getAllAdvertisementPublicById, id)
+	var i GetAllAdvertisementPublicByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Destination,
+		&i.Origin,
+		&i.PickupDate,
+		&i.DeliveryDate,
+		&i.ExpirationDate,
+		&i.Title,
+		&i.CargoType,
+		&i.CargoSpecies,
+		&i.CargoWeight,
+		&i.VehiclesAccepted,
+		&i.Trailer,
+		&i.RequiresTarp,
+		&i.Tracking,
+		&i.Agency,
+		&i.Description,
+		&i.PaymentType,
+		&i.Advance,
+		&i.Toll,
+		&i.Situation,
+		&i.CreatedAt,
+		&i.StateOrigin,
+		&i.CityOrigin,
+		&i.ComplementOrigin,
+		&i.NeighborhoodOrigin,
+		&i.StreetOrigin,
+		&i.StreetNumberOrigin,
+		&i.CepOrigin,
+		&i.StateDestination,
+		&i.CityDestination,
+		&i.ComplementDestination,
+		&i.NeighborhoodDestination,
+		&i.StreetDestination,
+		&i.StreetNumberDestination,
+		&i.CepDestination,
+	)
+	return i, err
 }
 
 const getAllAdvertisementUsers = `-- name: GetAllAdvertisementUsers :many
