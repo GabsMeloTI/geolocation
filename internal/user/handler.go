@@ -1,11 +1,14 @@
 package user
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
 	"geolocation/internal/get_token"
+	"geolocation/validation"
 )
 
 type Handler struct {
@@ -144,4 +147,54 @@ func (h *Handler) GetUserInfo(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) RecoverPassword(c echo.Context) error {
+	var req RecoverPasswordRequest
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err := h.InterfaceService.RecoverPasswordService(c.Request().Context(), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "Success")
+}
+
+func (h *Handler) ConfirmRecoverPassword(c echo.Context) error {
+	var req ConfirmRecoverPasswordRequest
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if ok := validation.ValidatePassword(req.Password); !ok {
+		return c.JSON(http.StatusBadRequest, errors.New("invalid password"))
+	}
+
+	if req.ConfirmPassword != req.Password {
+		return c.JSON(
+			http.StatusBadRequest,
+			errors.New("password and confirm password are different"),
+		)
+	}
+	payload := get_token.GetUserPayloadToken(c)
+	bearerToken := c.Request().Header.Get("Authorization")
+	tokenStr := strings.Replace(bearerToken, "Bearer ", "", 1)
+
+	data := ConfirmRecoverPasswordDTO{
+		Request: req,
+		Token:   tokenStr,
+		UserID:  payload.ID,
+	}
+
+	err := h.InterfaceService.ConfirmRecoverPasswordService(c.Request().Context(), data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "Success")
 }

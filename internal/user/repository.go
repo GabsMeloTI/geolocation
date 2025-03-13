@@ -19,6 +19,18 @@ type InterfaceRepository interface {
 	) (db.User, error)
 	UpdateUserAddress(ctx context.Context, arg db.UpdateUserAddressParams) (db.User, error)
 	GetUserById(ctx context.Context, arg int64) (db.User, error)
+	CreateHistoryRecoverPasswordRepository(
+		ctx context.Context,
+		arg db.CreateHistoryRecoverPasswordParams,
+	) error
+	UpdatePasswordByUserIdRepository(
+		ctx context.Context,
+		arg db.UpdatePasswordByUserIdParams,
+	) error
+	UpdateHistoryPasswordRecoverRepository(
+		ctx context.Context,
+		token string,
+	) error
 }
 
 type Repository struct {
@@ -80,4 +92,25 @@ func (r *Repository) GetUserById(ctx context.Context, arg int64) (db.User, error
 
 func (r *Repository) GetProfileByIdRepository(ctx context.Context, id int64) (db.Profile, error) {
 	return r.Queries.GetProfileById(ctx, id)
+}
+
+func (r *Repository) CreateHistoryRecoverPasswordRepository(
+	ctx context.Context,
+	arg db.CreateHistoryRecoverPasswordParams,
+) error {
+	return r.Queries.CreateHistoryRecoverPassword(ctx, arg)
+}
+
+func (r *Repository) UpdatePasswordByUserIdRepository(
+	ctx context.Context,
+	arg db.UpdatePasswordByUserIdParams,
+) error {
+	return r.Queries.UpdatePasswordByUserId(ctx, arg)
+}
+
+func (r *Repository) UpdateHistoryPasswordRecoverRepository(
+	ctx context.Context,
+	token string,
+) error {
+	return r.Queries.UpdateHistoryRecoverPassword(ctx, token)
 }

@@ -97,6 +97,13 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
 	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
 
+	e.POST("/recover-password", container.UserHandler.RecoverPassword)
+	e.PUT(
+		"/recover-password/confirm",
+		container.UserHandler.ConfirmRecoverPassword,
+		_midlleware.CheckUserAuthorization,
+	)
+
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
@@ -179,7 +186,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 		_midlleware.CheckUserAuthorization,
 	)
 
-	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
+	e.GET(
+		"/dashboard",
+		container.HandlerDashboard.GetDashboardHandler,
+		_midlleware.CheckUserAuthorization,
+	)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"

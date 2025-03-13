@@ -261,3 +261,18 @@ func (u GetUserResponse) ParseFromDbUser(user db.User) GetUserResponse {
 		Complement:     user.Complement.String,
 	}
 }
+
+type RecoverPasswordRequest struct {
+	Email string `json:"email"`
+}
+
+type ConfirmRecoverPasswordRequest struct {
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+}
+
+type ConfirmRecoverPasswordDTO struct {
+	Request ConfirmRecoverPasswordRequest
+	Token   string
+	UserID  int64
+}

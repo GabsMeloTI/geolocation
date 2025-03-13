@@ -219,6 +219,15 @@ type GasStation struct {
 	SpecificPoint string `json:"specific_point"`
 }
 
+type HistoryRecoverPassword struct {
+	ID                 int64        `json:"id"`
+	UserID             int64        `json:"user_id"`
+	Email              string       `json:"email"`
+	DateSolicitation   sql.NullTime `json:"date_solicitation"`
+	Token              string       `json:"token"`
+	DateUpdatePassword sql.NullTime `json:"date_update_password"`
+}
+
 type Neighborhood struct {
 	ID     int32  `json:"id"`
 	Name   string `json:"name"`
