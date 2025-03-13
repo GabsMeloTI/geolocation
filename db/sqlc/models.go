@@ -384,26 +384,28 @@ type Truck struct {
 }
 
 type User struct {
-	ID             int64          `json:"id"`
-	Name           string         `json:"name"`
-	Email          string         `json:"email"`
-	Password       sql.NullString `json:"password"`
-	CreatedAt      sql.NullTime   `json:"created_at"`
-	UpdatedAt      sql.NullTime   `json:"updated_at"`
-	ProfileID      sql.NullInt64  `json:"profile_id"`
-	Document       sql.NullString `json:"document"`
-	State          sql.NullString `json:"state"`
-	City           sql.NullString `json:"city"`
-	Neighborhood   sql.NullString `json:"neighborhood"`
-	Street         sql.NullString `json:"street"`
-	StreetNumber   sql.NullString `json:"street_number"`
-	Phone          sql.NullString `json:"phone"`
-	GoogleID       sql.NullString `json:"google_id"`
-	ProfilePicture sql.NullString `json:"profile_picture"`
-	Status         bool           `json:"status"`
-	DriverID       sql.NullInt64  `json:"driver_id"`
-	Cep            sql.NullString `json:"cep"`
-	Complement     sql.NullString `json:"complement"`
+	ID               int64          `json:"id"`
+	Name             string         `json:"name"`
+	Email            string         `json:"email"`
+	Password         sql.NullString `json:"password"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
+	ProfileID        sql.NullInt64  `json:"profile_id"`
+	Document         sql.NullString `json:"document"`
+	State            sql.NullString `json:"state"`
+	City             sql.NullString `json:"city"`
+	Neighborhood     sql.NullString `json:"neighborhood"`
+	Street           sql.NullString `json:"street"`
+	StreetNumber     sql.NullString `json:"street_number"`
+	Phone            sql.NullString `json:"phone"`
+	GoogleID         sql.NullString `json:"google_id"`
+	ProfilePicture   sql.NullString `json:"profile_picture"`
+	Status           bool           `json:"status"`
+	DriverID         sql.NullInt64  `json:"driver_id"`
+	DateOfBirth      sql.NullTime   `json:"date_of_birth"`
+	SecondaryContact sql.NullString `json:"secondary_contact"`
+	Cep              sql.NullString `json:"cep"`
+	Complement       sql.NullString `json:"complement"`
 }
 
 type UserPlan struct {
