@@ -154,7 +154,7 @@ func (p *Service) GetDashboardService(ctx context.Context, id int64, idProfile i
 
 	var response Response
 	switch resultGetPlans.Name {
-	case "Driver":
+	case "Driver", "Carrier Driver":
 		response = Response{
 			UserID:                                 result.UserID,
 			DriverID:                               result.DriverID,
