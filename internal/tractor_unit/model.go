@@ -143,7 +143,7 @@ func (p *UpdateTractorUnitDto) ParseUpdateToTractorUnit() db.UpdateTractorUnitPa
 		Length:   p.UpdateTractorUnitRequest.Length,
 		Color:    p.UpdateTractorUnitRequest.Color,
 		ID:       p.UpdateTractorUnitRequest.ID,
-		Axles: p.UpdateTractorUnitRequest.Axles
+		Axles:    p.UpdateTractorUnitRequest.Axles,
 	}
 	return arg
 }
