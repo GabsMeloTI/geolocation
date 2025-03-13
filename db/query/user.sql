@@ -33,7 +33,7 @@ WHERE id = $2;
 
 -- name: UpdateUserPersonalInfo :one
 UPDATE users
-SET name=$1, "document" = $2, email = $3, phone = $4, updated_at = now()
+SET name=$1, "document" = $2, email = $3, phone = $4, updated_at = now(), secondary_contact = $6, date_of_birth = $7
 WHERE id = $5
     RETURNING *;
 

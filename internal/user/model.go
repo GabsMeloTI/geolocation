@@ -52,19 +52,23 @@ type UpdateUserAddressRequest struct {
 }
 
 type UpdateUserPersonalInfoRequest struct {
-	Name     string `json:"name"`
-	Document string `json:"document"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	ID       int64  `json:"id"`
+	Name             string    `json:"name"`
+	Document         string    `json:"document"`
+	Email            string    `json:"email"`
+	Phone            string    `json:"phone"`
+	DateOfBirth      time.Time `json:"date_of_birth"`
+	SecondaryContact string    `json:"secondary_contact"`
+	ID               int64     `json:"id"`
 }
 
 type UpdateUserPersonalInfoResponse struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Document string `json:"document"`
-	Phone    string `json:"phone"`
+	ID               int64     `json:"id"`
+	Name             string    `json:"name"`
+	Email            string    `json:"email"`
+	Document         string    `json:"document"`
+	DateOfBirth      time.Time `json:"date_of_birth"`
+	SecondaryContact string    `json:"secondary_contact"`
+	Phone            string    `json:"phone"`
 }
 
 type UpdateUserAddressResponse struct {
@@ -160,6 +164,14 @@ func (u UpdateUserPersonalInfoRequest) ParseToUpdateUserPersonalInfoParams() db.
 			Valid:  true,
 		},
 		ID: u.ID,
+		SecondaryContact: sql.NullString{
+			String: u.SecondaryContact,
+			Valid:  true,
+		},
+		DateOfBirth: sql.NullTime{
+			Time:  u.DateOfBirth,
+			Valid: true,
+		},
 	}
 }
 
@@ -185,11 +197,13 @@ func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(
 	user db.User,
 ) UpdateUserPersonalInfoResponse {
 	return UpdateUserPersonalInfoResponse{
-		ID:       user.ID,
-		Name:     user.Name,
-		Email:    user.Email,
-		Document: user.Document.String,
-		Phone:    user.Phone.String,
+		ID:               user.ID,
+		Name:             user.Name,
+		Email:            user.Email,
+		Document:         user.Document.String,
+		Phone:            user.Phone.String,
+		DateOfBirth:      user.DateOfBirth.Time,
+		SecondaryContact: user.SecondaryContact.String,
 	}
 }
 
