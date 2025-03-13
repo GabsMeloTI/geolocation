@@ -10,6 +10,8 @@ import (
 	db "geolocation/db/sqlc"
 	"geolocation/infra/token"
 	"geolocation/internal/get_token"
+	"geolocation/pkg/crypt"
+	"geolocation/pkg/email"
 )
 
 type InterfaceService interface {
@@ -24,18 +26,28 @@ type InterfaceService interface {
 		data UpdateUserAddressRequest,
 	) (UpdateUserAddressResponse, error)
 	GetUserService(ctx context.Context, userId int64) (GetUserResponse, error)
-	RecoveryPasswordService(ctx context.Context, data RecoveryPasswordRequest) error
+	RecoverPasswordService(ctx context.Context, data RecoverPasswordRequest) error
+	ConfirmRecoverPasswordService(
+		ctx context.Context,
+		data ConfirmRecoverPasswordDTO,
+	) error
 }
 
 type Service struct {
 	InterfaceService InterfaceRepository
 	maker            token.Maker
+	sendEmail        *email.SendEmail
 }
 
-func NewUserService(interfaceService InterfaceRepository, maker token.Maker) *Service {
+func NewUserService(
+	interfaceService InterfaceRepository,
+	maker token.Maker,
+	sendEmail *email.SendEmail,
+) *Service {
 	return &Service{
 		InterfaceService: interfaceService,
 		maker:            maker,
+		sendEmail:        sendEmail,
 	}
 }
 
@@ -120,7 +132,7 @@ func (s *Service) GetUserService(ctx context.Context, userId int64) (GetUserResp
 	return res.ParseFromDbUser(user), nil
 }
 
-func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoveryPasswordRequest) error {
+func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoverPasswordRequest) error {
 	user, err := s.InterfaceService.GetUserByEmailRepository(ctx, data.Email)
 	if err != nil {
 		return err
@@ -155,5 +167,37 @@ func (s *Service) RecoveryPasswordService(ctx context.Context, data RecoveryPass
 	}
 
 	// TO DO send email to recovery password
+	return nil
+}
+
+func (s *Service) ConfirmRecoverPasswordService(
+	ctx context.Context,
+	data ConfirmRecoverPasswordDTO,
+) error {
+	_, err := s.InterfaceService.GetUserById(ctx, data.UserID)
+	if err != nil {
+		return err
+	}
+
+	hashedPassword, err := crypt.HashPassword(data.Request.Password)
+	if err != nil {
+		return err
+	}
+
+	err = s.InterfaceService.UpdatePasswordByUserIdRepository(ctx, db.UpdatePasswordByUserIdParams{
+		Password: sql.NullString{
+			String: hashedPassword,
+			Valid:  true,
+		},
+		ID: data.UserID,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = s.InterfaceService.UpdateHistoryPasswordRecoverRepository(ctx, data.Token)
+	if err != nil {
+		return err
+	}
 	return nil
 }

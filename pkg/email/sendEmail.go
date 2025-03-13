@@ -3,14 +3,12 @@ package email
 import (
 	"bytes"
 	"fmt"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"gopkg.in/gomail.v2"
 	"html/template"
-	"net/smtp"
 	"os"
 	"path"
-	"strconv"
+
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type SendEmail struct {
@@ -30,7 +28,10 @@ func NewSendEmail(AssetsDirectory string, SMTP SmtpConfig) *SendEmail {
 	}
 }
 
-func (s *SendEmail) NewTemplate(placeHolder EmailPlaceHolder, templateHtml string) (*string, error) {
+func (s *SendEmail) NewTemplate(
+	placeHolder EmailPlaceHolder,
+	templateHtml string,
+) (*string, error) {
 	var w string
 
 	filePath := path.Join(s.AssetsDirectory, templateHtml)

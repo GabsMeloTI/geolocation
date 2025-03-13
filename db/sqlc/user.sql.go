@@ -164,6 +164,33 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
+const updateHistoryRecoverPassword = `-- name: UpdateHistoryRecoverPassword :exec
+update history_recover_password
+set date_update_password = now()
+where token = $1
+`
+
+func (q *Queries) UpdateHistoryRecoverPassword(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, updateHistoryRecoverPassword, token)
+	return err
+}
+
+const updatePasswordByUserId = `-- name: UpdatePasswordByUserId :exec
+UPDATE users
+SET password = $1
+WHERE id = $2
+`
+
+type UpdatePasswordByUserIdParams struct {
+	Password sql.NullString `json:"password"`
+	ID       int64          `json:"id"`
+}
+
+func (q *Queries) UpdatePasswordByUserId(ctx context.Context, arg UpdatePasswordByUserIdParams) error {
+	_, err := q.db.ExecContext(ctx, updatePasswordByUserId, arg.Password, arg.ID)
+	return err
+}
+
 const updateUserAddress = `-- name: UpdateUserAddress :one
 UPDATE users
 SET complement=$1, state = $2, city = $3, neighborhood = $4, street = $5, street_number=$6, cep = $7, updated_at = now()

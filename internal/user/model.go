@@ -193,7 +193,9 @@ func (u UpdateUserDTO) ParseToUpdateUserResponse(user db.User) UpdateUserRespons
 	}
 }
 
-func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(user db.User) UpdateUserPersonalInfoResponse {
+func (u UpdateUserPersonalInfoResponse) ParseToUpdateUserPersonalInfoResponse(
+	user db.User,
+) UpdateUserPersonalInfoResponse {
 	return UpdateUserPersonalInfoResponse{
 		ID:               user.ID,
 		Name:             user.Name,
@@ -260,6 +262,17 @@ func (u GetUserResponse) ParseFromDbUser(user db.User) GetUserResponse {
 	}
 }
 
-type RecoveryPasswordRequest struct {
+type RecoverPasswordRequest struct {
 	Email string `json:"email"`
+}
+
+type ConfirmRecoverPasswordRequest struct {
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+}
+
+type ConfirmRecoverPasswordDTO struct {
+	Request ConfirmRecoverPasswordRequest
+	Token   string
+	UserID  int64
 }

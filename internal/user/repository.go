@@ -23,6 +23,14 @@ type InterfaceRepository interface {
 		ctx context.Context,
 		arg db.CreateHistoryRecoverPasswordParams,
 	) error
+	UpdatePasswordByUserIdRepository(
+		ctx context.Context,
+		arg db.UpdatePasswordByUserIdParams,
+	) error
+	UpdateHistoryPasswordRecoverRepository(
+		ctx context.Context,
+		token string,
+	) error
 }
 
 type Repository struct {
@@ -91,4 +99,18 @@ func (r *Repository) CreateHistoryRecoverPasswordRepository(
 	arg db.CreateHistoryRecoverPasswordParams,
 ) error {
 	return r.Queries.CreateHistoryRecoverPassword(ctx, arg)
+}
+
+func (r *Repository) UpdatePasswordByUserIdRepository(
+	ctx context.Context,
+	arg db.UpdatePasswordByUserIdParams,
+) error {
+	return r.Queries.UpdatePasswordByUserId(ctx, arg)
+}
+
+func (r *Repository) UpdateHistoryPasswordRecoverRepository(
+	ctx context.Context,
+	token string,
+) error {
+	return r.Queries.UpdateHistoryRecoverPassword(ctx, token)
 }
