@@ -67,18 +67,12 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
-	advertisement.POST(
-		"/finish/create",
-		container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate,
-	)
+	advertisement.POST("/finish/create", container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate)
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 	advertisement.GET("/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDService)
-	advertisement.GET(
-		"/list/by-user",
-		container.HandlerAdvertisement.GetAllAdvertisementByUserHandler,
-	)
+	advertisement.GET("/list/by-user", container.HandlerAdvertisement.GetAllAdvertisementByUserHandler)
 	advertisement.PUT("/update/route", container.HandlerAdvertisement.UpdateAdsRouteChoose)
 
 	trailer := e.Group("/trailer", _midlleware.CheckUserAuthorization)

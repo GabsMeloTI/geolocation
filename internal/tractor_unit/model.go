@@ -24,6 +24,7 @@ type CreateTractorUnitRequest struct {
 	Width           float64 `json:"width"`
 	Length          float64 `json:"length"`
 	Color           string  `json:"color"`
+	Axles           int64   `json:"axles"`
 }
 type CreateTractorUnitDto struct {
 	CreateTractorUnitRequest CreateTractorUnitRequest
@@ -47,6 +48,7 @@ type UpdateTractorUnitRequest struct {
 	Width           float64 `json:"width"`
 	Length          float64 `json:"length"`
 	Color           string  `json:"color"`
+	Axles           int64   `json:"axles"`
 }
 
 type UpdateTractorUnitDto struct {
@@ -79,6 +81,7 @@ type TractorUnitResponse struct {
 
 func (p *CreateTractorUnitDto) ParseCreateToTractorUnit() db.CreateTractorUnitParams {
 	arg := db.CreateTractorUnitParams{
+		Axles:        p.CreateTractorUnitRequest.Axles,
 		LicensePlate: p.CreateTractorUnitRequest.LicensePlate,
 		DriverID:     p.CreateTractorUnitRequest.DriverID,
 		UserID:       p.UserID,
@@ -140,6 +143,7 @@ func (p *UpdateTractorUnitDto) ParseUpdateToTractorUnit() db.UpdateTractorUnitPa
 		Length:   p.UpdateTractorUnitRequest.Length,
 		Color:    p.UpdateTractorUnitRequest.Color,
 		ID:       p.UpdateTractorUnitRequest.ID,
+		Axles: p.UpdateTractorUnitRequest.Axles
 	}
 	return arg
 }
