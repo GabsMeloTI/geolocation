@@ -77,6 +77,7 @@ type TractorUnitResponse struct {
 	Status          bool       `json:"status"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       *time.Time `json:"updated_at"`
+	Axles           int64      `json:"axles"`
 }
 
 func (p *CreateTractorUnitDto) ParseCreateToTractorUnit() db.CreateTractorUnitParams {
@@ -171,4 +172,5 @@ func (p *TractorUnitResponse) ParseFromTractorUnitObject(result db.TractorUnit) 
 	p.Width = result.Width
 	p.Length = result.Length
 	p.Color = result.Color
+	p.Axles = result.Axles
 }
