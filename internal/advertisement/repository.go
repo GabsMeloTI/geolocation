@@ -38,6 +38,7 @@ type InterfaceRepository interface {
 		ctx context.Context,
 		arg db.UpdateAdsRouteChooseByUserIdParams,
 	) error
+	GetAdvertisementExist(ctx context.Context, arg db.GetAdvertisementExistParams) (db.AdvertisementRoute, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -105,29 +106,22 @@ func (r *Repository) GetProfileById(ctx context.Context, arg int64) (db.Profile,
 }
 
 func (r *Repository) UpdatedAdvertisementFinishedCreate(
-	ctx context.Context,
-	arg db.UpdatedAdvertisementFinishedCreateParams,
-) (db.UpdatedAdvertisementFinishedCreateRow, error) {
+	ctx context.Context, arg db.UpdatedAdvertisementFinishedCreateParams) (db.UpdatedAdvertisementFinishedCreateRow, error) {
 	return r.Queries.UpdatedAdvertisementFinishedCreate(ctx, arg)
 }
 
-func (r *Repository) CreateAdvertisementRoute(
-	ctx context.Context,
-	arg db.CreateAdvertisementRouteParams,
-) (db.AdvertisementRoute, error) {
+func (r *Repository) CreateAdvertisementRoute(ctx context.Context, arg db.CreateAdvertisementRouteParams) (db.AdvertisementRoute, error) {
 	return r.Queries.CreateAdvertisementRoute(ctx, arg)
 }
 
-func (r *Repository) GetAllAdvertisementByUser(
-	ctx context.Context,
-	arg int64,
-) ([]db.GetAllAdvertisementByUserRow, error) {
+func (r *Repository) GetAllAdvertisementByUser(ctx context.Context, arg int64) ([]db.GetAllAdvertisementByUserRow, error) {
 	return r.Queries.GetAllAdvertisementByUser(ctx, arg)
 }
 
-func (r *Repository) UpdateAdvertismentRouteChoose(
-	ctx context.Context,
-	arg db.UpdateAdsRouteChooseByUserIdParams,
-) error {
+func (r *Repository) UpdateAdvertismentRouteChoose(ctx context.Context, arg db.UpdateAdsRouteChooseByUserIdParams) error {
 	return r.Queries.UpdateAdsRouteChooseByUserId(ctx, arg)
+}
+
+func (r *Repository) GetAdvertisementExist(ctx context.Context, arg db.GetAdvertisementExistParams) (db.AdvertisementRoute, error) {
+	return r.Queries.GetAdvertisementExist(ctx, arg)
 }

@@ -85,9 +85,19 @@ func (p *Service) UpdatedAdvertisementFinishedCreate(
 		return ResponseUpdatedAdvertisementFinishedCreate{}, errProfile
 	}
 	if resultProfile.Name == "Driver" {
-		return ResponseUpdatedAdvertisementFinishedCreate{}, errors.New(
-			"motoristas não podem criar anúncios",
-		)
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errors.New("motoristas não podem criar anúncios")
+	}
+
+	_, errExist := p.InterfaceService.GetAdvertisementExist(ctx, db.GetAdvertisementExistParams{
+		RouteHistID:     data.RouteHistID,
+		UserID:          data.UserID,
+		AdvertisementID: data.ID,
+	})
+	if errExist == nil {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errors.New("advertisement already has route choose")
+	}
+	if !errors.Is(errExist, sql.ErrNoRows) {
+		return ResponseUpdatedAdvertisementFinishedCreate{}, errExist
 	}
 
 	arg := data.ParseUpdatedToAdvertisementFinishedCreate()
@@ -278,16 +288,12 @@ func (p *Service) GetAllAdvertisementByUser(
 	return announcementResponses, nil
 }
 
-func (p *Service) UpdateAdsRouteChooseService(
-	ctx context.Context, data UpdateAdsRouteChooseDTO,
-) error {
-	err := p.InterfaceService.UpdateAdvertismentRouteChoose(
-		ctx,
-		db.UpdateAdsRouteChooseByUserIdParams{
-			RouteChoose:     data.Request.NewRoute,
-			UserID:          data.UserID,
-			AdvertisementID: data.Request.AdvertisementID,
-		},
+func (p *Service) UpdateAdsRouteChooseService(ctx context.Context, data UpdateAdsRouteChooseDTO) error {
+	err := p.InterfaceService.UpdateAdvertismentRouteChoose(ctx, db.UpdateAdsRouteChooseByUserIdParams{
+		RouteChoose:     data.Request.NewRoute,
+		UserID:          data.UserID,
+		AdvertisementID: data.Request.AdvertisementID,
+	},
 	)
 	if err != nil {
 		return err

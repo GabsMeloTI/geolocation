@@ -94,3 +94,9 @@ ORDER BY expiration_date;
 -- name: UpdateAdsRouteChooseByUserId :exec
 UPDATE advertisement_route SET route_choose = $1 WHERE user_id = $2 AND advertisement_id = $3;
 
+-- name: GetAdvertisementExist :one
+SELECT *
+FROM advertisement_route
+WHERE route_hist_id = $1
+      AND user_id = $2
+      AND advertisement_id = $3;
