@@ -12,7 +12,7 @@ import (
 
 const login = `-- name: Login :one
 SELECT
-    id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
+    id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, cep, complement
 FROM
     users
 WHERE
@@ -48,6 +48,8 @@ func (q *Queries) Login(ctx context.Context, arg LoginParams) (User, error) {
 		&i.ProfilePicture,
 		&i.Status,
 		&i.DriverID,
+		&i.DateOfBirth,
+		&i.SecondaryContact,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -58,7 +60,7 @@ const newCreateUser = `-- name: NewCreateUser :one
 INSERT INTO public.users
 ("name", email, "password", created_at, profile_id, "document", phone, google_id, profile_picture, status)
 VALUES( $1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, true)
-    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, cep, complement
+    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, cep, complement
 `
 
 type NewCreateUserParams struct {
@@ -103,6 +105,8 @@ func (q *Queries) NewCreateUser(ctx context.Context, arg NewCreateUserParams) (U
 		&i.ProfilePicture,
 		&i.Status,
 		&i.DriverID,
+		&i.DateOfBirth,
+		&i.SecondaryContact,
 		&i.Cep,
 		&i.Complement,
 	)
