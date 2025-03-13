@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/mail"
 
 	db "geolocation/db/sqlc"
 )
@@ -40,7 +41,23 @@ func (p *Service) CreateDriverService(
 	}
 
 	if profile.Name == "Carrier" {
-		_, err := p.InterfaceService.CreateUserToCarrier(
+		u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return DriverResponse{}, err
+			}
+		}
+
+		if u.ID != 0 {
+			return DriverResponse{}, errors.New("email already in use")
+		}
+
+		_, err = mail.ParseAddress(data.CreateDriverRequest.Email)
+		if err != nil {
+			return DriverResponse{}, err
+		}
+
+		_, err = p.InterfaceService.CreateUserToCarrier(
 			ctx,
 			data.ParseToCreateUserParams(result.ID),
 		)

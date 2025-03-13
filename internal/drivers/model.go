@@ -2,7 +2,9 @@ package drivers
 
 import (
 	"database/sql"
+	"strings"
 	"time"
+	"unicode"
 
 	db "geolocation/db/sqlc"
 )
@@ -178,6 +180,14 @@ func (p *DriverResponse) ParseFromDriverObject(result db.Driver) {
 
 func (p CreateDriverDto) ParseToCreateUserParams(driverId int64) db.CreateUserParams {
 	defaultHash := "$2a$14$E4fX.uo.wKejvb2eq1o3m.IAAYbFxW5nF8fjPo1ESjhpv.eUeia8G"
+
+	var sb strings.Builder
+
+	for _, c := range p.CreateDriverRequest.Cpf {
+		if unicode.IsDigit(c) {
+			sb.WriteRune(c)
+		}
+	}
 	return db.CreateUserParams{
 		Name:  p.CreateDriverRequest.Name,
 		Email: p.CreateDriverRequest.Email,
@@ -190,7 +200,7 @@ func (p CreateDriverDto) ParseToCreateUserParams(driverId int64) db.CreateUserPa
 			Valid:  true,
 		},
 		Document: sql.NullString{
-			String: p.CreateDriverRequest.Cpf,
+			String: sb.String(),
 			Valid:  true,
 		},
 		ProfileID: sql.NullInt64{
@@ -200,6 +210,10 @@ func (p CreateDriverDto) ParseToCreateUserParams(driverId int64) db.CreateUserPa
 		DriverID: sql.NullInt64{
 			Int64: driverId,
 			Valid: true,
+		},
+		GoogleID: sql.NullString{
+			String: "",
+			Valid:  true,
 		},
 	}
 }
