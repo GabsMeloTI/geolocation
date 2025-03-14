@@ -21,9 +21,10 @@ type Client struct {
 }
 
 type Message struct {
-	RoomId      int64  `json:"room_id"`
-	Content     string `json:"content"`
-	TypeMessage string `json:"type_message"`
+	RoomId       int64  `json:"room_id"`
+	Content      string `json:"content"`
+	TypeMessage  string `json:"type_message"`
+	FirstMessage bool   `json:"first_message"`
 }
 
 type OutgoingMessage struct {
@@ -143,6 +144,23 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			}
 			continue
 		}
+
+		if msg.FirstMessage {
+			for id := range hub.Rooms[msg.RoomId].Participants {
+				if id != c.UserId {
+					home, err := s.GetHomeService(context.Background(), hub.Clients[id].Payload)
+					if err != nil {
+						log.Println("error to get user home")
+						continue
+					}
+					err = hub.Clients[id].Conn.WriteJSON(home)
+					if err != nil {
+						return
+					}
+				}
+			}
+		}
+
 		data, err := s.CreateChatMessageService(context.Background(), msg, c)
 		if err != nil {
 			log.Println("error in create chat message service")

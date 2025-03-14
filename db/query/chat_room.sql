@@ -21,9 +21,9 @@ SELECT
     a.destination, 
     a.distance, 
     a.title,
-    (SELECT COALESCE(SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END), 0)::bigint  
+    (SELECT COUNT(m.is_read) 
      FROM chat_messages m
-     WHERE m.room_id = r.id) AS unread_count
+     WHERE m.room_id = r.id and m.is_read = FALSE and m.user_id != $1) AS unread_count
 FROM chat_rooms r
 JOIN "advertisement" a ON a.id = r.advertisement_id
 WHERE r.interested_user_id = $1;
@@ -38,12 +38,13 @@ SELECT
     a.destination, 
     a.distance, 
     a.title,
-    (SELECT COALESCE(SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END), 0)::bigint  
-     FROM chat_messages m
-     WHERE m.room_id = r.id) AS unread_count
-FROM chat_rooms r
+  COUNT(m.is_read) FILTER(WHERE m.is_read = FALSE AND m.user_id !=$1) as unread_count
+    FROM chat_rooms r
+JOIN "chat_messages" m ON m.room_id = r.id
 JOIN "advertisement" a ON a.id = r.advertisement_id
-WHERE r.advertisement_user_id = $1;
+WHERE r.advertisement_user_id = $1
+AND EXISTS (SELECT 1 FROM chat_messages cm WHERE cm.room_id = r.id)
+GROUP BY r.id, a.id;
 
 -- name: GetChatRoomByAdvertisementAndInterestedUser :one
 select r.* from chat_rooms r
