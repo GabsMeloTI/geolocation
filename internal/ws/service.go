@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	db "geolocation/db/sqlc"
@@ -159,8 +158,6 @@ func (s *Service) GetHomeService(
 	res.TotalCount = totalCount
 
 	if err != nil {
-		fmt.Println(err)
-		fmt.Println("deu erro no total count")
 		return res, err
 	}
 
@@ -211,8 +208,6 @@ func (s *Service) GetHomeService(
 		payload.ID,
 	)
 	if err != nil {
-		fmt.Println("deu erro no anunciante")
-		fmt.Println(err)
 		return res, err
 	}
 
