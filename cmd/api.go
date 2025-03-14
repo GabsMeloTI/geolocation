@@ -173,6 +173,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 	address.GET("/state", container.HandlerAddress.FindStateAll)
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
+	address.GET("/find/cep/:cep", container.HandlerAddress.FindAddressByCEPHandler)
 
 	e.GET(
 		"/token",

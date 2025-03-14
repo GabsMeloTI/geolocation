@@ -10,6 +10,57 @@ import (
 	"database/sql"
 )
 
+const findAddressGroupedByCEP = `-- name: FindAddressGroupedByCEP :many
+SELECT
+    c.name AS city_name,
+    st.uf AS state_uf,
+    n.name as neighborhood_name,
+    s.name as street_name
+FROM addresses a
+         JOIN streets s ON a.street_id = s.id
+         LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
+         JOIN cities c ON n.city_id = c.id
+         JOIN states st ON c.state_id = st.id
+WHERE a.cep = $1
+GROUP BY c.name, st.uf,  n.name, s.name
+LIMIT 100
+`
+
+type FindAddressGroupedByCEPRow struct {
+	CityName         string         `json:"city_name"`
+	StateUf          string         `json:"state_uf"`
+	NeighborhoodName sql.NullString `json:"neighborhood_name"`
+	StreetName       string         `json:"street_name"`
+}
+
+func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep string) ([]FindAddressGroupedByCEPRow, error) {
+	rows, err := q.db.QueryContext(ctx, findAddressGroupedByCEP, cep)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindAddressGroupedByCEPRow
+	for rows.Next() {
+		var i FindAddressGroupedByCEPRow
+		if err := rows.Scan(
+			&i.CityName,
+			&i.StateUf,
+			&i.NeighborhoodName,
+			&i.StreetName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findAddressesByCEP = `-- name: FindAddressesByCEP :many
 SELECT
     a.id AS address_id,
@@ -28,6 +79,7 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
+limit 100
 `
 
 type FindAddressesByCEPRow struct {
@@ -95,6 +147,7 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 ORDER BY (a.lat - $1) * (a.lat - $1) + (a.lon - $2) * (a.lon - $2) ASC
+limit 100
 `
 
 type FindAddressesByLatLonParams struct {
@@ -174,6 +227,7 @@ WHERE
   AND (n.search_vector @@ plainto_tsquery('portuguese', $4) OR $4 = '')
   AND ($5 = '' OR a.number ILIKE $5 || '%')
 ORDER BY random()
+limit 100
 `
 
 type FindAddressesByQueryParams struct {
