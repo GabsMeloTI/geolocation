@@ -13,28 +13,14 @@ import (
 )
 
 type InterfaceService interface {
-	CreateAdvertisementService(
-		ctx context.Context,
-		data CreateAdvertisementDto,
-		idProfile int64,
-	) (AdvertisementResponse, error)
-	UpdateAdvertisementService(
-		ctx context.Context,
-		data UpdateAdvertisementDto,
-		idProfile int64,
-	) (AdvertisementResponse, error)
+	CreateAdvertisementService(ctx context.Context, data CreateAdvertisementDto, idProfile int64) (AdvertisementResponse, error)
+	UpdateAdvertisementService(ctx context.Context, data UpdateAdvertisementDto, idProfile int64) (AdvertisementResponse, error)
 	DeleteAdvertisementService(ctx context.Context, data DeleteAdvertisementRequest) error
 	GetAllAdvertisementUser(ctx context.Context) ([]AdvertisementResponseAll, error)
 	GetAllAdvertisementPublic(ctx context.Context) ([]AdvertisementResponseNoUser, error)
-	UpdatedAdvertisementFinishedCreate(
-		ctx context.Context,
-		data UpdatedAdvertisementFinishedCreate,
-		idProfile int64,
-	) (ResponseUpdatedAdvertisementFinishedCreate, error)
+	UpdatedAdvertisementFinishedCreate(ctx context.Context, data UpdatedAdvertisementFinishedCreate, idProfile int64) (ResponseUpdatedAdvertisementFinishedCreate, error)
 	GetAllAdvertisementByUser(ctx context.Context, id int64) ([]AdvertisementResponseAll, error)
-	UpdateAdsRouteChooseService(
-		ctx context.Context, data UpdateAdsRouteChooseDTO,
-	) error
+	UpdateAdsRouteChooseService(ctx context.Context, data UpdateAdsRouteChooseDTO) error
 	GetAdvertisementByIDService(ctx context.Context, id int64) (AdvertisementResponseAll, error)
 	GetAdvertisementByIDPublicService(ctx context.Context, id int64) (AdvertisementResponseNoUser, error)
 }
