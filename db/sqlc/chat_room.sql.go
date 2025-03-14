@@ -51,7 +51,7 @@ SELECT
     a.destination, 
     a.distance, 
     a.title,
-    COALASCE((SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END)
+    COALESCE((SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END)
      FROM chat_messages m
      WHERE m.room_id = r.id),0::bigint)::bigint AS unread_count
 FROM chat_rooms r
@@ -178,7 +178,7 @@ SELECT
     a.destination, 
     a.distance, 
     a.title,
-   COALASCE( (SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END)
+   COALESCE( (SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> $1 THEN 1 ELSE 0 END)
      FROM chat_messages m
      WHERE m.room_id = r.id),0::bigint)::bigint AS unread_count
 FROM chat_rooms r
