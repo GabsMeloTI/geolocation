@@ -5,6 +5,7 @@ import (
 	"fmt"
 	db "geolocation/db/sqlc"
 	"geolocation/infra/token"
+	"log"
 	"strconv"
 	"sync"
 )
@@ -26,11 +27,13 @@ func NewPaymentService(InterfaceService InterfaceRepository, maker token.Maker) 
 }
 
 func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, event map[string]interface{}) (PaymentHistResponse, error) {
+	log.Println("ProcessStripeEvent")
 	var payment CreatePaymentHistRequest
 	var userID int64
 
 	switch eventType {
 	case "checkout.session.completed":
+		log.Println("payment.UserID:", payment.UserID)
 		payment = extractCheckoutSessionData(event)
 
 		decryptedUserID, err := p.maker.VerifyTokenUserID(payment.UserID)

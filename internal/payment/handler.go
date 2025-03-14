@@ -45,9 +45,8 @@ func (p *Handler) StripeWebhookHandler(c echo.Context) error {
 		log.Printf("2:%s\n", err.Error())
 		return c.JSON(http.StatusBadRequest, "Invalid JSON format")
 	}
-	log.Println(true)
-	log.Printf("Recebido event: %#v\n", event["type"].(string))
-	log.Println(true)
+	log.Printf("Recebido event: %#v\n", event)
+	log.Printf("Recebido event.type: %#v\n", event["type"].(string))
 	eventType, ok := event["type"].(string)
 	if !ok {
 		log.Printf("%d\n", http.StatusBadRequest)
