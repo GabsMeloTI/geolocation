@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+
 	db "geolocation/db/sqlc"
 	"geolocation/internal/advertisement"
 	"geolocation/internal/get_token"
@@ -11,13 +13,26 @@ import (
 )
 
 type InterfaceService interface {
-	CreateChatRoomService(ctx context.Context, data CreateChatRoomRequest, userId int64) (CreateChatRoomResponse, error)
+	CreateChatRoomService(
+		ctx context.Context,
+		data CreateChatRoomRequest,
+		userId int64,
+	) (CreateChatRoomResponse, error)
 	CreateChatMessageService(ctx context.Context, msg *Message, cl *Client) (db.ChatMessage, error)
 	GetRoomService(ctx context.Context, id int64) (Room, error)
 	GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) (HomeResponse, error)
-	GetChatMessagesByRoomIdService(ctx context.Context, roomId int64, userId int64) ([]MessageResponse, error)
+	GetChatMessagesByRoomIdService(
+		ctx context.Context,
+		roomId int64,
+		userId int64,
+	) ([]MessageResponse, error)
 	UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error
-	FreightLocationDetailsService(ctx context.Context, data UpdateFreightData, userId int64) (FreightLocationDetailsResponse, error)
+	FreightLocationDetailsService(
+		ctx context.Context,
+		data UpdateFreightData,
+		userId int64,
+	) (FreightLocationDetailsResponse, error)
+	ReadMessagesService(ctx context.Context, msg *Message, cl *Client) (time.Time, error)
 }
 
 type Service struct {
@@ -26,7 +41,10 @@ type Service struct {
 	InterfaceAdvertisement advertisement.InterfaceRepository
 }
 
-func NewWsService(interfaceService InterfaceRepository, InterfaceAdvertisement advertisement.InterfaceRepository, ServiceRoutes new_routes.InterfaceService,
+func NewWsService(
+	interfaceService InterfaceRepository,
+	InterfaceAdvertisement advertisement.InterfaceRepository,
+	ServiceRoutes new_routes.InterfaceService,
 ) *Service {
 	return &Service{
 		InterfaceService:       interfaceService,
@@ -35,23 +53,29 @@ func NewWsService(interfaceService InterfaceRepository, InterfaceAdvertisement a
 	}
 }
 
-func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoomRequest, userId int64) (CreateChatRoomResponse, error) {
-
+func (s *Service) CreateChatRoomService(
+	ctx context.Context,
+	data CreateChatRoomRequest,
+	userId int64,
+) (CreateChatRoomResponse, error) {
 	a, err := s.InterfaceAdvertisement.GetAdvertisementById(ctx, data.AdvertisementID)
-
 	if err != nil {
 		return CreateChatRoomResponse{}, err
 	}
 
 	if a.UserID == userId {
-		return CreateChatRoomResponse{}, errors.New("you cannot create a room to your own advertisement")
+		return CreateChatRoomResponse{}, errors.New(
+			"you cannot create a room to your own advertisement",
+		)
 	}
 
-	ok, err := s.InterfaceService.GetChatRoomByAdvertisementAndInterestedUserRepository(ctx, db.GetChatRoomByAdvertisementAndInterestedUserParams{
-		AdvertisementID:  data.AdvertisementID,
-		InterestedUserID: userId,
-	})
-
+	ok, err := s.InterfaceService.GetChatRoomByAdvertisementAndInterestedUserRepository(
+		ctx,
+		db.GetChatRoomByAdvertisementAndInterestedUserParams{
+			AdvertisementID:  data.AdvertisementID,
+			InterestedUserID: userId,
+		},
+	)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return CreateChatRoomResponse{}, err
@@ -67,7 +91,6 @@ func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoom
 		AdvertisementUserID: a.UserID,
 		InterestedUserID:    userId,
 	})
-
 	if err != nil {
 		return CreateChatRoomResponse{}, err
 	}
@@ -77,23 +100,29 @@ func (s *Service) CreateChatRoomService(ctx context.Context, data CreateChatRoom
 	return res, nil
 }
 
-func (s *Service) CreateChatMessageService(ctx context.Context, msg *Message, cl *Client) (db.ChatMessage, error) {
-	chatMessage, err := s.InterfaceService.CreateChatMessageRepository(ctx, db.CreateChatMessageParams{
-		RoomID: sql.NullInt64{
-			Int64: msg.RoomId,
-			Valid: true,
+func (s *Service) CreateChatMessageService(
+	ctx context.Context,
+	msg *Message,
+	cl *Client,
+) (db.ChatMessage, error) {
+	chatMessage, err := s.InterfaceService.CreateChatMessageRepository(
+		ctx,
+		db.CreateChatMessageParams{
+			RoomID: sql.NullInt64{
+				Int64: msg.RoomId,
+				Valid: true,
+			},
+			UserID: sql.NullInt64{
+				Int64: cl.UserId,
+				Valid: true,
+			},
+			Content: msg.Content,
+			TypeMessage: sql.NullString{
+				String: msg.TypeMessage,
+				Valid:  msg.TypeMessage != "",
+			},
 		},
-		UserID: sql.NullInt64{
-			Int64: cl.UserId,
-			Valid: true,
-		},
-		Content: msg.Content,
-		TypeMessage: sql.NullString{
-			String: msg.TypeMessage,
-			Valid:  msg.TypeMessage != "",
-		},
-	})
-
+	)
 	if err != nil {
 		return db.ChatMessage{}, err
 	}
@@ -103,7 +132,6 @@ func (s *Service) CreateChatMessageService(ctx context.Context, msg *Message, cl
 
 func (s *Service) GetRoomService(ctx context.Context, id int64) (Room, error) {
 	chatRoom, err := s.InterfaceService.GetChatRoomByIdRepository(ctx, id)
-
 	if err != nil {
 		return Room{}, err
 	}
@@ -118,14 +146,23 @@ func (s *Service) GetRoomService(ctx context.Context, id int64) (Room, error) {
 	room.Participants[chatRoom.AdvertisementUserID] = true
 
 	return room, nil
-
 }
 
-func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadUserDTO) (HomeResponse, error) {
+func (s *Service) GetHomeService(
+	ctx context.Context,
+	payload get_token.PayloadUserDTO,
+) (HomeResponse, error) {
 	var res HomeResponse
 
-	lastMessages, err := s.InterfaceService.GetLastChatMessageRepository(ctx, payload.ID)
+	totalCount, err := s.InterfaceService.GetUnreadMessagesCountRepository(ctx, payload.ID)
 
+	res.TotalCount = totalCount
+
+	if err != nil {
+		return res, err
+	}
+
+	lastMessages, err := s.InterfaceService.GetLastChatMessageRepository(ctx, payload.ID)
 	if err != nil {
 		return res, err
 	}
@@ -145,7 +182,6 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 	}
 
 	interestedChatRooms, err := s.InterfaceService.GetInterestedChatRoomsRepository(ctx, payload.ID)
-
 	if err != nil {
 		return res, err
 	}
@@ -163,12 +199,15 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 			AdvertisementUserId: i.AdvertisementUserID,
 			AdvertisementId:     i.AdvertisementID,
 			Distance:            i.Distance,
+			UnreadCount:         i.UnreadCount,
 			LastMessage:         lastMessage,
 		})
 	}
 
-	advertisementChatRooms, err := s.InterfaceService.GetAdvertisementChatRoomsRepository(ctx, payload.ID)
-
+	advertisementChatRooms, err := s.InterfaceService.GetAdvertisementChatRoomsRepository(
+		ctx,
+		payload.ID,
+	)
 	if err != nil {
 		return res, err
 	}
@@ -186,12 +225,12 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 			AdvertisementUserId: a.AdvertisementUserID,
 			AdvertisementId:     a.AdvertisementID,
 			Distance:            a.Distance,
+			UnreadCount:         a.UnreadCount,
 			LastMessage:         lastMessage,
 		})
 	}
 
 	activeFreights, err := s.InterfaceService.GetAllActiveFreightsRepository(ctx, payload.ID)
-
 	if err != nil {
 		return res, err
 	}
@@ -214,15 +253,21 @@ func (s *Service) GetHomeService(ctx context.Context, payload get_token.PayloadU
 	return res, nil
 }
 
-func (s *Service) GetChatMessagesByRoomIdService(ctx context.Context, roomId int64, userId int64) ([]MessageResponse, error) {
-	chatMessages, err := s.InterfaceService.GetChatMessagesByRoomIdRepository(ctx, db.GetChatMessagesByRoomIdParams{
-		RoomID: sql.NullInt64{
-			Int64: roomId,
-			Valid: true,
+func (s *Service) GetChatMessagesByRoomIdService(
+	ctx context.Context,
+	roomId int64,
+	userId int64,
+) ([]MessageResponse, error) {
+	chatMessages, err := s.InterfaceService.GetChatMessagesByRoomIdRepository(
+		ctx,
+		db.GetChatMessagesByRoomIdParams{
+			RoomID: sql.NullInt64{
+				Int64: roomId,
+				Valid: true,
+			},
+			UserID: userId,
 		},
-		UserID: userId,
-	})
-
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -245,14 +290,18 @@ func (s *Service) GetChatMessagesByRoomIdService(ctx context.Context, roomId int
 	return messages, nil
 }
 
-func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOfferDTO, hub *Hub) error {
+func (s *Service) UpdateMessageOfferService(
+	ctx context.Context,
+	data UpdateOfferDTO,
+	hub *Hub,
+) error {
 	r, err := s.InterfaceService.GetRoomByMessageIdRepository(ctx, data.Request.MessageId)
-
 	if err != nil {
 		return err
 	}
 
-	if r.AdvertisementUserID != data.Payload.ID || r.TypeMessage.String != "offer" || r.IsAccepted.Bool {
+	if r.AdvertisementUserID != data.Payload.ID || r.TypeMessage.String != "offer" ||
+		r.IsAccepted.Bool {
 		return errors.New("invalid offer")
 	}
 
@@ -263,31 +312,40 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 		},
 		ID: data.Request.MessageId,
 	})
-
 	if err != nil {
 		return err
 	}
 
-	offer, err := s.InterfaceService.CreateOfferRepository(ctx, data.ToCreateOfferParams(r.InterestedUserID))
-
+	offer, err := s.InterfaceService.CreateOfferRepository(
+		ctx,
+		data.ToCreateOfferParams(r.InterestedUserID),
+	)
 	if err != nil {
 		return err
 	}
 
-	err = s.InterfaceService.UpdateAdvertisementSituationRepository(ctx, data.ToUpdateAdvertisementSituationParams())
-
+	err = s.InterfaceService.UpdateAdvertisementSituationRepository(
+		ctx,
+		data.ToUpdateAdvertisementSituationParams(),
+	)
 	if err != nil {
 		return err
 	}
 
 	truck, err := s.InterfaceService.CreateTruckRepository(ctx, data.ToCreateTruckParams())
-
 	if err != nil {
 		return err
 	}
 
-	_, err = s.InterfaceService.CreateAppointmentRepository(ctx, data.ToCreateAppointmentParams(r.AdvertisementUserID, r.InterestedUserID, offer.ID, truck.ID))
-
+	_, err = s.InterfaceService.CreateAppointmentRepository(
+		ctx,
+		data.ToCreateAppointmentParams(
+			r.AdvertisementUserID,
+			r.InterestedUserID,
+			offer.ID,
+			truck.ID,
+		),
+	)
 	if err != nil {
 		return err
 	}
@@ -307,9 +365,15 @@ func (s *Service) UpdateMessageOfferService(ctx context.Context, data UpdateOffe
 	return nil
 }
 
-func (s *Service) FreightLocationDetailsService(ctx context.Context, data UpdateFreightData, userId int64) (FreightLocationDetailsResponse, error) {
-	freightDetails, err := s.InterfaceService.GetAppointmentDetailsByAdvertisementIdRepository(ctx, data.AdvertisementId)
-
+func (s *Service) FreightLocationDetailsService(
+	ctx context.Context,
+	data UpdateFreightData,
+	userId int64,
+) (FreightLocationDetailsResponse, error) {
+	freightDetails, err := s.InterfaceService.GetAppointmentDetailsByAdvertisementIdRepository(
+		ctx,
+		data.AdvertisementId,
+	)
 	if err != nil {
 		return FreightLocationDetailsResponse{}, err
 	}
@@ -324,20 +388,20 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 		DestLat:   freightDetails.DestinationLat.Float64,
 		DestLng:   freightDetails.DestinationLng.Float64,
 	})
-
 	if err != nil {
 		return FreightLocationDetailsResponse{}, err
 	}
 
 	activeFreight, err := s.InterfaceService.GetActiveFreightRepository(ctx, data.AdvertisementId)
-
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return FreightLocationDetailsResponse{}, err
 		}
 		if errors.Is(err, sql.ErrNoRows) {
-			err = s.InterfaceService.CreateActiveFreightRepository(ctx, data.ToCreateActiveFreightParams(route, freightDetails))
-
+			err = s.InterfaceService.CreateActiveFreightRepository(
+				ctx,
+				data.ToCreateActiveFreightParams(route, freightDetails),
+			)
 			if err != nil {
 				return FreightLocationDetailsResponse{}, err
 			}
@@ -345,8 +409,10 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 	}
 
 	if activeFreight.ID != 0 {
-		err = s.InterfaceService.UpdateActiveFreightRepository(ctx, data.ToUpdateActiveFreightParams(route, activeFreight.ID))
-
+		err = s.InterfaceService.UpdateActiveFreightRepository(
+			ctx,
+			data.ToUpdateActiveFreightParams(route, activeFreight.ID),
+		)
 		if err != nil {
 			return FreightLocationDetailsResponse{}, err
 		}
@@ -360,4 +426,26 @@ func (s *Service) FreightLocationDetailsService(ctx context.Context, data Update
 		TractorUnitLicensePlate: freightDetails.TractorUnitLicensePlate.String,
 		TrailerLicensePlate:     freightDetails.TrailerLicensePlate.String,
 	}, nil
+}
+
+func (s *Service) ReadMessagesService(
+	ctx context.Context,
+	msg *Message,
+	cl *Client,
+) (time.Time, error) {
+	readAt, err := s.InterfaceService.ReadChatMessagesRepository(ctx, db.ReadMessagesParams{
+		UserID: sql.NullInt64{
+			Int64: cl.UserId,
+			Valid: true,
+		},
+		RoomID: sql.NullInt64{
+			Int64: msg.RoomId,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return readAt, nil
 }
