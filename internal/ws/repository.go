@@ -3,29 +3,69 @@ package ws
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	db "geolocation/db/sqlc"
 )
 
 type InterfaceRepository interface {
-	CreateChatRoomRepository(ctx context.Context, params db.CreateChatRoomParams) (db.ChatRoom, error)
-	CreateChatMessageRepository(ctx context.Context, params db.CreateChatMessageParams) (db.ChatMessage, error)
+	CreateChatRoomRepository(
+		ctx context.Context,
+		params db.CreateChatRoomParams,
+	) (db.ChatRoom, error)
+	CreateChatMessageRepository(
+		ctx context.Context,
+		params db.CreateChatMessageParams,
+	) (db.ChatMessage, error)
 	GetChatRoomByIdRepository(ctx context.Context, id int64) (db.GetChatRoomByIdRow, error)
-	GetInterestedChatRoomsRepository(ctx context.Context, id int64) ([]db.GetInterestedChatRoomsRow, error)
-	GetAdvertisementChatRoomsRepository(ctx context.Context, arg int64) ([]db.GetAdvertisementChatRoomsRow, error)
-	GetChatMessagesByRoomIdRepository(ctx context.Context, arg db.GetChatMessagesByRoomIdParams) ([]db.GetChatMessagesByRoomIdRow, error)
-	GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error)
-	GetRoomByMessageIdRepository(ctx context.Context, messageId int64) (db.GetRoomByMessageIdRow, error)
+	GetInterestedChatRoomsRepository(
+		ctx context.Context,
+		id int64,
+	) ([]db.GetInterestedChatRoomsRow, error)
+	GetAdvertisementChatRoomsRepository(
+		ctx context.Context,
+		arg int64,
+	) ([]db.GetAdvertisementChatRoomsRow, error)
+	GetChatMessagesByRoomIdRepository(
+		ctx context.Context,
+		arg db.GetChatMessagesByRoomIdParams,
+	) ([]db.GetChatMessagesByRoomIdRow, error)
+	GetLastChatMessageRepository(
+		ctx context.Context,
+		userId int64,
+	) ([]db.GetLastMessageByRoomIdRow, error)
+	GetRoomByMessageIdRepository(
+		ctx context.Context,
+		messageId int64,
+	) (db.GetRoomByMessageIdRow, error)
 	UpdateMessageStatusRepository(ctx context.Context, arg db.UpdateMessageStatusParams) error
 	CreateOfferRepository(ctx context.Context, arg db.CreateOfferParams) (db.Offer, error)
-	UpdateAdvertisementSituationRepository(ctx context.Context, arg db.UpdateAdvertisementSituationParams) error
+	UpdateAdvertisementSituationRepository(
+		ctx context.Context,
+		arg db.UpdateAdvertisementSituationParams,
+	) error
 	CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error)
-	CreateAppointmentRepository(ctx context.Context, arg db.CreateAppointmentParams) (db.Appointment, error)
-	GetAppointmentDetailsByAdvertisementIdRepository(ctx context.Context, advertisementId int64) (db.GetAppointmentDetailsByAdvertisementIdRow, error)
+	CreateAppointmentRepository(
+		ctx context.Context,
+		arg db.CreateAppointmentParams,
+	) (db.Appointment, error)
+	GetAppointmentDetailsByAdvertisementIdRepository(
+		ctx context.Context,
+		advertisementId int64,
+	) (db.GetAppointmentDetailsByAdvertisementIdRow, error)
 	CreateActiveFreightRepository(ctx context.Context, arg db.CreateActiveFreightParams) error
 	UpdateActiveFreightRepository(ctx context.Context, arg db.UpdateActiveFreightParams) error
-	GetAllActiveFreightsRepository(ctx context.Context, advertisementId int64) ([]db.ActiveFreight, error)
+	GetAllActiveFreightsRepository(
+		ctx context.Context,
+		advertisementId int64,
+	) ([]db.ActiveFreight, error)
 	GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error)
-	GetChatRoomByAdvertisementAndInterestedUserRepository(ctx context.Context, arg db.GetChatRoomByAdvertisementAndInterestedUserParams) (db.ChatRoom, error)
+	GetChatRoomByAdvertisementAndInterestedUserRepository(
+		ctx context.Context,
+		arg db.GetChatRoomByAdvertisementAndInterestedUserParams,
+	) (db.ChatRoom, error)
+	ReadChatMessagesRepository(ctx context.Context, arg db.ReadMessagesParams) (time.Time, error)
+	GetUnreadMessagesCountRepository(ctx context.Context, userId int64) (int64, error)
 }
 
 type Repository struct {
@@ -45,78 +85,166 @@ func NewWsRepository(Conn *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) CreateChatRoomRepository(ctx context.Context, params db.CreateChatRoomParams) (db.ChatRoom, error) {
+func (r *Repository) CreateChatRoomRepository(
+	ctx context.Context,
+	params db.CreateChatRoomParams,
+) (db.ChatRoom, error) {
 	return r.Queries.CreateChatRoom(ctx, params)
 }
 
-func (r *Repository) CreateChatMessageRepository(ctx context.Context, params db.CreateChatMessageParams) (db.ChatMessage, error) {
+func (r *Repository) CreateChatMessageRepository(
+	ctx context.Context,
+	params db.CreateChatMessageParams,
+) (db.ChatMessage, error) {
 	return r.Queries.CreateChatMessage(ctx, params)
 }
 
-func (r *Repository) GetChatRoomByIdRepository(ctx context.Context, id int64) (db.GetChatRoomByIdRow, error) {
+func (r *Repository) GetChatRoomByIdRepository(
+	ctx context.Context,
+	id int64,
+) (db.GetChatRoomByIdRow, error) {
 	return r.Queries.GetChatRoomById(ctx, id)
 }
 
-func (r *Repository) GetInterestedChatRoomsRepository(ctx context.Context, id int64) ([]db.GetInterestedChatRoomsRow, error) {
-	return r.Queries.GetInterestedChatRooms(ctx, id)
+func (r *Repository) GetInterestedChatRoomsRepository(
+	ctx context.Context,
+	id int64,
+) ([]db.GetInterestedChatRoomsRow, error) {
+	userId := sql.NullInt64{
+		Int64: id,
+		Valid: true,
+	}
+	return r.Queries.GetInterestedChatRooms(ctx, userId)
 }
 
-func (r *Repository) GetAdvertisementChatRoomsRepository(ctx context.Context, arg int64) ([]db.GetAdvertisementChatRoomsRow, error) {
-	return r.Queries.GetAdvertisementChatRooms(ctx, arg)
+func (r *Repository) GetAdvertisementChatRoomsRepository(
+	ctx context.Context,
+	arg int64,
+) ([]db.GetAdvertisementChatRoomsRow, error) {
+	userId := sql.NullInt64{
+		Int64: arg,
+		Valid: true,
+	}
+	return r.Queries.GetAdvertisementChatRooms(ctx, userId)
 }
 
-func (r *Repository) GetChatMessagesByRoomIdRepository(ctx context.Context, arg db.GetChatMessagesByRoomIdParams) ([]db.GetChatMessagesByRoomIdRow, error) {
+func (r *Repository) GetChatMessagesByRoomIdRepository(
+	ctx context.Context,
+	arg db.GetChatMessagesByRoomIdParams,
+) ([]db.GetChatMessagesByRoomIdRow, error) {
 	return r.Queries.GetChatMessagesByRoomId(ctx, arg)
 }
 
-func (r *Repository) GetLastChatMessageRepository(ctx context.Context, userId int64) ([]db.GetLastMessageByRoomIdRow, error) {
+func (r *Repository) GetLastChatMessageRepository(
+	ctx context.Context,
+	userId int64,
+) ([]db.GetLastMessageByRoomIdRow, error) {
 	return r.Queries.GetLastMessageByRoomId(ctx, userId)
 }
 
-func (r *Repository) GetRoomByMessageIdRepository(ctx context.Context, messageId int64) (db.GetRoomByMessageIdRow, error) {
+func (r *Repository) GetRoomByMessageIdRepository(
+	ctx context.Context,
+	messageId int64,
+) (db.GetRoomByMessageIdRow, error) {
 	return r.Queries.GetRoomByMessageId(ctx, messageId)
 }
 
-func (r *Repository) UpdateMessageStatusRepository(ctx context.Context, arg db.UpdateMessageStatusParams) error {
+func (r *Repository) UpdateMessageStatusRepository(
+	ctx context.Context,
+	arg db.UpdateMessageStatusParams,
+) error {
 	return r.Queries.UpdateMessageStatus(ctx, arg)
 }
 
-func (r *Repository) CreateOfferRepository(ctx context.Context, arg db.CreateOfferParams) (db.Offer, error) {
+func (r *Repository) CreateOfferRepository(
+	ctx context.Context,
+	arg db.CreateOfferParams,
+) (db.Offer, error) {
 	return r.Queries.CreateOffer(ctx, arg)
 }
 
-func (r *Repository) UpdateAdvertisementSituationRepository(ctx context.Context, arg db.UpdateAdvertisementSituationParams) error {
+func (r *Repository) UpdateAdvertisementSituationRepository(
+	ctx context.Context,
+	arg db.UpdateAdvertisementSituationParams,
+) error {
 	return r.Queries.UpdateAdvertisementSituation(ctx, arg)
 }
 
-func (r *Repository) CreateTruckRepository(ctx context.Context, arg db.CreateTruckParams) (db.Truck, error) {
+func (r *Repository) CreateTruckRepository(
+	ctx context.Context,
+	arg db.CreateTruckParams,
+) (db.Truck, error) {
 	return r.Queries.CreateTruck(ctx, arg)
 }
 
-func (r *Repository) CreateAppointmentRepository(ctx context.Context, arg db.CreateAppointmentParams) (db.Appointment, error) {
+func (r *Repository) CreateAppointmentRepository(
+	ctx context.Context,
+	arg db.CreateAppointmentParams,
+) (db.Appointment, error) {
 	return r.Queries.CreateAppointment(ctx, arg)
 }
 
-func (r *Repository) GetAppointmentDetailsByAdvertisementIdRepository(ctx context.Context, advertisementId int64) (db.GetAppointmentDetailsByAdvertisementIdRow, error) {
+func (r *Repository) GetAppointmentDetailsByAdvertisementIdRepository(
+	ctx context.Context,
+	advertisementId int64,
+) (db.GetAppointmentDetailsByAdvertisementIdRow, error) {
 	return r.Queries.GetAppointmentDetailsByAdvertisementId(ctx, advertisementId)
 }
 
-func (r *Repository) CreateActiveFreightRepository(ctx context.Context, arg db.CreateActiveFreightParams) error {
+func (r *Repository) CreateActiveFreightRepository(
+	ctx context.Context,
+	arg db.CreateActiveFreightParams,
+) error {
 	return r.Queries.CreateActiveFreight(ctx, arg)
 }
 
-func (r *Repository) UpdateActiveFreightRepository(ctx context.Context, arg db.UpdateActiveFreightParams) error {
+func (r *Repository) UpdateActiveFreightRepository(
+	ctx context.Context,
+	arg db.UpdateActiveFreightParams,
+) error {
 	return r.Queries.UpdateActiveFreight(ctx, arg)
 }
 
-func (r *Repository) GetAllActiveFreightsRepository(ctx context.Context, advertisementUserId int64) ([]db.ActiveFreight, error) {
+func (r *Repository) GetAllActiveFreightsRepository(
+	ctx context.Context,
+	advertisementUserId int64,
+) ([]db.ActiveFreight, error) {
 	return r.Queries.GetAllActiveFreights(ctx, advertisementUserId)
 }
 
-func (r *Repository) GetActiveFreightRepository(ctx context.Context, advertisementId int64) (db.ActiveFreight, error) {
+func (r *Repository) GetActiveFreightRepository(
+	ctx context.Context,
+	advertisementId int64,
+) (db.ActiveFreight, error) {
 	return r.Queries.GetActiveFreight(ctx, advertisementId)
 }
 
-func (r *Repository) GetChatRoomByAdvertisementAndInterestedUserRepository(ctx context.Context, arg db.GetChatRoomByAdvertisementAndInterestedUserParams) (db.ChatRoom, error) {
+func (r *Repository) GetChatRoomByAdvertisementAndInterestedUserRepository(
+	ctx context.Context,
+	arg db.GetChatRoomByAdvertisementAndInterestedUserParams,
+) (db.ChatRoom, error) {
 	return r.Queries.GetChatRoomByAdvertisementAndInterestedUser(ctx, arg)
+}
+
+func (r *Repository) ReadChatMessagesRepository(
+	ctx context.Context,
+	arg db.ReadMessagesParams,
+) (time.Time, error) {
+	readAt, err := r.Queries.ReadMessages(ctx, arg)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return readAt.Time, nil
+}
+
+func (r *Repository) GetUnreadMessagesCountRepository(
+	ctx context.Context,
+	id int64,
+) (int64, error) {
+	userId := sql.NullInt64{
+		Int64: id,
+		Valid: true,
+	}
+	return r.Queries.GetUnreadMessagesCount(ctx, userId)
 }

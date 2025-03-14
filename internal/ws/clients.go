@@ -3,10 +3,12 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"geolocation/internal/get_token"
-	"github.com/gorilla/websocket"
 	"log"
 	"time"
+
+	"github.com/gorilla/websocket"
+
+	"geolocation/internal/get_token"
 )
 
 type Client struct {
@@ -48,6 +50,13 @@ type UpdateFreightMessage struct {
 	TypeMessage             string  `json:"type_message"`
 }
 
+type ReadNotification struct {
+	RoomId      int64     `json:"room_id"`
+	UserId      int64     `json:"user_id"`
+	TypeMessage string    `json:"type_message"`
+	ReadAt      time.Time `json:"read_at"`
+}
+
 func (c *Client) writeMessage() {
 	defer func() {
 		err := c.Conn.Close()
@@ -83,14 +92,16 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		var msg *Message
 
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-
+			if websocket.IsUnexpectedCloseError(
+				err,
+				websocket.CloseGoingAway,
+				websocket.CloseAbnormalClosure,
+			) {
 			}
 			break
 		}
 
 		err = json.Unmarshal(m, &msg)
-
 		if err != nil {
 			log.Println("error to unmarshal message")
 			continue
@@ -99,7 +110,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		if _, ok := hub.Rooms[msg.RoomId]; !ok {
 			var room Room
 			room, err = s.GetRoomService(context.Background(), msg.RoomId)
-
 			if err != nil {
 				continue
 			}
@@ -110,8 +120,30 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 			continue
 		}
 
-		data, err := s.CreateChatMessageService(context.Background(), msg, c)
+		if msg.TypeMessage == "count" {
+			readAt, err := s.ReadMessagesService(context.Background(), msg, c)
+			if err != nil {
+				log.Println("error to read msg")
+				continue
+			}
 
+			for id := range hub.Rooms[msg.RoomId].Participants {
+				if id != c.UserId {
+					notification := ReadNotification{
+						RoomId:      msg.RoomId,
+						UserId:      c.UserId,
+						TypeMessage: "message_read",
+						ReadAt:      readAt,
+					}
+					err = hub.Clients[id].Conn.WriteJSON(notification)
+					if err != nil {
+						log.Println("error to write read notification message")
+					}
+				}
+			}
+			continue
+		}
+		data, err := s.CreateChatMessageService(context.Background(), msg, c)
 		if err != nil {
 			log.Println("error in create chat message service")
 			continue

@@ -30,3 +30,17 @@ WHERE id = $2;
 SELECT r.*, m.type_message, m.is_accepted FROM chat_messages m
 JOIN chat_rooms r ON r.id = m.room_id
 WHERE m.id = $1;
+
+-- name: ReadMessages :one
+UPDATE chat_messages
+SET is_read = true, read_at = now() 
+WHERE user_id != $1
+AND room_id = $2
+RETURNING read_at;
+
+-- name: GetUnreadMessagesCount :one
+SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> @user_id THEN 1 ELSE 0 END) AS unread_count
+FROM chat_rooms r
+JOIN chat_messages m ON m.room_id = r.id
+WHERE (r.advertisement_user_id = @user_id OR r.interested_user_id = @user_id);
+

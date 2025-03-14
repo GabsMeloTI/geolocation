@@ -8,7 +8,6 @@ import (
 	"geolocation/cmd"
 	_ "geolocation/docs"
 	"geolocation/infra"
-	"geolocation/pkg"
 )
 
 func main() {
@@ -23,6 +22,6 @@ func main() {
 	loadingEnv := infra.NewConfig()
 	container := infra.NewContainerDI(loadingEnv)
 
-	pkg.InitRedis(loadingEnv.Environment)
+	// pkg.InitRedis(loadingEnv.Environment)
 	cmd.StartAPI(ctx, container)
 }

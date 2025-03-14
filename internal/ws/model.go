@@ -2,10 +2,11 @@ package ws
 
 import (
 	"database/sql"
+	"time"
+
 	db "geolocation/db/sqlc"
 	"geolocation/internal/get_token"
 	routes "geolocation/internal/new_routes"
-	"time"
 )
 
 type CreateChatRoomRequest struct {
@@ -24,6 +25,7 @@ type HomeResponse struct {
 	Advertisement  []RoomResponse  `json:"advertisements"`
 	Interested     []RoomResponse  `json:"interested"`
 	ActiveFreights []ActiveFreight `json:"active_freights"`
+	TotalCount     int64           `json:"total_count"`
 }
 
 type ActiveFreight struct {
@@ -46,6 +48,7 @@ type RoomResponse struct {
 	AdvertisementId     int64            `json:"advertisement_id"`
 	Distance            int64            `json:"distance"`
 	LastMessage         *MessageResponse `json:"last_message,omitempty"`
+	UnreadCount         int64            `json:"unread_count"`
 }
 
 type MessageResponse struct {
@@ -59,7 +62,9 @@ type MessageResponse struct {
 	TypeMessage    string    `json:"type_message,omitempty"`
 }
 
-func (r CreateChatRoomRequest) ParseToCreateChatRoomResponse(room db.ChatRoom) CreateChatRoomResponse {
+func (r CreateChatRoomRequest) ParseToCreateChatRoomResponse(
+	room db.ChatRoom,
+) CreateChatRoomResponse {
 	return CreateChatRoomResponse{
 		ID:                  room.ID,
 		AdvertisementID:     room.AdvertisementID,
@@ -97,6 +102,7 @@ func (u UpdateOfferDTO) ToCreateOfferParams(interestedId int64) db.CreateOfferPa
 		},
 	}
 }
+
 func (u UpdateOfferDTO) ToUpdateAdvertisementSituationParams() db.UpdateAdvertisementSituationParams {
 	return db.UpdateAdvertisementSituationParams{
 		Situation: "inactive",
@@ -119,7 +125,9 @@ func (u UpdateOfferDTO) ToCreateTruckParams() db.CreateTruckParams {
 	}
 }
 
-func (u UpdateOfferDTO) ToCreateAppointmentParams(advertisementUserId, interestedUserId, offerId, truckId int64) db.CreateAppointmentParams {
+func (u UpdateOfferDTO) ToCreateAppointmentParams(
+	advertisementUserId, interestedUserId, offerId, truckId int64,
+) db.CreateAppointmentParams {
 	return db.CreateAppointmentParams{
 		AdvertisementUserID: advertisementUserId,
 		InterestedUserID:    interestedUserId,
@@ -145,7 +153,10 @@ type UpdateFreightData struct {
 	OriginLongitude float64 `json:"longitude"`
 }
 
-func (u UpdateFreightData) ToCreateActiveFreightParams(route routes.SimpleRouteResponse, freightDetails db.GetAppointmentDetailsByAdvertisementIdRow) db.CreateActiveFreightParams {
+func (u UpdateFreightData) ToCreateActiveFreightParams(
+	route routes.SimpleRouteResponse,
+	freightDetails db.GetAppointmentDetailsByAdvertisementIdRow,
+) db.CreateActiveFreightParams {
 	return db.CreateActiveFreightParams{
 		AdvertisementID:     u.AdvertisementId,
 		AdvertisementUserID: freightDetails.AdvertisementUserID.Int64,
@@ -165,7 +176,10 @@ func (u UpdateFreightData) ToCreateActiveFreightParams(route routes.SimpleRouteR
 	}
 }
 
-func (u UpdateFreightData) ToUpdateActiveFreightParams(route routes.SimpleRouteResponse, freightId int64) db.UpdateActiveFreightParams {
+func (u UpdateFreightData) ToUpdateActiveFreightParams(
+	route routes.SimpleRouteResponse,
+	freightId int64,
+) db.UpdateActiveFreightParams {
 	return db.UpdateActiveFreightParams{
 		Latitude:  u.OriginLatitude,
 		Longitude: u.OriginLongitude,
@@ -173,5 +187,4 @@ func (u UpdateFreightData) ToUpdateActiveFreightParams(route routes.SimpleRouteR
 		Distance:  route.Summary.SimpleRoute.Distance.Text,
 		ID:        freightId,
 	}
-
 }
