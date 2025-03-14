@@ -155,7 +155,6 @@ func (s *Service) GetHomeService(
 	var res HomeResponse
 
 	totalCount, err := s.InterfaceService.GetUnreadMessagesCountRepository(ctx, payload.ID)
-
 	res.TotalCount = totalCount
 
 	if err != nil {

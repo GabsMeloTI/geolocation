@@ -39,7 +39,10 @@ AND room_id = $2
 RETURNING read_at;
 
 -- name: GetUnreadMessagesCount :one
-SELECT SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> @user_id THEN 1 ELSE 0 END) AS unread_count
+SELECT COALESCE(
+    SUM(CASE WHEN m.is_read = FALSE AND m.user_id <> @user_id THEN 1 ELSE 0 END), 
+    0
+)::bigint AS unread_count
 FROM chat_rooms r
 JOIN chat_messages m ON m.room_id = r.id
 WHERE (r.advertisement_user_id = @user_id OR r.interested_user_id = @user_id);
