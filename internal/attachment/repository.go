@@ -7,9 +7,10 @@ import (
 )
 
 type InterfaceRepository interface {
-	GetAttachmentById(ctx context.Context, arg int64) (db.Attachment, error)
+	GetAttachmentById(ctx context.Context, arg db.GetAttachmentByIdParams) (db.Attachment, error)
 	CreateAttachments(ctx context.Context, arg db.CreateAttachmentsParams) (db.Attachment, error)
-	UpdateAttachmentLogicDelete(ctx context.Context, arg int64) error
+	UpdateAttachmentLogicDelete(ctx context.Context, arg db.UpdateAttachmentLogicDeleteParams) error
+	UpdateProfilePictureByUserId(ctx context.Context, arg db.UpdateProfilePictureByUserIdParams) error
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -28,12 +29,15 @@ func NewAttachmentRepository(Conn *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) GetAttachmentById(ctx context.Context, arg int64) (db.Attachment, error) {
+func (r *Repository) GetAttachmentById(ctx context.Context, arg db.GetAttachmentByIdParams) (db.Attachment, error) {
 	return r.Queries.GetAttachmentById(ctx, arg)
 }
 func (r *Repository) CreateAttachments(ctx context.Context, arg db.CreateAttachmentsParams) (db.Attachment, error) {
 	return r.Queries.CreateAttachments(ctx, arg)
 }
-func (r *Repository) UpdateAttachmentLogicDelete(ctx context.Context, arg int64) error {
+func (r *Repository) UpdateAttachmentLogicDelete(ctx context.Context, arg db.UpdateAttachmentLogicDeleteParams) error {
 	return r.Queries.UpdateAttachmentLogicDelete(ctx, arg)
+}
+func (r *Repository) UpdateProfilePictureByUserId(ctx context.Context, arg db.UpdateProfilePictureByUserIdParams) error {
+	return r.Queries.UpdateProfilePictureByUserId(ctx, arg)
 }

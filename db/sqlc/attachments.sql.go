@@ -12,9 +12,9 @@ import (
 
 const createAttachments = `-- name: CreateAttachments :one
 INSERT INTO public.attachments
-(id, user_id, description, url, name_file, size_file, status, created_at)
-VALUES(nextval('attachments_id_seq'::regclass), $1, $2, $3, $4, $5, true, now())
-    RETURNING id, user_id, description, url, name_file, size_file, status, created_at, updated_at
+(id, user_id, description, url, name_file, size_file, type, status, created_at)
+VALUES(nextval('attachments_id_seq'::regclass), $1, $2, $3, $4, $5, $6, true, now())
+    RETURNING id, user_id, description, url, name_file, size_file, type, status, created_at, updated_at
 `
 
 type CreateAttachmentsParams struct {
@@ -23,6 +23,7 @@ type CreateAttachmentsParams struct {
 	Url         string         `json:"url"`
 	NameFile    sql.NullString `json:"name_file"`
 	SizeFile    sql.NullInt64  `json:"size_file"`
+	Type        string         `json:"type"`
 }
 
 func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsParams) (Attachment, error) {
@@ -32,6 +33,7 @@ func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsPa
 		arg.Url,
 		arg.NameFile,
 		arg.SizeFile,
+		arg.Type,
 	)
 	var i Attachment
 	err := row.Scan(
@@ -41,6 +43,7 @@ func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsPa
 		&i.Url,
 		&i.NameFile,
 		&i.SizeFile,
+		&i.Type,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -49,14 +52,18 @@ func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsPa
 }
 
 const getAttachmentById = `-- name: GetAttachmentById :one
-SELECT id, user_id, description, url, name_file, size_file, status, created_at, updated_at
+SELECT id, user_id, description, url, name_file, size_file, type, status, created_at, updated_at
 FROM public.attachments
-WHERE id=$1 AND
-    status=true
+WHERE user_id=$1 AND type=$2 AND status=true
 `
 
-func (q *Queries) GetAttachmentById(ctx context.Context, id int64) (Attachment, error) {
-	row := q.db.QueryRowContext(ctx, getAttachmentById, id)
+type GetAttachmentByIdParams struct {
+	UserID int64  `json:"user_id"`
+	Type   string `json:"type"`
+}
+
+func (q *Queries) GetAttachmentById(ctx context.Context, arg GetAttachmentByIdParams) (Attachment, error) {
+	row := q.db.QueryRowContext(ctx, getAttachmentById, arg.UserID, arg.Type)
 	var i Attachment
 	err := row.Scan(
 		&i.ID,
@@ -65,6 +72,7 @@ func (q *Queries) GetAttachmentById(ctx context.Context, id int64) (Attachment, 
 		&i.Url,
 		&i.NameFile,
 		&i.SizeFile,
+		&i.Type,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -75,10 +83,16 @@ func (q *Queries) GetAttachmentById(ctx context.Context, id int64) (Attachment, 
 const updateAttachmentLogicDelete = `-- name: UpdateAttachmentLogicDelete :exec
 UPDATE public.attachments
 SET status=false, updated_at=now()
-WHERE id = $1
+WHERE user_id = $1
+      AND type=$2
 `
 
-func (q *Queries) UpdateAttachmentLogicDelete(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, updateAttachmentLogicDelete, id)
+type UpdateAttachmentLogicDeleteParams struct {
+	UserID int64  `json:"user_id"`
+	Type   string `json:"type"`
+}
+
+func (q *Queries) UpdateAttachmentLogicDelete(ctx context.Context, arg UpdateAttachmentLogicDeleteParams) error {
+	_, err := q.db.ExecContext(ctx, updateAttachmentLogicDelete, arg.UserID, arg.Type)
 	return err
 }

@@ -114,6 +114,7 @@ type Attachment struct {
 	Url         string         `json:"url"`
 	NameFile    sql.NullString `json:"name_file"`
 	SizeFile    sql.NullInt64  `json:"size_file"`
+	Type        string         `json:"type"`
 	Status      bool           `json:"status"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   sql.NullTime   `json:"updated_at"`

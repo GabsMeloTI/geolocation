@@ -191,6 +191,22 @@ func (q *Queries) UpdatePasswordByUserId(ctx context.Context, arg UpdatePassword
 	return err
 }
 
+const updateProfilePictureByUserId = `-- name: UpdateProfilePictureByUserId :exec
+UPDATE users
+SET profile_picture = $1
+WHERE id = $2
+`
+
+type UpdateProfilePictureByUserIdParams struct {
+	ProfilePicture sql.NullString `json:"profile_picture"`
+	ID             int64          `json:"id"`
+}
+
+func (q *Queries) UpdateProfilePictureByUserId(ctx context.Context, arg UpdateProfilePictureByUserIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateProfilePictureByUserId, arg.ProfilePicture, arg.ID)
+	return err
+}
+
 const updateUserAddress = `-- name: UpdateUserAddress :one
 UPDATE users
 SET complement=$1, state = $2, city = $3, neighborhood = $4, street = $5, street_number=$6, cep = $7, updated_at = now()

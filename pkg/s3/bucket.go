@@ -15,8 +15,8 @@ import (
 var S3Client *s3.S3
 
 func InitS3Client() {
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY")
+	secretAccessKey := os.Getenv("AWS_SECRET_KEY")
 	region := os.Getenv("AWS_REGION")
 
 	if accessKeyID == "" || secretAccessKey == "" || region == "" {

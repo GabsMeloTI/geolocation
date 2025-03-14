@@ -61,3 +61,9 @@ WHERE id = $2;
 update history_recover_password
 set date_update_password = now()
 where token = $1;
+
+
+-- name: UpdateProfilePictureByUserId :exec
+UPDATE users
+SET profile_picture = $1
+WHERE id = $2;
