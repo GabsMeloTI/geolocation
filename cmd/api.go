@@ -95,7 +95,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
 	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
-	attach.PUT("/delete/:id", container.HandlerAttachment.DeleteAttachHandler)
+	attach.PUT("/update", container.HandlerAttachment.UpdateAttachHandler)
 
 	e.POST("/recover-password", container.UserHandler.RecoverPassword)
 	e.PUT(

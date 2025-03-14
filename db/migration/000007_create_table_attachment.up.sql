@@ -5,6 +5,7 @@ CREATE TABLE public.attachments (
                                       url varchar NOT NULL,
                                       name_file varchar NULL,
                                       size_file int8 NULL,
+                                      type VARCHAR(50) NOT NULL,
                                       status bool NOT NULL,
                                       created_at timestamp DEFAULT now() NOT NULL,
                                       updated_at timestamp NULL,

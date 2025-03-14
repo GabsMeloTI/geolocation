@@ -3,8 +3,8 @@ package attachment
 import "github.com/google/uuid"
 
 type AttachRequestCreate struct {
-	UserId      string `form:"user_id"`
 	Description string `form:"description"`
+	Type        string `form:"type"`
 }
 
 type DeleteAttachByCodeIdAndOrigin struct {

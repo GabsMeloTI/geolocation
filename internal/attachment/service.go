@@ -6,7 +6,6 @@ import (
 	"errors"
 	db "geolocation/db/sqlc"
 	bucket "geolocation/pkg/s3"
-	"geolocation/validation"
 	"io/ioutil"
 	"mime/multipart"
 	"path"
@@ -14,8 +13,8 @@ import (
 )
 
 type ServiceInterface interface {
-	CreateAttachService(ctx context.Context, data *multipart.Form) error
-	DeleteLogicAttachService(ctx context.Context, idStr string) error
+	CreateAttachService(ctx context.Context, data *multipart.Form, userID int64) error
+	UpdateAttachService(ctx context.Context, userID int64, data *multipart.Form) error
 }
 
 type Service struct {
@@ -30,7 +29,7 @@ func NewAttachmentService(repo InterfaceRepository, bucketFirebase string) *Serv
 	}
 }
 
-func (s *Service) CreateAttachService(ctx context.Context, data *multipart.Form) error {
+func (s *Service) CreateAttachService(ctx context.Context, data *multipart.Form, userID int64) error {
 	var myForm AttachRequestCreate
 	err := MapFormToStruct(data.Value, &myForm)
 	if err != nil {
@@ -61,13 +60,96 @@ func (s *Service) CreateAttachService(ctx context.Context, data *multipart.Form)
 				return err
 			}
 
-			userId, err := validation.ParseStringToInt64(myForm.UserId)
+			_, err = s.repo.CreateAttachments(ctx, db.CreateAttachmentsParams{
+				UserID: userID,
+				Description: sql.NullString{
+					String: myForm.Description,
+					Valid:  true,
+				},
+				Url: strUrl,
+				NameFile: sql.NullString{
+					String: originalFilename,
+					Valid:  true,
+				},
+				SizeFile: sql.NullInt64{
+					Int64: fileHeader.Size,
+					Valid: true,
+				},
+				Type: myForm.Type,
+			})
+			if err != nil {
+				return err
+			}
+
+			if myForm.Type == "user" {
+				err := s.repo.UpdateProfilePictureByUserId(ctx, db.UpdateProfilePictureByUserIdParams{
+					ProfilePicture: sql.NullString{
+						String: strUrl,
+						Valid:  true,
+					},
+					ID: userID,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) UpdateAttachService(ctx context.Context, userID int64, data *multipart.Form) error {
+	var myForm AttachRequestCreate
+	err := MapFormToStruct(data.Value, &myForm)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.repo.GetAttachmentById(ctx, db.GetAttachmentByIdParams{
+		UserID: userID,
+		Type:   myForm.Type,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return errors.New("attachment not found")
+	}
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateAttachmentLogicDelete(ctx, db.UpdateAttachmentLogicDeleteParams{
+		UserID: userID,
+		Type:   myForm.Type,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, files := range data.File {
+		for _, fileHeader := range files {
+			idFile := GetUUID()
+			originalFilename := fileHeader.Filename
+			fileExtension := strings.ToLower(path.Ext(originalFilename))
+			newNameFileUp := idFile + fileExtension
+
+			f, err := fileHeader.Open()
+			if err != nil {
+				return err
+			}
+			fileBytes, err := ioutil.ReadAll(f)
+			f.Close()
+			if err != nil {
+				return err
+			}
+
+			contentType := fileHeader.Header.Get("Content-Type")
+
+			strUrl, err := bucket.UploadFileToS3(fileBytes, newNameFileUp, s.bucketFirebase, contentType)
 			if err != nil {
 				return err
 			}
 
 			_, err = s.repo.CreateAttachments(ctx, db.CreateAttachmentsParams{
-				UserID: userId,
+				UserID: userID,
 				Description: sql.NullString{
 					String: myForm.Description,
 					Valid:  true,
@@ -85,34 +167,21 @@ func (s *Service) CreateAttachService(ctx context.Context, data *multipart.Form)
 			if err != nil {
 				return err
 			}
+
+			if myForm.Type == "user" {
+				err := s.repo.UpdateProfilePictureByUserId(ctx, db.UpdateProfilePictureByUserIdParams{
+					ProfilePicture: sql.NullString{
+						String: strUrl,
+						Valid:  true,
+					},
+					ID: userID,
+				})
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
+
 	return nil
-}
-
-func (s *Service) DeleteLogicAttachService(ctx context.Context, idStr string) error {
-	id, err := validation.ParseStringToInt64(idStr)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.repo.GetAttachmentById(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return errors.New("driver not found")
-	}
-	if err != nil {
-		return err
-	}
-
-	err = s.repo.UpdateAttachmentLogicDelete(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	//err = bucket.DeleteFile(ctx, s.bucketFirebase, infoAttach.NameFile.String)
-	//if err != nil {
-	//	return err
-	//}
-
-	return err
 }
