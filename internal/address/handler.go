@@ -38,6 +38,27 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindAddressByCEPHandler godoc
+// @Summary Find Address By CEP
+// @Description Encontra endereço por CEP, retorna o type com base nas repetições encontradas
+// @Tags Address
+// @Accept json
+// @Produce json
+// @Param CEP path string true "cep"
+// @Success 200 {object} AddressCEPResponse[] "Address Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /address/find/cep/{cep} [get]
+// @Security ApiKeyAuth
+func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
+	cep := c.Param("cep")
+	result, err := h.InterfaceService.FindAddressesByCEPService(c.Request().Context(), cep)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
 func (h *Handler) FindStateAll(c echo.Context) error {
 	result, err := h.InterfaceService.FindStateAll(c.Request().Context())
 	if err != nil {

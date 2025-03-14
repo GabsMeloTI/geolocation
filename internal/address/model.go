@@ -26,6 +26,15 @@ type AddressDetail struct {
 	Longitude float64 `json:"longitude,omitempty"`
 }
 
+type AddressCEPResponse struct {
+	CEP              string `json:"cep"`
+	Type             string `json:"type"`
+	CityName         string `json:"city_name"`
+	StateUf          string `json:"state_uf"`
+	NeighborhoodName string `json:"neighborhood_name"`
+	StreetName       string `json:"street_name"`
+}
+
 func ParseFromLatLonRow(results []db.FindAddressesByLatLonRow) ([]AddressResponse, error) {
 	if len(results) == 0 {
 		return nil, fmt.Errorf("query returned nil result")
