@@ -5,6 +5,7 @@ import (
 	"fmt"
 	db "geolocation/db/sqlc"
 	"geolocation/infra/token"
+	"geolocation/validation"
 	"log"
 	"strconv"
 	"sync"
@@ -35,20 +36,18 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 	case "checkout.session.completed":
 		payment = extractCheckoutSessionData(event)
 		log.Println("corpo:", payment)
-		log.Println("payment.UserID:", payment.UserID)
 
-		decryptedUserID, err := p.maker.VerifyTokenUserID(payment.UserID)
-		fmt.Println("decryptedUserID:", decryptedUserID)
-		if err != nil {
-			return PaymentHistResponse{}, err
-		}
-		userID = decryptedUserID.UserID
+		//decryptedUserID, err := p.maker.VerifyTokenUserID(payment.UserID)
+		//fmt.Println("decryptedUserID:", decryptedUserID)
+		//if err != nil {
+		//	return PaymentHistResponse{}, err
+		//}
+		userID, _ = validation.ParseStringToInt64(payment.UserID)
 
-		fmt.Println(decryptedUserID)
-		fmt.Println(decryptedUserID.UserID)
+		//fmt.Println(decryptedUserID)
+		//fmt.Println(decryptedUserID.UserID)
 	case "invoice.payment_succeeded":
 		payment = extractInvoiceData(event)
-		log.Println("corpo:", payment)
 	default:
 		return PaymentHistResponse{}, nil
 	}
@@ -59,6 +58,7 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 		existing := existingPayment.(CreatePaymentHistRequest)
 		mergedPayment := mergePayments(existing, payment)
 
+		fmt.Println("id: ", userID)
 		data := db.CreatePaymentHistParams{
 			UserID:           userID,
 			Email:            mergedPayment.Email,
