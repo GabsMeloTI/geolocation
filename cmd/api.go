@@ -14,7 +14,6 @@ import (
 	_ "geolocation/docs"
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
-	"geolocation/internal/webhook"
 )
 
 // @title GO-auth-service
@@ -161,7 +160,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
-	e.POST("/webhook-payment", webhook.WebhookPaymentHandler)
 	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
 	e.GET(
 		"/payment-history",
