@@ -33,6 +33,7 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 
 	switch eventType {
 	case "checkout.session.completed":
+		log.Println("corpo:", payment)
 		log.Println("payment.UserID:", payment.UserID)
 		payment = extractCheckoutSessionData(event)
 
