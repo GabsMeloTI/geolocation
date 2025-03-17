@@ -33,9 +33,9 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 
 	switch eventType {
 	case "checkout.session.completed":
+		payment = extractCheckoutSessionData(event)
 		log.Println("corpo:", payment)
 		log.Println("payment.UserID:", payment.UserID)
-		payment = extractCheckoutSessionData(event)
 
 		decryptedUserID, err := p.maker.VerifyTokenUserID(payment.UserID)
 		fmt.Println("decryptedUserID:", decryptedUserID)
@@ -48,6 +48,7 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 		fmt.Println(decryptedUserID.UserID)
 	case "invoice.payment_succeeded":
 		payment = extractInvoiceData(event)
+		log.Println("corpo:", payment)
 	default:
 		return PaymentHistResponse{}, nil
 	}
