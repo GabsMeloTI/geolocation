@@ -38,6 +38,7 @@ func (p *Service) ProcessStripeEvent(ctx context.Context, eventType string, even
 		payment = extractCheckoutSessionData(event)
 
 		decryptedUserID, err := p.maker.VerifyTokenUserID(payment.UserID)
+		fmt.Println("decryptedUserID:", decryptedUserID)
 		if err != nil {
 			return PaymentHistResponse{}, err
 		}
