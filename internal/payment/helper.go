@@ -10,10 +10,15 @@ func extractCheckoutSessionData(event map[string]interface{}) CreatePaymentHistR
 	if !ok {
 		return CreatePaymentHistRequest{}
 	}
+
+	var userID string
+	if val, exists := dataObject["client_reference_id"]; exists && val != nil {
+		userID, _ = val.(string)
+	}
 	invoice, _ := dataObject["invoice"].(string)
 
 	return CreatePaymentHistRequest{
-		UserID:           dataObject["client_reference_id"].(string),
+		UserID:           userID,
 		Email:            dataObject["customer_details"].(map[string]interface{})["email"].(string),
 		Name:             dataObject["customer_details"].(map[string]interface{})["name"].(string),
 		Value:            float64(dataObject["amount_total"].(float64)) / 100,
