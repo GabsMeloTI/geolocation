@@ -155,3 +155,15 @@ func (p *Handler) GetTractorUnitByIdHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, result)
 }
+
+
+func (p *Handler) CheckPlateHandler(c echo.Context) error {
+	plate := c.Param("plate")
+	
+	result, err := p.InterfaceService.CheckPlate(plate)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}

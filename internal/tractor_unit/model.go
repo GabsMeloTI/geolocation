@@ -51,12 +51,10 @@ type UpdateTractorUnitRequest struct {
 	Color           string  `json:"color"`
 	Axles           int64   `json:"axles"`
 }
-
 type UpdateTractorUnitDto struct {
 	UpdateTractorUnitRequest UpdateTractorUnitRequest
 	UserID                   int64 `json:"user_id"`
 }
-
 type TractorUnitResponse struct {
 	ID              int64      `json:"id"`
 	UserID          int64      `json:"user_id"`
@@ -81,7 +79,6 @@ type TractorUnitResponse struct {
 	UpdatedAt       *time.Time `json:"updated_at"`
 	Axles           int64      `json:"axles"`
 }
-
 func (p *CreateTractorUnitDto) ParseCreateToTractorUnit() db.CreateTractorUnitParams {
 	arg := db.CreateTractorUnitParams{
 		Axles:        p.CreateTractorUnitRequest.Axles,
@@ -117,7 +114,6 @@ func (p *CreateTractorUnitDto) ParseCreateToTractorUnit() db.CreateTractorUnitPa
 	}
 	return arg
 }
-
 func (p *UpdateTractorUnitDto) ParseUpdateToTractorUnit() db.UpdateTractorUnitParams {
 	arg := db.UpdateTractorUnitParams{
 		LicensePlate: p.UpdateTractorUnitRequest.LicensePlate,
@@ -150,7 +146,6 @@ func (p *UpdateTractorUnitDto) ParseUpdateToTractorUnit() db.UpdateTractorUnitPa
 	}
 	return arg
 }
-
 func (p *TractorUnitResponse) ParseFromTractorUnitObject(result db.TractorUnit) {
 	p.ID = result.ID
 	p.DriverID = result.DriverID
@@ -176,4 +171,73 @@ func (p *TractorUnitResponse) ParseFromTractorUnitObject(result db.TractorUnit) 
 	p.Color = result.Color
 	p.Axles = result.Axles
 	p.CanCouple = result.CanCouple.Bool
+}
+
+
+//mock check plate
+type User struct {
+    FirstName   string `json:"first_name"`
+    Email       string `json:"email"`
+    Cellphone   string `json:"cellphone"`
+    Notification string `json:"notification"`
+}
+
+type Registro struct {
+    NumeroAutoInfracao              string `json:"numeroautoinfracao"`
+    DataDaInfracao                  string `json:"datadainfracao"`
+    Exigibilidade                   string `json:"exigibilidade"`
+    Infracao                        string `json:"infracao"`
+    Orgao                           string `json:"orgao"`
+    ConsultaDetalheExisteErro       string `json:"consultadetalhe_existe_erro"`
+    ConsultaDetalheMensagem         string `json:"consultadetalhe_mensagem"`
+    DetalheCadastramentoInfracao    string `json:"detalhe_cadastramento_infracao"`
+    DetalheCodInfracao              string `json:"detalhe_cod_infracao"`
+    DetalheCodMunEmplacamento       string `json:"detalhe_cod_mun_emplacamento"`
+    DetalheCodMunInfracao           string `json:"detalhe_cod_mun_infracao"`
+    DetalheDtEmissaoPenalidade      string `json:"detalhe_dt_emissao_penalidade"`
+    DetalheDtInfracao               string `json:"detalhe_dt_infracao"`
+    DetalheDtNotificacaoInfracao    string `json:"detalhe_dt_notificacao_infracao"`
+    DetalheHrInfracao               string `json:"detalhe_hr_infracao"`
+    DetalheLimitePermitido          string `json:"detalhe_limite_permitido"`
+    DetalheLocalInfracao            string `json:"detalhe_local_infracao"`
+    DetalheAmrcaModelo              string `json:"detalhe_amrcamodelo"`
+    DetalheMedicaoConsiderada       string `json:"detalhe_medicao_considerada"`
+    DetalheMedicaoReal              string `json:"detalhe_medicao_real"`
+    DetalheNumAutoInfracao          string `json:"detalhe_num_auto_infracao"`
+    DetalheOrgaoAutuador            string `json:"detalhe_orgao_autuador"`
+    DetalhePlaca                    string `json:"detalhe_placa"`
+    DetalheTipoAutoInfracao         string `json:"detalhe_tipo_auto_infracao"`
+    DetalheUfJurisdicaoVeiculo      string `json:"detalhe_uf_jurisdicao_veiculo"`
+    DetalheUfOrgaoAutuador          string `json:"detalhe_uf_orgao_autuador"`
+    DetalheUfPlaca                  string `json:"detalhe_uf_placa"`
+    DetalheUnidadeMedida            string `json:"detalhe_unidade_medida"`
+    DetalheValorInfracao            string `json:"detalhe_valor_infracao"`
+    DadosDaSuspensaoAceiteUfJurisdicao string `json:"dadosdasuspensao_aceite_uf_jurisdicao"`
+    DadosDaSuspensaoDataRegistro       string `json:"dadosdasuspensao_data_registro"`
+    DadosDaSuspensaoOrigem             string `json:"dadosdasuspensao_origem"`
+    DadosDaSuspensaoTipo               string `json:"dadosdasuspensao_tipo"`
+    DadosInfratorCnhCondutor           string `json:"dadosinfrator_cnh_condutor"`
+    DadosInfratorCnhInfrator           string `json:"dadosinfrator_cnh_infrator"`
+    DadosDoPagamentoDtPagamento        string `json:"dadosdopagamento_dt_pagamento"`
+    DadosDoPagamentoDtDoRegistroDoPgmto string `json:"dadosdopagamento_dt_do_registro_do_pgmto"`
+    DadosDoPagamentoUfPagamento        string `json:"dadosdopagamento_uf_pagamento"`
+    DadosDoPagamentoValorPago          string `json:"dadosdopagamento_valor_pago"`
+    DadosDoPagamentoDadosPgmto         string `json:"dadosdopagamento_dados_pgmto"`
+}
+
+type Data struct {
+    Alerta                      string     `json:"alerta"`
+    Placa                       string     `json:"placa"`
+    QuantidadeOcorrencias       int        `json:"quantidade_ocorrencias"`
+    QuantidadeOcorrenciasTotal  int        `json:"quantidade_ocorrencias_total"`
+    Registros                   []Registro `json:"registros"`
+}
+
+type CheckPlateResponse struct {
+    User     User   `json:"user"`
+    Balance  string `json:"balance"`
+    Error    bool   `json:"error"`
+    Message  string `json:"message"`
+    Homolog  string `json:"homolog"`
+    Data     Data   `json:"data"`
 }

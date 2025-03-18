@@ -194,6 +194,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 		_midlleware.CheckUserAuthorization,
 	)
 
+	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
+
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"
 
