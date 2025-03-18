@@ -92,7 +92,7 @@ func (p *Service) GetTractorUnitService(ctx context.Context, id int64) ([]Tracto
 }
 
 func (p *Service) GetTractorUnitByIdService(ctx context.Context, id int64) (TractorUnitResponse, error) {
-	result, err := p.InterfaceService.GetTractorUnitById(ctx, id)
+	result, err := p.InterfaceService.GetOneTractorUnitByUserId(ctx, id)
 	if err != nil {
 		return TractorUnitResponse{}, err
 	}

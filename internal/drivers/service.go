@@ -137,7 +137,7 @@ func (p *Service) GetDriverService(ctx context.Context, id int64) ([]DriverRespo
 }
 
 func (p *Service) GetDriverByIdService(ctx context.Context, id int64) (DriverResponse, error) {
-	result, err := p.InterfaceService.GetDriverById(ctx, id)
+	result, err := p.InterfaceService.GetOneDriverByUserId(ctx, id)
 	if err != nil {
 		return DriverResponse{}, err
 	}

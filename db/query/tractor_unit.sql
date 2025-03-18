@@ -28,3 +28,9 @@ SELECT *
 FROM public.tractor_unit
 WHERE user_id=$1 AND
     status=true;
+
+-- name: GetOneTractorUnitByUserId :one
+SELECT *
+FROM public.tractor_unit
+WHERE user_id=$1 AND
+    status=true;

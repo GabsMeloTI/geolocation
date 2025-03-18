@@ -95,7 +95,7 @@ func (p *Service) GetTrailerService(ctx context.Context, id int64) ([]TrailerRes
 }
 
 func (p *Service) GetTrailerByIdService(ctx context.Context, id int64) (TrailerResponse, error) {
-	result, err := p.InterfaceService.GetTrailerById(ctx, id)
+	result, err := p.InterfaceService.GetOneTrailerByUserId(ctx, id)
 	if err != nil {
 		return TrailerResponse{}, err
 	}

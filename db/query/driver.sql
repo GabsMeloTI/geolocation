@@ -30,3 +30,9 @@ SELECT *
 FROM public.driver
 WHERE user_id=$1 AND
     status=true;
+
+-- name: GetOneDriverByUserId :one
+SELECT *
+FROM public.driver
+WHERE user_id=$1 AND
+    status=true;
