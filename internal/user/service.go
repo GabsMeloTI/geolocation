@@ -31,6 +31,10 @@ type InterfaceService interface {
 		ctx context.Context,
 		data ConfirmRecoverPasswordDTO,
 	) error
+	GetUserByEmailService(
+		ctx context.Context,
+		email string,
+	) (GetUserResponse, error)
 }
 
 type Service struct {
@@ -216,4 +220,39 @@ func (s *Service) ConfirmRecoverPasswordService(
 		return err
 	}
 	return nil
+}
+
+func (s *Service) GetUserByEmailService(
+	ctx context.Context,
+	email string,
+) (GetUserResponse, error) {
+	user, err := s.InterfaceService.GetUserByEmailRepository(ctx, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetUserResponse{}, errors.New("user not found")
+		}
+		return GetUserResponse{}, err
+	}
+
+	res := GetUserResponse{
+		ID:               user.ID,
+		Name:             user.Name,
+		Email:            email,
+		CreatedAt:        user.CreatedAt.Time,
+		ProfileID:        user.ProfileID.Int64,
+		Document:         user.Document.String,
+		State:            user.State.String,
+		City:             user.City.String,
+		Neighborhood:     user.Neighborhood.String,
+		Street:           user.Street.String,
+		StreetNumber:     user.StreetNumber.String,
+		Phone:            user.Phone.String,
+		ProfilePicture:   user.ProfilePicture.String,
+		Cep:              user.Cep.String,
+		Complement:       user.Complement.String,
+		DateOfBirth:      user.DateOfBirth.Time,
+		SecondaryContact: user.SecondaryContact.String,
+	}
+
+	return res, nil
 }
