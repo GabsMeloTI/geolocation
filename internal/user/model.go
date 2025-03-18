@@ -280,3 +280,7 @@ type ConfirmRecoverPasswordDTO struct {
 	Token   string
 	UserID  int64
 }
+
+type UserExitsRequest struct {
+	Email string `json:"email"`
+}
