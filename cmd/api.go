@@ -111,6 +111,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.GET("/info", container.UserHandler.GetUserInfo)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
 	user.PUT("/update", container.UserHandler.UpdateUser)
+	user.PUT("/update/password", container.UserHandler.UpdateUserPassword)
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)

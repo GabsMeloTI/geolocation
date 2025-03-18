@@ -82,6 +82,12 @@ type UpdateUserAddressResponse struct {
 	Complement   string `json:"complement"`
 }
 
+type UpdatePasswordRequest struct {
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+	OldPassword     string `json:"old_password"`
+}
+
 func (u UpdateUserDTO) ParseToUpdateUserByIdParams() db.UpdateUserByIdParams {
 	return db.UpdateUserByIdParams{
 		Name: u.Request.Name,

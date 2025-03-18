@@ -67,3 +67,8 @@ where token = $1;
 UPDATE users
 SET profile_picture = $1
 WHERE id = $2;
+
+-- name: UpdateUserPasswordById :exec
+UPDATE users
+SET password = $1, updated_at = now()
+WHERE id = $2 AND status = true;

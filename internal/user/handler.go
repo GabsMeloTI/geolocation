@@ -212,3 +212,22 @@ func (h *Handler) UserExists(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, user)
 }
+
+func (h *Handler) UpdateUserPassword(c echo.Context) error {
+	var request UpdatePasswordRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if ok := validation.ValidatePassword(request.Password); !ok {
+		return c.JSON(http.StatusBadRequest, errors.New("invalid password").Error())
+	}
+
+	payload := get_token.GetUserPayloadToken(c)
+	err := h.InterfaceService.UpdateUserPassword(c.Request().Context(), payload.ID, request)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "Success")
+}

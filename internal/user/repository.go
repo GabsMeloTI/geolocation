@@ -31,6 +31,7 @@ type InterfaceRepository interface {
 		ctx context.Context,
 		token string,
 	) error
+	UpdateUserPasswordById(ctx context.Context, arg db.UpdateUserPasswordByIdParams) error
 }
 
 type Repository struct {
@@ -113,4 +114,8 @@ func (r *Repository) UpdateHistoryPasswordRecoverRepository(
 	token string,
 ) error {
 	return r.Queries.UpdateHistoryRecoverPassword(ctx, token)
+}
+
+func (r *Repository) UpdateUserPasswordById(ctx context.Context, arg db.UpdateUserPasswordByIdParams) error {
+	return r.Queries.UpdateUserPasswordById(ctx, arg)
 }

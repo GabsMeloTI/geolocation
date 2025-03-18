@@ -35,6 +35,7 @@ type InterfaceService interface {
 		ctx context.Context,
 		email string,
 	) (GetUserResponse, error)
+	UpdateUserPassword(ctx context.Context, userId int64, data UpdatePasswordRequest) error
 }
 
 type Service struct {
@@ -190,10 +191,7 @@ func (s *Service) RecoverPasswordService(ctx context.Context, data RecoverPasswo
 	return nil
 }
 
-func (s *Service) ConfirmRecoverPasswordService(
-	ctx context.Context,
-	data ConfirmRecoverPasswordDTO,
-) error {
+func (s *Service) ConfirmRecoverPasswordService(ctx context.Context, data ConfirmRecoverPasswordDTO) error {
 	_, err := s.InterfaceService.GetUserById(ctx, data.UserID)
 	if err != nil {
 		return err
@@ -222,10 +220,7 @@ func (s *Service) ConfirmRecoverPasswordService(
 	return nil
 }
 
-func (s *Service) GetUserByEmailService(
-	ctx context.Context,
-	email string,
-) (GetUserResponse, error) {
+func (s *Service) GetUserByEmailService(ctx context.Context, email string) (GetUserResponse, error) {
 	user, err := s.InterfaceService.GetUserByEmailRepository(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -255,4 +250,42 @@ func (s *Service) GetUserByEmailService(
 	}
 
 	return res, nil
+}
+
+func (s *Service) UpdateUserPassword(ctx context.Context, userId int64, data UpdatePasswordRequest) error {
+	user, err := s.InterfaceService.GetUserById(ctx, userId)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar usuário: %v", err)
+	}
+
+	if !crypt.CheckPasswordHash(data.OldPassword, user.Password.String) {
+		return fmt.Errorf("senha antiga incorreta")
+	}
+
+	if data.Password != data.ConfirmPassword {
+		return fmt.Errorf("a nova senha e a confirmação não coincidem")
+	}
+
+	if data.OldPassword == data.ConfirmPassword {
+		return fmt.Errorf("a nova senha não pode ser igual à senha antiga")
+	}
+
+	hashedPassword, err := crypt.HashPassword(data.Password)
+	if err != nil {
+		return err
+	}
+
+	arg := db.UpdateUserPasswordByIdParams{
+		ID: userId,
+		Password: sql.NullString{
+			String: hashedPassword,
+			Valid:  true,
+		},
+	}
+	err = s.InterfaceService.UpdateUserPasswordById(ctx, arg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
