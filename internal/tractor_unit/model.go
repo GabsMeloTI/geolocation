@@ -2,8 +2,9 @@ package tractor_unit
 
 import (
 	"database/sql"
-	db "geolocation/db/sqlc"
 	"time"
+
+	db "geolocation/db/sqlc"
 )
 
 type CreateTractorUnitRequest struct {
@@ -15,7 +16,7 @@ type CreateTractorUnitRequest struct {
 	Model           string  `json:"model"`
 	ManufactureYear int64   `json:"manufacture_year"`
 	EnginePower     string  `json:"engine_power"`
-	UnitType        string  `json:"unit_type" validate:"oneof=stump truck tractor_unit"`
+	UnitType        string  `json:"unit_type"        validate:"oneof=stump truck tractor_unit"`
 	CanCouple       bool    `json:"can_couple"`
 	Height          float64 `json:"height"`
 	State           string  `json:"state"`
@@ -71,6 +72,7 @@ type TractorUnitResponse struct {
 	State           string     `json:"state"`
 	Renavan         string     `json:"renavan"`
 	Capacity        string     `json:"capacity"`
+	CanCouple       bool       `json:"can_couple"`
 	Width           float64    `json:"width"`
 	Length          float64    `json:"length"`
 	Color           string     `json:"color"`
@@ -173,4 +175,5 @@ func (p *TractorUnitResponse) ParseFromTractorUnitObject(result db.TractorUnit) 
 	p.Length = result.Length
 	p.Color = result.Color
 	p.Axles = result.Axles
+	p.CanCouple = result.CanCouple.Bool
 }
