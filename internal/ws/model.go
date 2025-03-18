@@ -100,6 +100,10 @@ func (u UpdateOfferDTO) ToCreateOfferParams(interestedId int64) db.CreateOfferPa
 			Int64: interestedId,
 			Valid: true,
 		},
+		Status: sql.NullBool{
+			Bool:  true,
+			Valid: true,
+		},
 	}
 }
 

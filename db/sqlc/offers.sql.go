@@ -12,26 +12,33 @@ import (
 
 const createOffer = `-- name: CreateOffer :one
 INSERT INTO offers
-(advertisement_id, price, interested_id)
+(advertisement_id, price, interested_id, status)
 VALUES
-($1, $2, $3)
-RETURNING id, advertisement_id, price, interested_id
+($1, $2, $3 , $4)
+RETURNING id, advertisement_id, price, interested_id, status
 `
 
 type CreateOfferParams struct {
 	AdvertisementID sql.NullInt64 `json:"advertisement_id"`
 	Price           float64       `json:"price"`
 	InterestedID    sql.NullInt64 `json:"interested_id"`
+	Status          sql.NullBool  `json:"status"`
 }
 
 func (q *Queries) CreateOffer(ctx context.Context, arg CreateOfferParams) (Offer, error) {
-	row := q.db.QueryRowContext(ctx, createOffer, arg.AdvertisementID, arg.Price, arg.InterestedID)
+	row := q.db.QueryRowContext(ctx, createOffer,
+		arg.AdvertisementID,
+		arg.Price,
+		arg.InterestedID,
+		arg.Status,
+	)
 	var i Offer
 	err := row.Scan(
 		&i.ID,
 		&i.AdvertisementID,
 		&i.Price,
 		&i.InterestedID,
+		&i.Status,
 	)
 	return i, err
 }

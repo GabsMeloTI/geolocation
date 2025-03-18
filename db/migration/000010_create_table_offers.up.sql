@@ -1,6 +1,10 @@
-CREATE TABLE offers (
-    id BIGSERIAl PRIMARY KEY,
-    advertisement_id BIGINT references advertisement(id),
-    price double precision NOT NULL,
-    interested_id bigint references users(id)
+create table offers
+(
+    id               bigserial
+        primary key,
+    advertisement_id bigint,
+    price            double precision not null,
+    interested_id    bigint
+        references users,
+    status           boolean
 );

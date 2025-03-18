@@ -3,7 +3,9 @@ package ws
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	db "geolocation/db/sqlc"
@@ -33,6 +35,7 @@ type InterfaceService interface {
 		userId int64,
 	) (FreightLocationDetailsResponse, error)
 	ReadMessagesService(ctx context.Context, msg *Message, cl *Client) (time.Time, error)
+	CreateOfferService(ctx context.Context, msg *Message, cl *Client) error
 }
 
 type Service struct {
@@ -447,4 +450,33 @@ func (s *Service) ReadMessagesService(
 	}
 
 	return readAt, nil
+}
+
+func (s *Service) CreateOfferService(ctx context.Context, msg *Message, cl *Client) error {
+	var offerContent OfferContent
+
+	if err := json.Unmarshal([]byte(msg.Content), &offerContent); err != nil {
+		fmt.Println("deu erro no Unmarshal")
+		return err
+	}
+
+	_, err := s.InterfaceService.CreateOfferRepository(ctx, db.CreateOfferParams{
+		AdvertisementID: sql.NullInt64{
+			Int64: offerContent.AdvertisementId,
+			Valid: true,
+		},
+		Price: offerContent.Price,
+		InterestedID: sql.NullInt64{
+			Int64: cl.UserId,
+			Valid: true,
+		},
+		Status: sql.NullBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
