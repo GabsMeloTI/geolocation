@@ -240,6 +240,7 @@ type Offer struct {
 	AdvertisementID sql.NullInt64 `json:"advertisement_id"`
 	Price           float64       `json:"price"`
 	InterestedID    sql.NullInt64 `json:"interested_id"`
+	Status          sql.NullBool  `json:"status"`
 }
 
 type PaymentHist struct {
