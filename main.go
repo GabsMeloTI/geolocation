@@ -25,3 +25,5 @@ func main() {
 	pkg.InitRedis(loadingEnv.Environment)
 	cmd.StartAPI(ctx, container)
 }
+
+//test
