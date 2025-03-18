@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -56,6 +57,13 @@ type ReadNotification struct {
 	UserId      int64     `json:"user_id"`
 	TypeMessage string    `json:"type_message"`
 	ReadAt      time.Time `json:"read_at"`
+}
+
+type OfferContent struct {
+	TruckId         int64   `json:"truck_id"`
+	DriverId        int64   `json:"driver_id"`
+	Price           float64 `json:"price"`
+	AdvertisementId int64   `json:"advertisement_id"`
 }
 
 func (c *Client) writeMessage() {
@@ -165,6 +173,15 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		if err != nil {
 			log.Println("error in create chat message service")
 			continue
+		}
+
+		if msg.TypeMessage == "offer" {
+			err := s.CreateOfferService(context.Background(), msg, c)
+			if err != nil {
+				fmt.Println(err)
+				log.Println("error to create offer")
+				continue
+			}
 		}
 
 		outgoingMessage := &OutgoingMessage{

@@ -114,7 +114,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)
-	user.GET("/email", container.UserHandler.UserExists)
+	e.GET("/user/email", container.UserHandler.UserExists)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
