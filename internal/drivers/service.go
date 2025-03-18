@@ -34,6 +34,20 @@ func (p *Service) CreateDriverService(
 		return DriverResponse{}, err
 	}
 
+	if profile.Name == "Shipper" || profile.Name == "Carrier Driver" {
+		return DriverResponse{}, errors.New("you cannot create a driver")
+	}
+	u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return DriverResponse{}, err
+		}
+	}
+
+	if u.ID != 0 {
+		return DriverResponse{}, errors.New("email already in use")
+	}
+
 	arg := data.ParseCreateToDriver()
 
 	result, err := p.InterfaceService.CreateDriver(ctx, arg)
@@ -41,18 +55,7 @@ func (p *Service) CreateDriverService(
 		return DriverResponse{}, err
 	}
 
-	if profile.Name == "Carrier" {
-		u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				return DriverResponse{}, err
-			}
-		}
-
-		if u.ID != 0 {
-			return DriverResponse{}, errors.New("email already in use")
-		}
-
+	if profile.Name == "Carrier" || profile.Name == "Driver" {
 		_, err = mail.ParseAddress(data.CreateDriverRequest.Email)
 		if err != nil {
 			return DriverResponse{}, err

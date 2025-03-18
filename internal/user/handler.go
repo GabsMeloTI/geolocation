@@ -198,3 +198,17 @@ func (h *Handler) ConfirmRecoverPassword(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, "Success")
 }
+
+func (h *Handler) UserExists(c echo.Context) error {
+	var req UserExitsRequest
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	user, err := h.InterfaceService.GetUserByEmailService(c.Request().Context(), req.Email)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
