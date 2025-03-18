@@ -12,6 +12,7 @@ type InterfaceService interface {
 	UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitDto) (TractorUnitResponse, error)
 	DeleteTractorUnitService(ctx context.Context, id, idUser int64) error
 	GetTractorUnitService(ctx context.Context, id int64) ([]TractorUnitResponse, error)
+	GetTractorUnitByIdService(ctx context.Context, id int64) (TractorUnitResponse, error)
 }
 
 type Service struct {
@@ -81,11 +82,23 @@ func (p *Service) GetTractorUnitService(ctx context.Context, id int64) ([]Tracto
 	}
 
 	var getAllTractorUnit []TractorUnitResponse
-	for _, trailer := range result {
+	for _, tractorUnit := range result {
 		getTractorUnitResponse := TractorUnitResponse{}
-		getTractorUnitResponse.ParseFromTractorUnitObject(trailer)
+		getTractorUnitResponse.ParseFromTractorUnitObject(tractorUnit)
 		getAllTractorUnit = append(getAllTractorUnit, getTractorUnitResponse)
 	}
 
 	return getAllTractorUnit, nil
+}
+
+func (p *Service) GetTractorUnitByIdService(ctx context.Context, id int64) (TractorUnitResponse, error) {
+	result, err := p.InterfaceService.GetTractorUnitById(ctx, id)
+	if err != nil {
+		return TractorUnitResponse{}, err
+	}
+
+	getTractorUnitResponse := TractorUnitResponse{}
+	getTractorUnitResponse.ParseFromTractorUnitObject(result)
+
+	return getTractorUnitResponse, nil
 }

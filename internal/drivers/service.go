@@ -14,6 +14,7 @@ type InterfaceService interface {
 	UpdateDriverService(ctx context.Context, data UpdateDriverDto) (DriverResponse, error)
 	DeleteDriverService(ctx context.Context, id, idUser int64) error
 	GetDriverService(ctx context.Context, id int64) ([]DriverResponse, error)
+	GetDriverByIdService(ctx context.Context, id int64) (DriverResponse, error)
 }
 
 type Service struct {
@@ -33,10 +34,6 @@ func (p *Service) CreateDriverService(
 		return DriverResponse{}, err
 	}
 
-	if profile.Name == "Shipper" || profile.Name == "Carrier Driver" {
-		return DriverResponse{}, errors.New("you cannot create a driver")
-	}
-
 	arg := data.ParseCreateToDriver()
 
 	result, err := p.InterfaceService.CreateDriver(ctx, arg)
@@ -44,7 +41,7 @@ func (p *Service) CreateDriverService(
 		return DriverResponse{}, err
 	}
 
-	if profile.Name == "Carrier" || profile.Name == "Driver" {
+	if profile.Name == "Carrier" {
 		u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
@@ -134,4 +131,16 @@ func (p *Service) GetDriverService(ctx context.Context, id int64) ([]DriverRespo
 	}
 
 	return getAllDriver, nil
+}
+
+func (p *Service) GetDriverByIdService(ctx context.Context, id int64) (DriverResponse, error) {
+	result, err := p.InterfaceService.GetDriverById(ctx, id)
+	if err != nil {
+		return DriverResponse{}, err
+	}
+
+	getDriverResponse := DriverResponse{}
+	getDriverResponse.ParseFromDriverObject(result)
+
+	return getDriverResponse, nil
 }
