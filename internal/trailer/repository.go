@@ -12,6 +12,7 @@ type InterfaceRepository interface {
 	DeleteTrailer(ctx context.Context, arg db.DeleteTrailerParams) error
 	GetTrailerById(ctx context.Context, arg int64) (db.Trailer, error)
 	GetTrailerByUserId(ctx context.Context, arg int64) ([]db.Trailer, error)
+	GetOneTrailerByUserId(ctx context.Context, arg int64) (db.Trailer, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -44,4 +45,7 @@ func (r *Repository) GetTrailerById(ctx context.Context, arg int64) (db.Trailer,
 }
 func (r *Repository) GetTrailerByUserId(ctx context.Context, arg int64) ([]db.Trailer, error) {
 	return r.Queries.GetTrailerByUserId(ctx, arg)
+}
+func (r *Repository) GetOneTrailerByUserId(ctx context.Context, arg int64) (db.Trailer, error) {
+	return r.Queries.GetOneTrailerByUserId(ctx, arg)
 }

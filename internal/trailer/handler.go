@@ -128,3 +128,30 @@ func (p *Handler) GetTrailerHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, result)
 }
+
+// GetTrailerByIdHandler godoc
+// @Summary Get Tractor Unit.
+// @Description Get Tractor Unit.
+// @Tags Trailers
+// @Accept json
+// @Produce json
+// @Param id path string true "Trailer id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tractor-unit/list/{id} [get]
+// @Security ApiKeyAuth
+func (p *Handler) GetTrailerByIdHandler(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := p.InterfaceService.GetTrailerByIdService(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}

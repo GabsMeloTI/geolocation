@@ -40,3 +40,5 @@ select a.advertisement_user_id, a.interested_user_id,tr.license_plate as trailer
      LEFT JOIN trailer tr on tr.id = t.trailer_id
      RIGHT JOIN driver d on d.id = t.driver_id
 WHERE a.advertisement_id = $1;
+
+

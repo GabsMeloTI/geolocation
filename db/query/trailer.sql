@@ -31,4 +31,10 @@ FROM public.trailer
 WHERE user_id=$1 AND
     status=true;
 
+-- name: GetOneTrailerByUserId :one
+SELECT *
+FROM public.trailer
+WHERE user_id=$1 AND
+    status=true;
+
 

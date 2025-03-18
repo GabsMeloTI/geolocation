@@ -162,6 +162,10 @@ SELECT
     d.name,
     d.license_number,
     d.license_category,
+    (SELECT COUNT(*)
+     FROM public.appointments a
+     WHERE a.interested_user_id = d.id
+       AND a.status = true AND a.situation = 'finalizado') AS races_finished,
     CASE
         WHEN EXISTS (
             SELECT 1

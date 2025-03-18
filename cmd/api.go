@@ -63,6 +63,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
 	driver.GET("/list", container.HandlerDriver.GetDriverHandler)
+	driver.GET("/list/:id", container.HandlerDriver.GetDriverByIdHandler)
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
@@ -85,12 +86,14 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
 	trailer.PUT("/delete/:id", container.HandlerTrailer.DeleteTrailerHandler)
 	trailer.GET("/list", container.HandlerTrailer.GetTrailerHandler)
+	trailer.GET("/list/:id", container.HandlerTrailer.GetTrailerByIdHandler)
 
 	tractorUnit := e.Group("/tractor-unit", _midlleware.CheckUserAuthorization)
 	tractorUnit.POST("/create", container.HandlerTractorUnit.CreateTractorUnitHandler)
 	tractorUnit.PUT("/update", container.HandlerTractorUnit.UpdateTractorUnitHandler)
 	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
 	tractorUnit.GET("/list", container.HandlerTractorUnit.GetTractorUnitHandler)
+	tractorUnit.GET("/list/:id", container.HandlerTractorUnit.GetTractorUnitByIdHandler)
 
 	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
 	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
@@ -178,7 +181,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 	address.GET("/state", container.HandlerAddress.FindStateAll)
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
-	address.GET("/find/cep/:cep", container.HandlerAddress.FindAddressByCEPHandler)
 
 	e.GET(
 		"/token",
@@ -191,6 +193,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 		container.HandlerDashboard.GetDashboardHandler,
 		_midlleware.CheckUserAuthorization,
 	)
+
+	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 
 	certFile := "fullchain.pem"
 	keyFile := "privkey.pem"

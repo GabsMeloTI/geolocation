@@ -67,6 +67,7 @@ type DriverEnterprise struct {
 	LicenseNumber   string `json:"license_number"`
 	LicenseCategory string `json:"license_category"`
 	Disponibilidade string `json:"disponibilidade"`
+	RecesFinished   int64  `json:"reces_finished"`
 }
 
 type TrailerEnterprise struct {
@@ -144,6 +145,7 @@ func convertDriverEnterprise(rows []db.GetDashboardDriverEnterpriseRow) []Driver
 			LicenseNumber:   r.LicenseNumber,
 			LicenseCategory: r.LicenseCategory,
 			Disponibilidade: r.Disponibilidade,
+			RecesFinished:   r.RacesFinished,
 		}
 	}
 	return result

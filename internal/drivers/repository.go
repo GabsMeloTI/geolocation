@@ -16,6 +16,7 @@ type InterfaceRepository interface {
 	GetProfileById(ctx context.Context, profileId int64) (db.Profile, error)
 	CreateUserToCarrier(ctx context.Context, arg db.CreateUserParams) (db.User, error)
 	GetUserByEmail(ctx context.Context, email string) (db.User, error)
+	GetOneDriverByUserId(ctx context.Context, arg int64) (db.Driver, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -73,4 +74,7 @@ func (r *Repository) CreateUserToCarrier(
 
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (db.User, error) {
 	return r.Queries.GetUserByEmail(ctx, email)
+}
+func (r *Repository) GetOneDriverByUserId(ctx context.Context, arg int64) (db.Driver, error) {
+	return r.Queries.GetOneDriverByUserId(ctx, arg)
 }

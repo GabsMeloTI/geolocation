@@ -116,12 +116,51 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 // @Success 200
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /tractor-unit/list [put]
+// @Router /tractor-unit/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTractorUnitHandler(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
 
 	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), payload.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+// GetTractorUnitByIdHandler godoc
+// @Summary Get Tractor Unit.
+// @Description Get Tractor Unit.
+// @Tags TractorUnits
+// @Accept json
+// @Produce json
+// @Param id path string true "TractorUnit id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tractor-unit/list/{id} [get]
+// @Security ApiKeyAuth
+func (p *Handler) GetTractorUnitByIdHandler(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := p.InterfaceService.GetTractorUnitByIdService(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+
+func (p *Handler) CheckPlateHandler(c echo.Context) error {
+	plate := c.Param("plate")
+	
+	result, err := p.InterfaceService.CheckPlate(plate)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

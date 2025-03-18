@@ -14,6 +14,7 @@ type InterfaceService interface {
 	UpdateDriverService(ctx context.Context, data UpdateDriverDto) (DriverResponse, error)
 	DeleteDriverService(ctx context.Context, id, idUser int64) error
 	GetDriverService(ctx context.Context, id int64) ([]DriverResponse, error)
+	GetDriverByIdService(ctx context.Context, id int64) (DriverResponse, error)
 }
 
 type Service struct {
@@ -133,4 +134,16 @@ func (p *Service) GetDriverService(ctx context.Context, id int64) ([]DriverRespo
 	}
 
 	return getAllDriver, nil
+}
+
+func (p *Service) GetDriverByIdService(ctx context.Context, id int64) (DriverResponse, error) {
+	result, err := p.InterfaceService.GetOneDriverByUserId(ctx, id)
+	if err != nil {
+		return DriverResponse{}, err
+	}
+
+	getDriverResponse := DriverResponse{}
+	getDriverResponse.ParseFromDriverObject(result)
+
+	return getDriverResponse, nil
 }
