@@ -49,6 +49,7 @@ type RoomResponse struct {
 	Distance            int64            `json:"distance"`
 	LastMessage         *MessageResponse `json:"last_message,omitempty"`
 	UnreadCount         int64            `json:"unread_count"`
+	InterestedUserName  string           `json:"interested_user_name,omitempty"`
 }
 
 type MessageResponse struct {
