@@ -51,6 +51,51 @@ func (q *Queries) CreateAttachments(ctx context.Context, arg CreateAttachmentsPa
 	return i, err
 }
 
+const getAllAttachmentById = `-- name: GetAllAttachmentById :many
+SELECT id, user_id, description, url, name_file, size_file, type, status, created_at, updated_at
+FROM public.attachments
+WHERE user_id=$1 AND type=$2 AND status=true
+`
+
+type GetAllAttachmentByIdParams struct {
+	UserID int64  `json:"user_id"`
+	Type   string `json:"type"`
+}
+
+func (q *Queries) GetAllAttachmentById(ctx context.Context, arg GetAllAttachmentByIdParams) ([]Attachment, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAttachmentById, arg.UserID, arg.Type)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attachment
+	for rows.Next() {
+		var i Attachment
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Description,
+			&i.Url,
+			&i.NameFile,
+			&i.SizeFile,
+			&i.Type,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAttachmentById = `-- name: GetAttachmentById :one
 SELECT id, user_id, description, url, name_file, size_file, type, status, created_at, updated_at
 FROM public.attachments

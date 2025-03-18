@@ -14,3 +14,8 @@ type DeleteAttachByCodeIdAndOrigin struct {
 	AccessID   int64     `json:"access_id"`
 	TenantID   uuid.UUID `json:"tenant_id"`
 }
+
+type Attachment struct {
+	UserID int64  `db:"user_id"`
+	URL    string `db:"url"`
+}

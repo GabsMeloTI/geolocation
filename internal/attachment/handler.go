@@ -76,3 +76,27 @@ func (h *Handler) UpdateAttachHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, "Success")
 }
+
+// GetAllAttachmentById godoc
+// @Summary Get Attachment.
+// @Description Get Attachment.
+// @Tags Drivers
+// @Accept json
+// @Produce json
+// @Param id path string true "Driver id"
+// @Success 200
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /attachment/list/{type} [get]
+// @Security ApiKeyAuth
+func (p *Handler) GetAllAttachmentById(c echo.Context) error {
+	typeStr := c.Param("type")
+
+	payload := get_token.GetUserPayloadToken(c)
+	result, err := p.InterfaceService.GetAllAttachmentById(c.Request().Context(), payload.ID, typeStr)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}

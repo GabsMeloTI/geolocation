@@ -9,6 +9,11 @@ SELECT *
 FROM public.attachments
 WHERE user_id=$1 AND type=$2 AND status=true;
 
+-- name: GetAllAttachmentById :many
+SELECT *
+FROM public.attachments
+WHERE user_id=$1 AND type=$2 AND status=true;
+
 -- name: UpdateAttachmentLogicDelete :exec
 UPDATE public.attachments
 SET status=false, updated_at=now()

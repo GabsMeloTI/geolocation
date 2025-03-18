@@ -15,6 +15,7 @@ import (
 type ServiceInterface interface {
 	CreateAttachService(ctx context.Context, data *multipart.Form, userID int64) error
 	UpdateAttachService(ctx context.Context, userID int64, data *multipart.Form) error
+	GetAllAttachmentById(ctx context.Context, userID int64, origin string) ([]Attachment, error)
 }
 
 type Service struct {
@@ -184,4 +185,24 @@ func (s *Service) UpdateAttachService(ctx context.Context, userID int64, data *m
 	}
 
 	return nil
+}
+
+func (s *Service) GetAllAttachmentById(ctx context.Context, userID int64, origin string) ([]Attachment, error) {
+	results, err := s.repo.GetAllAttachmentById(ctx, db.GetAllAttachmentByIdParams{
+		UserID: userID,
+		Type:   origin,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []Attachment
+	for _, attachment := range results {
+		result = append(result, Attachment{
+			UserID: attachment.UserID,
+			URL:    attachment.Url,
+		})
+	}
+
+	return result, nil
 }
