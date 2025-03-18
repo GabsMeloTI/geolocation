@@ -38,13 +38,15 @@ SELECT
     a.destination, 
     a.distance, 
     a.title,
+    u.name as interested_user_name,
   COUNT(m.is_read) FILTER(WHERE m.is_read = FALSE AND m.user_id !=$1) as unread_count
     FROM chat_rooms r
 JOIN "chat_messages" m ON m.room_id = r.id
 JOIN "advertisement" a ON a.id = r.advertisement_id
+JOIN "users" u on u.id = r.interested_user_id
 WHERE r.advertisement_user_id = $1
 AND EXISTS (SELECT 1 FROM chat_messages cm WHERE cm.room_id = r.id)
-GROUP BY r.id, a.id;
+GROUP BY r.id, a.id, u.name;
 
 -- name: GetChatRoomByAdvertisementAndInterestedUser :one
 select r.* from chat_rooms r

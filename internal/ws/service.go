@@ -229,6 +229,7 @@ func (s *Service) GetHomeService(
 			Distance:            a.Distance,
 			UnreadCount:         a.UnreadCount,
 			LastMessage:         lastMessage,
+			InterestedUserName:  a.InterestedUserName,
 		})
 	}
 
