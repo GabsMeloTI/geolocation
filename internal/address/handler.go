@@ -16,7 +16,7 @@ func NewAddressHandler(InterfaceService InterfaceService) *Handler {
 
 // FindAddressByQueryHandler godoc
 // @Summary Find Address By Query
-// @Description Encontra endereço por busca, pode ser 1. CEP, 2.Latidude, Longitude ou 3.Endereço (Rua, bairro, número).
+// @Description Find address by search, it can be 1. And, 2. Latitude, Longitude or 3. Address (Street, neighborhood, number).
 // @Tags Address
 // @Accept json
 // @Produce json
@@ -40,7 +40,7 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 
 // FindAddressByCEPHandler godoc
 // @Summary Find Address By CEP
-// @Description Encontra endereço por CEP, retorna o type com base nas repetições encontradas
+// @Description Finds address by zip code, returns type based on repetitions found
 // @Tags Address
 // @Accept json
 // @Produce json
@@ -59,6 +59,16 @@ func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindStateAll godoc
+// @Summary Find All States
+// @Description Returns all available states.
+// @Tags Address
+// @Accept json
+// @Produce json
+// @Success 200 {object} StateResponse[] "List of States"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /address/states [get]
+// @Security ApiKeyAuth
 func (h *Handler) FindStateAll(c echo.Context) error {
 	result, err := h.InterfaceService.FindStateAll(c.Request().Context())
 	if err != nil {
@@ -67,6 +77,18 @@ func (h *Handler) FindStateAll(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindCityAll godoc
+// @Summary Find All Cities by State ID
+// @Description Returns all cities in a specific state by their ID.
+// @Tags Address
+// @Accept json
+// @Produce json
+// @Param idState path int32 true "State ID"
+// @Success 200 {object} CityResponse[] "List of Cities"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /address/{idState} [get]
+// @Security ApiKeyAuth
 func (h *Handler) FindCityAll(c echo.Context) error {
 	idStr := c.Param("idState")
 	id, err := validation.ParseStringToInt32(idStr)
