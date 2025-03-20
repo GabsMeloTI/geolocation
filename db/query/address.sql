@@ -36,37 +36,6 @@ ORDER BY
     ts_rank(n.search_vector, plainto_tsquery('portuguese', sqlc.arg(neighborhood))) DESC
 LIMIT 5;
 
--- name: FindStreetsByQuery :many
-SELECT
-    s.id AS street_id,
-    s.name AS street_name,
-    n.name AS neighborhood_name,
-    c.name AS city_name,
-    st.uf AS state_uf,
-    ts_rank(s.search_vector, plainto_tsquery('portuguese', sqlc.arg(street))) AS street_rank,
-    ts_rank(c.search_vector, plainto_tsquery('portuguese', sqlc.arg(city))) AS city_rank,
-    ts_rank(st.search_vector, plainto_tsquery('portuguese', sqlc.arg(state))) AS state_rank,
-    ts_rank(n.search_vector, plainto_tsquery('portuguese', sqlc.arg(neighborhood))) AS neighborhood_rank
-FROM streets s
-         LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
-         JOIN cities c ON n.city_id = c.id
-         JOIN states st ON c.state_id = st.id
-WHERE
-    (COALESCE(NULLIF(sqlc.arg(street), ''),
-              NULLIF(sqlc.arg(city), ''),
-              NULLIF(sqlc.arg(state), ''),
-              NULLIF(sqlc.arg(neighborhood), '')) IS NOT NULL)
-  AND (s.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(street)) OR sqlc.arg(street) = '')
-  AND (c.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(city)) OR sqlc.arg(city) = '')
-  AND (st.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(state)) OR sqlc.arg(state) = '')
-  AND (n.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(neighborhood)) OR sqlc.arg(neighborhood) = '')
-ORDER BY
-    ts_rank(s.search_vector, plainto_tsquery('portuguese', sqlc.arg(street))) +
-    ts_rank(c.search_vector, plainto_tsquery('portuguese', sqlc.arg(city))) +
-    ts_rank(st.search_vector, plainto_tsquery('portuguese', sqlc.arg(state))) +
-    ts_rank(n.search_vector, plainto_tsquery('portuguese', sqlc.arg(neighborhood))) DESC
-LIMIT 5;
-
 -- name: FindAddressesByLatLon :many
 SELECT
     a.id AS address_id,
