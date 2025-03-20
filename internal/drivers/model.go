@@ -24,7 +24,7 @@ type CreateDriverRequest struct {
 	StreetNumber          string    `json:"street_number"`
 	Complement            string    `json:"complement"`
 	Phone                 string    `json:"phone"`
-	Email                 string    `json:"email"`
+	//Email                 string    `json:"email"`
 }
 
 type CreateDriverDto struct {
@@ -189,8 +189,8 @@ func (p CreateDriverDto) ParseToCreateUserParams(driverId int64) db.CreateUserPa
 		}
 	}
 	return db.CreateUserParams{
-		Name:  p.CreateDriverRequest.Name,
-		Email: p.CreateDriverRequest.Email,
+		Name: p.CreateDriverRequest.Name,
+		//Email: p.CreateDriverRequest.Email,
 		Password: sql.NullString{
 			String: defaultHash,
 			Valid:  true,

@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"net/mail"
-
 	db "geolocation/db/sqlc"
 )
 
@@ -25,10 +23,7 @@ func NewDriversService(InterfaceService InterfaceRepository) *Service {
 	return &Service{InterfaceService}
 }
 
-func (p *Service) CreateDriverService(
-	ctx context.Context,
-	data CreateDriverDto,
-) (DriverResponse, error) {
+func (p *Service) CreateDriverService(ctx context.Context, data CreateDriverDto) (DriverResponse, error) {
 	profile, err := p.InterfaceService.GetProfileById(ctx, data.ProfileId)
 	if err != nil {
 		return DriverResponse{}, err
@@ -37,16 +32,15 @@ func (p *Service) CreateDriverService(
 	if profile.Name == "Shipper" || profile.Name == "Carrier Driver" {
 		return DriverResponse{}, errors.New("you cannot create a driver")
 	}
-	u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return DriverResponse{}, err
-		}
-	}
-
-	if u.ID != 0 {
-		return DriverResponse{}, errors.New("email already in use")
-	}
+	//u, err := p.InterfaceService.GetUserByEmail(ctx, data.CreateDriverRequest.Email)
+	//if err != nil {
+	//	if !errors.Is(err, sql.ErrNoRows) {
+	//		return DriverResponse{}, err
+	//	}
+	//}
+	//if u.ID != 0 {
+	//	return DriverResponse{}, errors.New("email already in use")
+	//}
 
 	arg := data.ParseCreateToDriver()
 
@@ -55,20 +49,20 @@ func (p *Service) CreateDriverService(
 		return DriverResponse{}, err
 	}
 
-	if profile.Name == "Carrier" || profile.Name == "Driver" {
-		_, err = mail.ParseAddress(data.CreateDriverRequest.Email)
-		if err != nil {
-			return DriverResponse{}, err
-		}
-
-		_, err = p.InterfaceService.CreateUserToCarrier(
-			ctx,
-			data.ParseToCreateUserParams(result.ID),
-		)
-		if err != nil {
-			return DriverResponse{}, err
-		}
-	}
+	//if profile.Name == "Carrier" || profile.Name == "Driver" {
+	//	_, err = mail.ParseAddress(data.CreateDriverRequest.Email)
+	//	if err != nil {
+	//		return DriverResponse{}, err
+	//	}
+	//
+	//	_, err = p.InterfaceService.CreateUserToCarrier(
+	//		ctx,
+	//		data.ParseToCreateUserParams(result.ID),
+	//	)
+	//	if err != nil {
+	//		return DriverResponse{}, err
+	//	}
+	//}
 
 	createDriverService := DriverResponse{}
 	createDriverService.ParseFromDriverObject(result)

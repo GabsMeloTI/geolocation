@@ -47,11 +47,12 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 	//	return c.JSON(http.StatusBadRequest, "CNH inválida")
 	//}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := CreateDriverDto{
 		CreateDriverRequest: request,
-		UserID:              payload.ID,
-		ProfileId:           payload.ProfileID,
+		UserID:              id,
+		ProfileId:           2,
 	}
 
 	result, err := p.InterfaceService.CreateDriverService(c.Request().Context(), data)
@@ -84,10 +85,11 @@ func (p *Handler) UpdateDriverHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Telefone inválido")
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := UpdateDriverDto{
 		UpdateDriverRequest: request,
-		UserID:              payload.ID,
+		UserID:              id,
 	}
 
 	result, err := p.InterfaceService.UpdateDriverService(c.Request().Context(), data)
@@ -116,8 +118,9 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
-	err = p.InterfaceService.DeleteDriverService(c.Request().Context(), id, payload.ID)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
+	err = p.InterfaceService.DeleteDriverService(c.Request().Context(), id, idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

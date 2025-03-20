@@ -19,6 +19,7 @@ CREATE TABLE driver (
 
 ALTER TABLE driver
     ADD CONSTRAINT "fk_user"
-    FOREIGN KEY ("user_id")
-    REFERENCES users ("id");
+        FOREIGN KEY ("user_id")
+            REFERENCES "Users" ("id");
+
 

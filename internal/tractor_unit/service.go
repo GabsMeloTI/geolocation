@@ -41,7 +41,7 @@ func (p *Service) CreateTractorUnitService(ctx context.Context, data CreateTract
 func (p *Service) UpdateTractorUnitService(ctx context.Context, data UpdateTractorUnitDto) (TractorUnitResponse, error) {
 	_, err := p.InterfaceService.GetTractorUnitById(ctx, data.UpdateTractorUnitRequest.ID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return TractorUnitResponse{}, errors.New("driver not found")
+		return TractorUnitResponse{}, errors.New("tractor unit not found")
 	}
 	if err != nil {
 		return TractorUnitResponse{}, err

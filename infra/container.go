@@ -29,6 +29,7 @@ import (
 type ContainerDI struct {
 	Config                  Config
 	ConnDB                  *sql.DB
+	ConnDBSP                *sql.DB
 	HandlerRoutes           *routes.Handler
 	ServiceRoutes           *routes.Service
 	RepositoryRoutes        *routes.Repository
@@ -103,7 +104,18 @@ func (c *ContainerDI) db() {
 		Driver:      c.Config.DBDriver,
 		Environment: c.Config.Environment,
 	}
+	dbConfigSP := database.Config{
+		Host:        c.Config.DBHost,
+		Port:        c.Config.DBPort,
+		User:        c.Config.DBUser,
+		Password:    c.Config.DBPassword,
+		Database:    c.Config.DBDatabaseSP,
+		SSLMode:     c.Config.DBSSLMode,
+		Driver:      c.Config.DBDriver,
+		Environment: c.Config.Environment,
+	}
 	c.ConnDB = db_postgresql.NewConnection(&dbConfig)
+	c.ConnDBSP = db_postgresql.NewConnectionSP(&dbConfigSP)
 }
 
 func (c *ContainerDI) buildPkg() {
@@ -121,9 +133,9 @@ func (c *ContainerDI) buildPkg() {
 func (c *ContainerDI) buildRepository() {
 	c.RepositoryRoutes = routes.NewTollsRepository(c.ConnDB)
 	c.RepositoryHist = hist.NewHistRepository(c.ConnDB)
-	c.RepositoryDriver = drivers.NewDriversRepository(c.ConnDB)
-	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDB)
-	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDB)
+	c.RepositoryDriver = drivers.NewDriversRepository(c.ConnDBSP)
+	c.RepositoryTractorUnit = tractor_unit.NewTractorUnitsRepository(c.ConnDBSP)
+	c.RepositoryTrailer = trailer.NewTrailersRepository(c.ConnDBSP)
 	c.RepositoryAdvertisement = advertisement.NewAdvertisementsRepository(c.ConnDB)
 	c.RepositoryAttachment = attachment.NewAttachmentRepository(c.ConnDB)
 	c.RepositoryPayment = payment.NewPaymentRepository(c.ConnDB)

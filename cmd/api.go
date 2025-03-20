@@ -58,55 +58,48 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
+	//mantem
+	driver := e.Group("/driver", _midlleware.CheckAuthorization)
 	driver.POST("/create", container.HandlerDriver.CreateDriverHandler)
 	driver.PUT("/update", container.HandlerDriver.UpdateDriverHandler)
 	driver.PUT("/delete/:id", container.HandlerDriver.DeleteDriversHandler)
 	driver.GET("/list", container.HandlerDriver.GetDriverHandler)
 	driver.GET("/list/:id", container.HandlerDriver.GetDriverByIdHandler)
 
+	//mantem
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
-	advertisement.POST(
-		"/finish/create",
-		container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate,
-	)
+	advertisement.POST("/finish/create", container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate)
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 	advertisement.GET("/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDService)
-	advertisement.GET(
-		"/list/by-user",
-		container.HandlerAdvertisement.GetAllAdvertisementByUserHandler,
-	)
+	advertisement.GET("/list/by-user", container.HandlerAdvertisement.GetAllAdvertisementByUserHandler)
 	advertisement.PUT("/update/route", container.HandlerAdvertisement.UpdateAdsRouteChoose)
 
-	trailer := e.Group("/trailer", _midlleware.CheckUserAuthorization)
+	//mantem
+	trailer := e.Group("/trailer", _midlleware.CheckAuthorization)
 	trailer.POST("/create", container.HandlerTrailer.CreateTrailerHandler)
 	trailer.PUT("/update", container.HandlerTrailer.UpdateTrailerHandler)
 	trailer.PUT("/delete/:id", container.HandlerTrailer.DeleteTrailerHandler)
 	trailer.GET("/list", container.HandlerTrailer.GetTrailerHandler)
 	trailer.GET("/list/:id", container.HandlerTrailer.GetTrailerByIdHandler)
 
-	tractorUnit := e.Group("/tractor-unit", _midlleware.CheckUserAuthorization)
+	//mantem
+	tractorUnit := e.Group("/tractor-unit", _midlleware.CheckAuthorization)
 	tractorUnit.POST("/create", container.HandlerTractorUnit.CreateTractorUnitHandler)
 	tractorUnit.PUT("/update", container.HandlerTractorUnit.UpdateTractorUnitHandler)
 	tractorUnit.PUT("/delete/:id", container.HandlerTractorUnit.DeleteTractorUnitHandler)
 	tractorUnit.GET("/list", container.HandlerTractorUnit.GetTractorUnitHandler)
 	tractorUnit.GET("/list/:id", container.HandlerTractorUnit.GetTractorUnitByIdHandler)
 
+	//mantem
 	attach := e.Group("/attach", _midlleware.CheckUserAuthorization)
 	attach.POST("/upload", container.HandlerAttachment.CreateAttachHandler)
 	attach.PUT("/update", container.HandlerAttachment.UpdateAttachHandler)
 	attach.GET("/list/:type", container.HandlerAttachment.GetAllAttachmentById)
 
-	e.POST("/recover-password", container.UserHandler.RecoverPassword)
-	e.PUT(
-		"/recover-password/confirm",
-		container.UserHandler.ConfirmRecoverPassword,
-		_midlleware.CheckUserAuthorization,
-	)
-
+	//remover
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
 	user.PUT("/delete", container.UserHandler.DeleteUser)
@@ -115,30 +108,21 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/address/update", container.UserHandler.UpdateUserAddress)
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)
-	e.GET("/user/email", container.UserHandler.UserExists)
 
+	//remover
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
-	public.GET(
-		"/advertisement/list",
-		container.HandlerAdvertisement.GetAllAdvertisementPublicHandler,
-	)
-	public.GET(
-		"/advertisement/list/:id",
-		container.HandlerAdvertisement.GetAdvertisementByIDPublicService,
-	)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
+	public.GET("/advertisement/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDPublicService)
 	// easyfrete no user
-	public.POST(
-		"/check-route-tolls",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckPublicAuthorization,
-	)
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
 	route.PUT("/favorite/remove/:id", container.HandlerNewRoutes.RemoveFavoriteRouteHandler)
 	route.POST("/simple", container.HandlerNewRoutes.GetSimpleRoute)
 
+	//remover
 	chat := e.Group("/chat", _midlleware.CheckUserAuthorization)
 	chat.POST("/create-room", container.WsHandler.CreateChatRoom)
 	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
@@ -147,55 +131,29 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
 	// simpplify
-	e.POST(
-		"/check-route-tolls-simpplify",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckAuthorization,
-	)
+	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	// easyfrete
-	e.POST(
-		"/check-route-tolls-easy",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckUserAuthorization,
-	)
-	e.POST(
-		"/google-route-tolls-public",
-		container.HandlerRoutes.CheckRouteTolls,
-		_midlleware.CheckPublicAuthorization,
-	)
+	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.POST("/login", container.LoginHandler.Login)
 	e.POST("/create", container.LoginHandler.CreateUser)
+	e.POST("/recover-password", container.UserHandler.RecoverPassword)
+	e.PUT("/recover-password/confirm", container.UserHandler.ConfirmRecoverPassword, _midlleware.CheckUserAuthorization)
+	e.GET("/user/email", container.UserHandler.UserExists)
 
 	appointment := e.Group("/appointment")
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
-	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
-	e.GET(
-		"/payment-history",
-		container.HandlerPayment.GetPaymentHistHandler,
-		_midlleware.CheckUserAuthorization,
-	)
-
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 	address.GET("/state", container.HandlerAddress.FindStateAll)
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
 
-	e.GET(
-		"/token",
-		container.HandlerUserPlan.GetTokenUserHandler,
-		_midlleware.CheckUserAuthorization,
-	)
-
-	e.GET(
-		"/dashboard",
-		container.HandlerDashboard.GetDashboardHandler,
-		_midlleware.CheckUserAuthorization,
-	)
-
+	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
 	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 
 	certFile := "fullchain.pem"

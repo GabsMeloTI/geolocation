@@ -33,10 +33,11 @@ func (p *Handler) CreateTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := CreateTrailerDto{
 		CreateTrailerRequest: request,
-		UserID:               payload.ID,
+		UserID:               id,
 	}
 
 	result, err := p.InterfaceService.CreateTrailerService(c.Request().Context(), data)
@@ -65,10 +66,11 @@ func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := UpdateTrailerDto{
 		UpdateTrailerRequest: request,
-		UserID:               payload.ID,
+		UserID:               id,
 	}
 
 	result, err := p.InterfaceService.UpdateTrailerService(c.Request().Context(), data)
@@ -98,8 +100,9 @@ func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
-	err = p.InterfaceService.DeleteTrailerService(c.Request().Context(), id, payload.ID)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
+	err = p.InterfaceService.DeleteTrailerService(c.Request().Context(), id, idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

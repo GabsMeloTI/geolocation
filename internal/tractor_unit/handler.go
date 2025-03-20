@@ -1,6 +1,7 @@
 package tractor_unit
 
 import (
+	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
@@ -33,10 +34,11 @@ func (p *Handler) CreateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := CreateTractorUnitDto{
 		CreateTractorUnitRequest: request,
-		UserID:                   payload.ID,
+		UserID:                   id,
 	}
 
 	result, err := p.InterfaceService.CreateTractorUnitService(c.Request().Context(), data)
@@ -65,12 +67,13 @@ func (p *Handler) UpdateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	id, err := validation.ParseStringToInt64(payload.UserID)
 	data := UpdateTractorUnitDto{
 		UpdateTractorUnitRequest: request,
-		UserID:                   payload.ID,
+		UserID:                   id,
 	}
-
+	fmt.Println(data)
 	result, err := p.InterfaceService.UpdateTractorUnitService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -98,8 +101,10 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetUserPayloadToken(c)
-	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id, payload.ID)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
+	fmt.Println(id, " - ", idUser)
+	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id, idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -156,10 +161,9 @@ func (p *Handler) GetTractorUnitByIdHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-
 func (p *Handler) CheckPlateHandler(c echo.Context) error {
 	plate := c.Param("plate")
-	
+
 	result, err := p.InterfaceService.CheckPlate(plate)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())

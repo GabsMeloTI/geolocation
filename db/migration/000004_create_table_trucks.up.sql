@@ -16,9 +16,9 @@ CREATE TABLE tractor_unit (
                               created_at timestamp not null,
                               updated_at timestamp null,
                               CONSTRAINT fk_driver
-                              FOREIGN KEY (driver_id) REFERENCES driver(id),
+                                  FOREIGN KEY (driver_id) REFERENCES driver(id),
                               CONSTRAINT fk_user
-                              FOREIGN KEY (user_id) REFERENCES users(id)
+                                  FOREIGN KEY (user_id) REFERENCES "Users"(id)
 );
 
 CREATE TABLE trailer (
@@ -36,9 +36,8 @@ CREATE TABLE trailer (
                          created_at timestamp not null,
                          updated_at timestamp null,
                          CONSTRAINT fk_user
-                         FOREIGN KEY (user_id) REFERENCES users(id)
+                             FOREIGN KEY (user_id) REFERENCES "Users"(id)
 );
-
 
 CREATE TABLE truck (
                           id BIGSERIAL PRIMARY KEY,
