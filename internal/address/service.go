@@ -154,6 +154,14 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 
 		term = strings.ToLower(result.String())
 
+		prefixes := []string{"travessa", "rua", "avenida", "estrada", "rodovia"}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(term, prefix) {
+				rua = term
+				break
+			}
+		}
+
 		if _, err := strconv.Atoi(term); err == nil {
 			numero = term
 			continue
@@ -178,11 +186,11 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
-		Column1: rua,
-		Column2: cidade,
-		Column3: estado,
-		Column4: bairro,
-		Column5: numero,
+		Street:       rua,
+		City:         cidade,
+		State:        estado,
+		Neighborhood: bairro,
+		Number:       numero,
 	})
 	if err != nil {
 		return nil, err
