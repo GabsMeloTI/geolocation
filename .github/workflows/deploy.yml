@@ -98,7 +98,7 @@ jobs:
           
           rm -f private_key.pem
 
-    deploy-to-ec2-homolog:
+  deploy-to-ec2-homolog:
     name: Deploy to EC2 (homolog)
     runs-on: ubuntu-latest
     if: github.ref_name == 'homolog'
