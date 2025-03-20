@@ -124,9 +124,10 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 // @Router /tractor-unit/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTractorUnitHandler(c echo.Context) error {
-	payload := get_token.GetUserPayloadToken(c)
-
-	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), payload.ID)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
+	
+	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

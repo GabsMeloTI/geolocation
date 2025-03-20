@@ -122,9 +122,10 @@ func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
 // @Router /trailer/list [put]
 // @Security ApiKeyAuth
 func (p *Handler) GetTrailerHandler(c echo.Context) error {
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
 
-	result, err := p.InterfaceService.GetTrailerService(c.Request().Context(), payload.ID)
+	result, err := p.InterfaceService.GetTrailerService(c.Request().Context(), idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

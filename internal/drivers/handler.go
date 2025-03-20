@@ -140,9 +140,10 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 // @Router /driver/list [put]
 // @Security ApiKeyAuth
 func (p *Handler) GetDriverHandler(c echo.Context) error {
-	payload := get_token.GetUserPayloadToken(c)
+	payload := get_token.GetPayloadToken(c)
+	idUser, err := validation.ParseStringToInt64(payload.UserID)
 
-	result, err := p.InterfaceService.GetDriverService(c.Request().Context(), payload.ID)
+	result, err := p.InterfaceService.GetDriverService(c.Request().Context(), idUser)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
