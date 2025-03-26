@@ -1,0 +1,415 @@
+definitions:
+  login.RequestCreateUser:
+    properties:
+      confirm_password:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      telephone:
+        type: string
+      token:
+        type: string
+      type_person:
+        type: integer
+    required:
+    - document
+    - email
+    - name
+    - telephone
+    - type_person
+    type: object
+  login.RequestLogin:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  login.ResponseCreateUser:
+    properties:
+      token:
+        type: string
+    type: object
+  login.ResponseLogin:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+    type: object
+  new_routes.AddressInfo:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+    type: object
+  new_routes.ArrivalResponse:
+    properties:
+      distance:
+        type: string
+      time:
+        type: string
+    type: object
+  new_routes.Costs:
+    properties:
+      axles:
+        type: integer
+      cash:
+        type: number
+      fuel_in_the_city:
+        type: number
+      fuel_in_the_hwy:
+        type: number
+      maximumTollCost:
+        type: number
+      minimumTollCost:
+        type: number
+      prepaidCard:
+        type: number
+      tag:
+        type: number
+      tagAndCash:
+        type: number
+    type: object
+  new_routes.Distance:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.Duration:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.FinalOutput:
+    properties:
+      routes:
+        items:
+          $ref: '#/definitions/new_routes.RouteOutput'
+        type: array
+      summary:
+        $ref: '#/definitions/new_routes.Summary'
+    type: object
+  new_routes.FrontInfo:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination:
+        type: string
+      favorite:
+        type: boolean
+      origin:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination
+    - origin
+    - type
+    type: object
+  new_routes.FuelEfficiency:
+    properties:
+      city:
+        type: number
+      fuel_unit:
+        type: string
+      hwy:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.FuelPrice:
+    properties:
+      currency:
+        type: string
+      fuel_unit:
+        type: string
+      price:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.GasStation:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+      name:
+        type: string
+    type: object
+  new_routes.Instruction:
+    properties:
+      img:
+        type: string
+      text:
+        type: string
+    type: object
+  new_routes.Location:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  new_routes.RouteOutput:
+    properties:
+      balances: {}
+      costs:
+        $ref: '#/definitions/new_routes.Costs'
+      freight_load:
+        additionalProperties: true
+        type: object
+      gas_stations:
+        items:
+          $ref: '#/definitions/new_routes.GasStation'
+        type: array
+      instructions:
+        items:
+          $ref: '#/definitions/new_routes.Instruction'
+        type: array
+      polyline:
+        type: string
+      summary:
+        $ref: '#/definitions/new_routes.RouteSummary'
+      tolls:
+        items:
+          $ref: '#/definitions/new_routes.Toll'
+        type: array
+    type: object
+  new_routes.RouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/new_routes.Distance'
+      duration:
+        $ref: '#/definitions/new_routes.Duration'
+      hasTolls:
+        type: boolean
+      route_type:
+        type: string
+      url:
+        type: string
+      url_waze:
+        type: string
+    type: object
+  new_routes.Summary:
+    properties:
+      all_stopping_points:
+        items: {}
+        type: array
+      fuel_efficiency:
+        $ref: '#/definitions/new_routes.FuelEfficiency'
+      fuel_price:
+        $ref: '#/definitions/new_routes.FuelPrice'
+      location_destination:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      route_hist_id:
+        type: integer
+    type: object
+  new_routes.Toll:
+    properties:
+      arrival:
+        $ref: '#/definitions/new_routes.ArrivalResponse'
+      cashCost:
+        type: number
+      concession:
+        type: string
+      concession_img:
+        type: string
+      country:
+        type: string
+      currency:
+        type: string
+      free_flow:
+        type: boolean
+      id:
+        type: integer
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      pay_free_flow:
+        type: string
+      prepaidCardCost:
+        type: number
+      road:
+        type: string
+      state:
+        type: string
+      tagCost:
+        type: number
+      tagImg:
+        items:
+          type: string
+        type: array
+      tagPrimary:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: https://simpplify.com.br/contact
+  description: Document API
+  title: GO-auth-service
+  version: "1.0"
+paths:
+  /check-route-tolls:
+    post:
+      consumes:
+      - application/json
+      description: Calculates the best routes based on provided information.
+      parameters:
+      - description: Route calculation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Calculated Routes Info
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calculate possible routes.
+      tags:
+      - Routes
+  /create:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user in the system.
+      parameters:
+      - description: User Creation Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created User Info
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new user.
+      tags:
+      - Users
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user by email and password.
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authenticated User Info
+          schema:
+            $ref: '#/definitions/login.ResponseLogin'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Authenticate a user.
+      tags:
+      - Users
+schemes:
+- https
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

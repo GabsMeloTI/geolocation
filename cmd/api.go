@@ -56,6 +56,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	}))
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.GET("/swagger/new/*", echoSwagger.WrapHandler)
+
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
