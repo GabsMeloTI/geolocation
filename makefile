@@ -8,6 +8,11 @@ swag:
 	@echo "$(YELLOW) Generating $(CYAN) Swagger $(GREEN). $(NC)"
 	swag init -g cmd/api.go --output docs/app
 
+# Swagger Limited
+swag-lim:
+	@echo "$(YELLOW) Generating $(CYAN) Swagger $(GREEN). $(NC)"
+	swag init -g cmd/api.go --output docs/limited
+
 # Local Setup
 postgres-setup:
 	docker run --name login-postgres -p ${DB_PORT}:${DB_PORT}/tcp -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -d postgres:12-alpine

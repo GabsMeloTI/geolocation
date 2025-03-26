@@ -2,18 +2,17 @@ package cmd
 
 import (
 	"context"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"log"
 	"os"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	echoSwagger "github.com/swaggo/echo-swagger"
-
 	_ "geolocation/docs"
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // @title GO-auth-service
@@ -56,6 +55,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	}))
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.GET("/swagger/new/*", echoSwagger.WrapHandler)
+
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	driver := e.Group("/driver", _midlleware.CheckUserAuthorization)
