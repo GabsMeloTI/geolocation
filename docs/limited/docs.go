@@ -19,7 +19,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/check-route-tolls": {
+        "/check-route-tolls-easy": {
             "post": {
                 "security": [
                     {
@@ -78,11 +78,6 @@ const docTemplate = `{
         },
         "/create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Register a new user in the system.",
                 "consumes": [
                     "application/json"
@@ -129,11 +124,6 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Authenticate a user by email and password.",
                 "consumes": [
                     "application/json"

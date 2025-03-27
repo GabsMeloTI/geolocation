@@ -15,7 +15,7 @@
         "version": "1.0"
     },
     "paths": {
-        "/check-route-tolls": {
+        "/check-route-tolls-easy": {
             "post": {
                 "security": [
                     {
@@ -74,11 +74,6 @@
         },
         "/create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Register a new user in the system.",
                 "consumes": [
                     "application/json"
@@ -125,11 +120,6 @@
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Authenticate a user by email and password.",
                 "consumes": [
                     "application/json"

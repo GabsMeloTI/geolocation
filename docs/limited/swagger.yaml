@@ -304,7 +304,7 @@ info:
   title: GO-auth-service
   version: "1.0"
 paths:
-  /check-route-tolls:
+  /check-route-tolls-easy:
     post:
       consumes:
       - application/json
@@ -367,8 +367,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Create a new user.
       tags:
       - Users
@@ -399,8 +397,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Authenticate a user.
       tags:
       - Users
