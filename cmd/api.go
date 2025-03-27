@@ -12,6 +12,8 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "geolocation/docs"
+	_ "geolocation/docs/limited"
+
 	"geolocation/infra"
 	_midlleware "geolocation/infra/middleware"
 )
@@ -56,7 +58,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	}))
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
-	e.GET("/swagger/new/*", echoSwagger.WrapHandler)
+	e.GET("/swagger/new/*", echoSwagger.EchoWrapHandler(echoSwagger.InstanceName("limited")))
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
