@@ -57,8 +57,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
 	}))
 
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
-	e.GET("/swagger/new/*", echoSwagger.EchoWrapHandler(echoSwagger.InstanceName("limited")))
+	e.GET("/swagger/3744f3e2-4989-433b-83e9-b467f5c7d503/*", echoSwagger.WrapHandler)
+	e.GET("/swagger/system/documentation/*", echoSwagger.EchoWrapHandler(echoSwagger.InstanceName("limited")))
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
