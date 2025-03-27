@@ -412,7 +412,6 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			newCount := existingRoute.NumberRequest + 1
 			newRouteHist, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
 				IDUser:      idTokenHist,
 				Origin:      origin,
@@ -423,7 +422,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 				},
 				Response:      responseJSON,
 				IsPublic:      isPublic,
-				NumberRequest: newCount,
+				NumberRequest: 1,
 			})
 			if err != nil {
 				return 0, err
