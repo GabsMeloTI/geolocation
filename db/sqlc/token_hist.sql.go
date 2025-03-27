@@ -74,7 +74,7 @@ func (q *Queries) GetTokenHistExist(ctx context.Context, ip string) (bool, error
 }
 
 const updateNumberOfRequest = `-- name: UpdateNumberOfRequest :exec
-UPDATE public.token_hist
+UPDATE public.route_hist
 SET number_request = $1
 WHERE id = $2
 `
