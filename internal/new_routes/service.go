@@ -432,10 +432,7 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 			return 0, err
 		}
 	} else {
-		fmt.Println(existingRoute.NumberRequest)
 		newCount := existingRoute.NumberRequest + 1
-		fmt.Println("novo valor", newCount)
-		fmt.Println("id", existingRoute.ID)
 		err = s.InterfaceService.UpdateNumberOfRequestRequest(ctx, db.UpdateNumberOfRequestParams{
 			ID:            existingRoute.ID,
 			NumberRequest: newCount,
@@ -444,7 +441,6 @@ func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, dest
 			return 0, err
 		}
 		routeHistID = existingRoute.ID
-		fmt.Println(routeHistID)
 	}
 
 	_, err = s.InterfaceService.CreateSavedRoutes(ctx, db.CreateSavedRoutesParams{
