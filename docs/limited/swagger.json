@@ -15,14 +15,14 @@
         "version": "1.0"
     },
     "paths": {
-        "/check-route-tolls-easy": {
-            "post": {
+        "/address/find": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calculates the best routes based on provided information.",
+                "description": "Busca um endereço por pesquisa, que pode ser: 1. E, 2. Latitude e Longitude ou 3. Endereço (Rua, bairro, número).",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,12 +30,193 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Routes"
+                    "Endereços"
                 ],
-                "summary": "Calculate possible routes.",
+                "summary": "Buscar Endereço por Consulta",
                 "parameters": [
                     {
-                        "description": "Route calculation request",
+                        "type": "string",
+                        "description": "Consulta de endereço",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informação do endereço",
+                        "schema": {
+                            "$ref": "#/definitions/address.AddressResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/find/cep/{cep}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Encontra um endereço pelo CEP, retornando o tipo com base nas repetições encontradas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Endereços"
+                ],
+                "summary": "Busca um endereço pelo CEP",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "cep",
+                        "name": "CEP",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informação do endereço",
+                        "schema": {
+                            "$ref": "#/definitions/address.AddressCEPResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/states": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna todos os estados dísponíveis.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Endereços"
+                ],
+                "summary": "Busca todos os estados.",
+                "responses": {
+                    "200": {
+                        "description": "Lista dos estados",
+                        "schema": {
+                            "$ref": "#/definitions/address.StateResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/{idState}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna todas as cidades de um determinado estado pelo seu ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Endereços"
+                ],
+                "summary": "Busca todas as cidades pelo ID do estado.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "State ID",
+                        "name": "idState",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista das cidades.",
+                        "schema": {
+                            "$ref": "#/definitions/address.CityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/check-route-tolls-easy": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Calcula as melhores opções de rota a partir de uma origem e destino.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rotas"
+                ],
+                "summary": "Calcula as rotas disponível.",
+                "parameters": [
+                    {
+                        "description": "Campos necessários",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -46,7 +227,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Calculated Routes Info",
+                        "description": "Informações da rota",
                         "schema": {
                             "$ref": "#/definitions/new_routes.FinalOutput"
                         }
@@ -74,7 +255,7 @@
         },
         "/create": {
             "post": {
-                "description": "Register a new user in the system.",
+                "description": "Cria um usuário gerando um token para acessar as funcionalidades do sistema.",
                 "consumes": [
                     "application/json"
                 ],
@@ -82,12 +263,12 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Create a new user.",
+                "summary": "Realiza a criação de um novo usuário no sistema.",
                 "parameters": [
                     {
-                        "description": "User Creation Request",
+                        "description": "Informações necessárias para a criação do usuário",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -120,7 +301,7 @@
         },
         "/login": {
             "post": {
-                "description": "Authenticate a user by email and password.",
+                "description": "Realiza a autenticação do usuário com o sistema.",
                 "consumes": [
                     "application/json"
                 ],
@@ -128,12 +309,12 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Authenticate a user.",
+                "summary": "Autenticação do usuário",
                 "parameters": [
                     {
-                        "description": "Login Request",
+                        "description": "Campos necessários para o login",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -144,7 +325,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Authenticated User Info",
+                        "description": "Token de acesso ao sistema",
                         "schema": {
                             "$ref": "#/definitions/login.ResponseLogin"
                         }
@@ -163,9 +344,207 @@
                     }
                 }
             }
+        },
+        "/route/favorite/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna um array com todas as rotas favoritadas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rotas Favoritas"
+                ],
+                "summary": "Consulta as rotas favoritadas.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retorna um array com as rotas favoritadas.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route/favorite/remove/:id": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "A rota favoritada no id informado da requisição é deletada.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rotas Favoritas"
+                ],
+                "summary": "Realiza a exclusão da rota favoritada.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FavoriteRoute id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "address.AddressCEPResponse": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "city_name": {
+                    "type": "string"
+                },
+                "neighborhood_name": {
+                    "type": "string"
+                },
+                "state_uf": {
+                    "type": "string"
+                },
+                "street_name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "address.AddressDetail": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "id_address": {
+                    "type": "integer"
+                },
+                "is_exactly": {
+                    "type": "boolean"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "number": {
+                    "type": "string"
+                }
+            }
+        },
+        "address.AddressResponse": {
+            "type": "object",
+            "properties": {
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/address.AddressDetail"
+                    }
+                },
+                "city": {
+                    "type": "string"
+                },
+                "id_street": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "neighborhood": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
+        "address.CityResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "address.StateResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "uf": {
+                    "type": "string"
+                }
+            }
+        },
         "login.RequestCreateUser": {
             "type": "object",
             "required": [
@@ -194,9 +573,6 @@
                 "telephone": {
                     "type": "string"
                 },
-                "token": {
-                    "type": "string"
-                },
                 "type_person": {
                     "type": "integer"
                 }
@@ -206,9 +582,6 @@
             "type": "object",
             "properties": {
                 "password": {
-                    "type": "string"
-                },
-                "token": {
                     "type": "string"
                 },
                 "username": {
