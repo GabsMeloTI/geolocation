@@ -24,7 +24,7 @@ func NewDashboardHandler(InterfaceService InterfaceService) *Handler {
 // @Param id path string true "Driver id"
 // @Param start query string false "Data de início (formato YYYY-MM-DD)"
 // @Param end query string false "Data de fim (formato YYYY-MM-DD)"
-// @Success 200 {object} DriverResponse "Driver Info"
+// @Success 200 {object} Response "Driver Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /driver/list [put]

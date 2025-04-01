@@ -415,6 +415,7 @@ type User struct {
 	DriverID         sql.NullInt64  `json:"driver_id"`
 	DateOfBirth      sql.NullTime   `json:"date_of_birth"`
 	SecondaryContact sql.NullString `json:"secondary_contact"`
+	Client           sql.NullInt64  `json:"client"`
 	Cep              sql.NullString `json:"cep"`
 	Complement       sql.NullString `json:"complement"`
 }

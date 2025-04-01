@@ -10,9 +10,67 @@ import (
 	"database/sql"
 )
 
+const createUserClient = `-- name: CreateUserClient :one
+INSERT INTO public.users
+("name", email, "password", created_at, profile_id, "document", phone, google_id, profile_picture, status, client)
+VALUES( $1, $2, $3, CURRENT_TIMESTAMP, 5, $4, $5, $6, $7,  true, $8)
+    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, client, cep, complement
+`
+
+type CreateUserClientParams struct {
+	Name           string         `json:"name"`
+	Email          string         `json:"email"`
+	Password       sql.NullString `json:"password"`
+	Document       sql.NullString `json:"document"`
+	Phone          sql.NullString `json:"phone"`
+	GoogleID       sql.NullString `json:"google_id"`
+	ProfilePicture sql.NullString `json:"profile_picture"`
+	Client         sql.NullInt64  `json:"client"`
+}
+
+func (q *Queries) CreateUserClient(ctx context.Context, arg CreateUserClientParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUserClient,
+		arg.Name,
+		arg.Email,
+		arg.Password,
+		arg.Document,
+		arg.Phone,
+		arg.GoogleID,
+		arg.ProfilePicture,
+		arg.Client,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.Document,
+		&i.State,
+		&i.City,
+		&i.Neighborhood,
+		&i.Street,
+		&i.StreetNumber,
+		&i.Phone,
+		&i.GoogleID,
+		&i.ProfilePicture,
+		&i.Status,
+		&i.DriverID,
+		&i.DateOfBirth,
+		&i.SecondaryContact,
+		&i.Client,
+		&i.Cep,
+		&i.Complement,
+	)
+	return i, err
+}
+
 const login = `-- name: Login :one
 SELECT
-    id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, cep, complement
+    id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, client, cep, complement
 FROM
     users
 WHERE
@@ -50,6 +108,7 @@ func (q *Queries) Login(ctx context.Context, arg LoginParams) (User, error) {
 		&i.DriverID,
 		&i.DateOfBirth,
 		&i.SecondaryContact,
+		&i.Client,
 		&i.Cep,
 		&i.Complement,
 	)
@@ -60,7 +119,7 @@ const newCreateUser = `-- name: NewCreateUser :one
 INSERT INTO public.users
 ("name", email, "password", created_at, profile_id, "document", phone, google_id, profile_picture, status)
 VALUES( $1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, true)
-    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, cep, complement
+    returning id, name, email, password, created_at, updated_at, profile_id, document, state, city, neighborhood, street, street_number, phone, google_id, profile_picture, status, driver_id, date_of_birth, secondary_contact, client, cep, complement
 `
 
 type NewCreateUserParams struct {
@@ -107,6 +166,7 @@ func (q *Queries) NewCreateUser(ctx context.Context, arg NewCreateUserParams) (U
 		&i.DriverID,
 		&i.DateOfBirth,
 		&i.SecondaryContact,
+		&i.Client,
 		&i.Cep,
 		&i.Complement,
 	)

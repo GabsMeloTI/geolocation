@@ -21,6 +21,7 @@ var (
 type ServiceInterface interface {
 	Login(context.Context, RequestLogin) (ResponseLogin, error)
 	CreateUser(context.Context, RequestCreateUser) (ResponseCreateUser, error)
+	CreateUserClient(ctx context.Context, data RequestCreateUser, id int64) (response ResponseCreateUser, err error)
 }
 
 type Service struct {
@@ -30,19 +31,11 @@ type Service struct {
 	googleClientID string
 }
 
-func NewService(
-	googleToken sso.GoogleTokenInterface,
-	repository RepositoryInterface,
-	maker token.Maker,
-	googleClientID string,
-) *Service {
+func NewService(googleToken sso.GoogleTokenInterface, repository RepositoryInterface, maker token.Maker, googleClientID string) *Service {
 	return &Service{googleToken, repository, maker, googleClientID}
 }
 
-func (s *Service) Login(
-	ctx context.Context,
-	data RequestLogin,
-) (response ResponseLogin, err error) {
+func (s *Service) Login(ctx context.Context, data RequestLogin) (response ResponseLogin, err error) {
 	var emailSearch string
 	var googleIDSearch string
 	emailSearch = data.Username
@@ -106,10 +99,7 @@ func (s *Service) Login(
 	return responseData, err
 }
 
-func (s *Service) CreateUser(
-	ctx context.Context,
-	data RequestCreateUser,
-) (response ResponseCreateUser, err error) {
+func (s *Service) CreateUser(ctx context.Context, data RequestCreateUser) (response ResponseCreateUser, err error) {
 	var userEmail, userGoogleID string
 	var newPassword sql.NullString
 	userEmail = data.Email
@@ -162,6 +152,83 @@ func (s *Service) CreateUser(
 		Phone:          sql.NullString{String: data.Telephone, Valid: true},
 		GoogleID:       sql.NullString{String: userGoogleID, Valid: true},
 		ProfilePicture: sql.NullString{String: "", Valid: true},
+	})
+	if err != nil {
+		return response, err
+	}
+
+	tokenStr, err := s.maker.CreateTokenUser(
+		result.ID,
+		result.Name,
+		result.Email,
+		result.ProfileID.Int64,
+		result.Document.String,
+		result.GoogleID.String,
+		time.Now().Add(87600*time.Hour).UTC(),
+	)
+	if err != nil {
+		return response, err
+	}
+
+	response.Token = tokenStr
+	return response, err
+}
+
+func (s *Service) CreateUserClient(ctx context.Context, data RequestCreateUser, id int64) (response ResponseCreateUser, err error) {
+	var userEmail, userGoogleID string
+	var newPassword sql.NullString
+	userEmail = data.Email
+	userGoogleID = ""
+
+	u, err := s.repository.GetUserByEmail(ctx, userEmail)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return ResponseCreateUser{}, err
+		}
+	}
+	if u.ID != 0 {
+		return ResponseCreateUser{}, errors.New("user already exists")
+	}
+
+	hashedPassword, err := crypt.HashPassword(data.Password)
+	if err != nil {
+		return response, err
+	}
+	newPassword = sql.NullString{
+		String: hashedPassword,
+		Valid:  true,
+	}
+
+	if data.Token != "" {
+		googleToken, err := s.googleToken.Validation(ctx, data.Token)
+		if err != nil {
+			return response, err
+		}
+
+		if googleToken.Audience != s.googleClientID {
+			return response, ErrInvalidClientID
+		}
+
+		userEmail = googleToken.Email
+		userGoogleID = googleToken.UserId
+		newPassword = sql.NullString{
+			String: "",
+			Valid:  false,
+		}
+	}
+
+	result, err := s.repository.CreateUserClient(ctx, db.CreateUserClientParams{
+		Name:           data.Name,
+		Email:          userEmail,
+		Password:       newPassword,
+		Document:       sql.NullString{String: data.Document, Valid: true},
+		Phone:          sql.NullString{String: data.Telephone, Valid: true},
+		GoogleID:       sql.NullString{String: userGoogleID, Valid: true},
+		ProfilePicture: sql.NullString{String: "", Valid: true},
+		Client: sql.NullInt64{
+			Int64: id,
+			Valid: true,
+		},
 	})
 	if err != nil {
 		return response, err

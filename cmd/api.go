@@ -170,6 +170,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.POST("/login", container.LoginHandler.Login)
 	e.POST("/create", container.LoginHandler.CreateUser)
+	e.POST("/create/client", container.LoginHandler.CreateUserClient, _midlleware.CheckUserAuthorization)
 
 	appointment := e.Group("/appointment")
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)

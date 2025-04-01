@@ -1,6 +1,7 @@
 package login
 
 import (
+	"geolocation/internal/get_token"
 	"net/http"
 	"net/mail"
 
@@ -81,6 +82,50 @@ func (h *Handler) CreateUser(e echo.Context) error {
 	}
 
 	result, err := h.service.CreateUser(e.Request().Context(), request)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
+// CreateUserClient godoc
+// @Summary Create a new user client.
+// @Description Register a new user client in the system.
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body RequestCreateUser true "User Creation Request"
+// @Success 200 {object} ResponseCreateUser "Created User Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /create/client [post]
+// @Security ApiKeyAuth
+func (h *Handler) CreateUserClient(e echo.Context) error {
+	var request RequestCreateUser
+	if err := e.Bind(&request); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if err := validation.Validate(request); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	_, err := mail.ParseAddress(request.Email)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, "invalid email address")
+	}
+
+	if ok := validation.ValidatePassword(request.Password); !ok {
+		return e.JSON(http.StatusBadRequest, "invalid password")
+	}
+
+	if ok := request.Password == request.ConfirmPassword; !ok {
+		return e.JSON(http.StatusBadRequest, "password and confirm password are different")
+	}
+
+	payload := get_token.GetUserPayloadToken(e)
+	result, err := h.service.CreateUserClient(e.Request().Context(), request, payload.ID)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, err.Error())
 	}
