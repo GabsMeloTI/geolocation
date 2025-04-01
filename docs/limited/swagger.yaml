@@ -297,38 +297,6 @@ definitions:
       url_waze:
         type: string
     type: object
-  new_routes.SimpleRouteRequest:
-    properties:
-      destination_lat:
-        type: number
-      destination_lng:
-        type: number
-      origin_lat:
-        type: number
-      origin_lng:
-        type: number
-    type: object
-  new_routes.SimpleRouteResponse:
-    properties:
-      summary:
-        $ref: '#/definitions/new_routes.SimpleSummary'
-    type: object
-  new_routes.SimpleRouteSummary:
-    properties:
-      distance:
-        $ref: '#/definitions/new_routes.Distance'
-      duration:
-        $ref: '#/definitions/new_routes.Duration'
-    type: object
-  new_routes.SimpleSummary:
-    properties:
-      location_destination:
-        $ref: '#/definitions/new_routes.AddressInfo'
-      location_origin:
-        $ref: '#/definitions/new_routes.AddressInfo'
-      routes:
-        $ref: '#/definitions/new_routes.SimpleRouteSummary'
-    type: object
   new_routes.Summary:
     properties:
       all_stopping_points:
@@ -429,7 +397,7 @@ paths:
       - ApiKeyAuth: []
       summary: Busca todas as cidades pelo ID do estado.
       tags:
-      - Address
+      - Endereços
   /address/find:
     get:
       consumes:
@@ -515,6 +483,42 @@ paths:
       summary: Busca todos os estados.
       tags:
       - Endereços
+  /check-route-tolls-easy:
+    post:
+      consumes:
+      - application/json
+      description: Calcula as melhores opções de rota a partir de uma origem e destino.
+      parameters:
+      - description: Campos necessários
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcula as rotas disponível.
+      tags:
+      - Rotas
   /create:
     post:
       consumes:
@@ -543,8 +547,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Realiza a criação de um novo usuário no sistema.
       tags:
       - Usuários
@@ -607,47 +609,9 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Autenticação do usuário
       tags:
       - Usuários
-  /public/check-route-tolls:
-    post:
-      consumes:
-      - application/json
-      description: Calculates the best routes based on provided information.
-      parameters:
-      - description: Route calculation request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/new_routes.FrontInfo'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Calculated Routes Info
-          schema:
-            $ref: '#/definitions/new_routes.FinalOutput'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Calculate possible routes.
-      tags:
-      - Routes
   /route/favorite/list:
     get:
       consumes:
@@ -708,42 +672,6 @@ paths:
       summary: Realiza a exclusão da rota favoritada.
       tags:
       - Rotas Favoritas
-  /route/simple:
-    post:
-      consumes:
-      - application/json
-      description: Retrieves a simple route with distance and duration.
-      parameters:
-      - description: Route calculation request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/new_routes.SimpleRouteRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Route details
-          schema:
-            $ref: '#/definitions/new_routes.SimpleRouteResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Get simple route information.
-      tags:
-      - Routes
 schemes:
 - https
 - http

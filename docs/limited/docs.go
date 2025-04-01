@@ -166,7 +166,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Address"
+                    "Endereços"
                 ],
                 "summary": "Busca todas as cidades pelo ID do estado.",
                 "parameters": [
@@ -200,13 +200,65 @@ const docTemplate = `{
                 }
             }
         },
-        "/create": {
+        "/check-route-tolls-easy": {
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
+                "description": "Calcula as melhores opções de rota a partir de uma origem e destino.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rotas"
+                ],
+                "summary": "Calcula as rotas disponível.",
+                "parameters": [
+                    {
+                        "description": "Campos necessários",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações da rota",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FinalOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/create": {
+            "post": {
                 "description": "Cria um usuário gerando um token para acessar as funcionalidades do sistema.",
                 "consumes": [
                     "application/json"
@@ -304,11 +356,6 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Realiza a autenticação do usuário com o sistema.",
                 "consumes": [
                     "application/json"
@@ -340,63 +387,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/public/check-route-tolls": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Calculates the best routes based on provided information.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Routes"
-                ],
-                "summary": "Calculate possible routes.",
-                "parameters": [
-                    {
-                        "description": "Route calculation request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/new_routes.FrontInfo"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Calculated Routes Info",
-                        "schema": {
-                            "$ref": "#/definitions/new_routes.FinalOutput"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "string"
                         }
@@ -492,63 +482,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/route/simple": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Retrieves a simple route with distance and duration.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Routes"
-                ],
-                "summary": "Get simple route information.",
-                "parameters": [
-                    {
-                        "description": "Route calculation request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/new_routes.SimpleRouteRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Route details",
-                        "schema": {
-                            "$ref": "#/definitions/new_routes.SimpleRouteResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "string"
                         }
@@ -1012,56 +945,6 @@ const docTemplate = `{
                 },
                 "url_waze": {
                     "type": "string"
-                }
-            }
-        },
-        "new_routes.SimpleRouteRequest": {
-            "type": "object",
-            "properties": {
-                "destination_lat": {
-                    "type": "number"
-                },
-                "destination_lng": {
-                    "type": "number"
-                },
-                "origin_lat": {
-                    "type": "number"
-                },
-                "origin_lng": {
-                    "type": "number"
-                }
-            }
-        },
-        "new_routes.SimpleRouteResponse": {
-            "type": "object",
-            "properties": {
-                "summary": {
-                    "$ref": "#/definitions/new_routes.SimpleSummary"
-                }
-            }
-        },
-        "new_routes.SimpleRouteSummary": {
-            "type": "object",
-            "properties": {
-                "distance": {
-                    "$ref": "#/definitions/new_routes.Distance"
-                },
-                "duration": {
-                    "$ref": "#/definitions/new_routes.Duration"
-                }
-            }
-        },
-        "new_routes.SimpleSummary": {
-            "type": "object",
-            "properties": {
-                "location_destination": {
-                    "$ref": "#/definitions/new_routes.AddressInfo"
-                },
-                "location_origin": {
-                    "$ref": "#/definitions/new_routes.AddressInfo"
-                },
-                "routes": {
-                    "$ref": "#/definitions/new_routes.SimpleRouteSummary"
                 }
             }
         },
