@@ -92,6 +92,7 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 
 func (s *Service) FindAddressesByQueryService(ctx context.Context, query string) ([]AddressResponse, error) {
 	var addressResponses []AddressResponse
+	var neighborhoodsResponses []AddressResponse
 
 	cepRegex := regexp.MustCompile(`^\d{8}$`)
 	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(query, "-", ""), " ", "")
@@ -139,6 +140,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 
 	terms := strings.Split(query, ",")
 	var rua, numero, cidade, estado, bairro string
+	ruaDetected := false
 
 	for _, term := range terms {
 		term = strings.TrimSpace(term)
@@ -159,30 +161,80 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			continue
 		}
 
-		if isBairro, err := s.InterfaceService.IsNeighborhoodRepository(ctx, term); err == nil && isBairro {
+		if strings.Contains(term, "rua") || strings.Contains(term, "avenida") ||
+			strings.Contains(term, "estrada") || strings.Contains(term, "rodovia") {
+			rua = term
+			ruaDetected = true
+			continue
+		}
+
+		neighborhoods, err := s.InterfaceService.FindNeighborhoodsByNameRepository(ctx, term)
+		if err == nil && len(neighborhoods) > 0 {
+			if !ruaDetected {
+				for _, neighborhood := range neighborhoods {
+					neighborhoodsResponses = append(neighborhoodsResponses, AddressResponse{
+						Neighborhood: neighborhood.Name,
+						City:         neighborhood.City,
+						State:        neighborhood.Uf,
+						Latitude:     neighborhood.Lat.Float64,
+						Longitude:    neighborhood.Lon.Float64,
+					})
+				}
+			}
 			bairro = term
-			continue
 		}
 
-		if isCidade, err := s.InterfaceService.IsCityRepository(ctx, term); err == nil && isCidade {
-			cidade = term
-			continue
+		cities, err := s.InterfaceService.FindCitiesByNameRepository(ctx, term)
+		if err == nil && len(cities) > 0 {
+			if !ruaDetected {
+				var responses []AddressResponse
+				for _, city := range cities {
+					responses = append(responses, AddressResponse{
+						City:      city.Name,
+						State:     city.Uf,
+						Latitude:  city.Lat.Float64,
+						Longitude: city.Lon.Float64,
+					})
+				}
+				return append(responses, neighborhoodsResponses...), nil
+			}
+			if bairro == "" {
+				cidade = term
+				continue
+			}
 		}
 
-		if isEstado, err := s.InterfaceService.IsStateRepository(ctx, term); err == nil && isEstado {
-			estado = term
+		states, err := s.InterfaceService.FindStateByNameRepository(ctx, term)
+		if err == nil && len(states) > 0 {
+			if !ruaDetected {
+				var responses []AddressResponse
+				for _, state := range states {
+					responses = append(responses, AddressResponse{
+						State:     state.Uf,
+						Latitude:  state.Lat.Float64,
+						Longitude: state.Lon.Float64,
+					})
+				}
+				return append(responses, neighborhoodsResponses...), nil
+			}
+			if bairro == "" {
+				estado = term
+				continue
+			}
+		}
+		if bairro == "" {
+			rua = term
+			ruaDetected = true
 			continue
 		}
-
-		rua = term
 	}
 
 	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
-		Column1: rua,
-		Column2: cidade,
-		Column3: estado,
-		Column4: bairro,
-		Column5: numero,
+		State:        estado,
+		City:         cidade,
+		Neighborhood: bairro,
+		Street:       rua,
+		Number:       numero,
 	})
 	if err != nil {
 		return nil, err

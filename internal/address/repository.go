@@ -11,9 +11,9 @@ type InterfaceRepository interface {
 	FindAddressesByCEPRepository(context.Context, string) ([]db.FindAddressesByCEPRow, error)
 	FindAddressesByLatLonRepository(context.Context, db.FindAddressesByLatLonParams) ([]db.FindAddressesByLatLonRow, error)
 	FindAddressGroupedByCEPRepository(ctx context.Context, arg string) ([]db.FindAddressGroupedByCEPRow, error)
-	IsStateRepository(context.Context, string) (bool, error)
-	IsCityRepository(context.Context, string) (bool, error)
-	IsNeighborhoodRepository(context.Context, string) (bool, error)
+	FindStateByNameRepository(context.Context, string) ([]db.State, error)
+	FindCitiesByNameRepository(context.Context, string) ([]db.FindCitiesByNameRow, error)
+	FindNeighborhoodsByNameRepository(context.Context, string) ([]db.FindNeighborhoodsByNameRow, error)
 	FindStateAll(context.Context) ([]db.State, error)
 	FindCityAll(context.Context, int32) ([]db.City, error)
 }
@@ -45,16 +45,16 @@ func (r *Repository) FindAddressesByLatLonRepository(ctx context.Context, arg db
 	return r.Queries.FindAddressesByLatLon(ctx, arg)
 }
 
-func (r *Repository) IsStateRepository(ctx context.Context, arg string) (bool, error) {
-	return r.Queries.IsState(ctx, arg)
+func (r *Repository) FindStateByNameRepository(ctx context.Context, arg string) ([]db.State, error) {
+	return r.Queries.FindStatesByName(ctx, arg)
 }
 
-func (r *Repository) IsCityRepository(ctx context.Context, arg string) (bool, error) {
-	return r.Queries.IsCity(ctx, arg)
+func (r *Repository) FindCitiesByNameRepository(ctx context.Context, arg string) ([]db.FindCitiesByNameRow, error) {
+	return r.Queries.FindCitiesByName(ctx, arg)
 }
 
-func (r *Repository) IsNeighborhoodRepository(ctx context.Context, arg string) (bool, error) {
-	return r.Queries.IsNeighborhood(ctx, arg)
+func (r *Repository) FindNeighborhoodsByNameRepository(ctx context.Context, arg string) ([]db.FindNeighborhoodsByNameRow, error) {
+	return r.Queries.FindNeighborhoodsByName(ctx, arg)
 }
 
 func (r *Repository) FindAddressGroupedByCEPRepository(ctx context.Context, arg string) ([]db.FindAddressGroupedByCEPRow, error) {
