@@ -207,17 +207,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calcula as melhores opções de rota a partir de uma origem e destino. \n Explicação dos campos
-				- "origin": Local de saída,
-				- "destination": Local de chegada,
-                - "axles": Quantidade de Eixos,
-				- "consumptionCity": Consumo na cidade,
-				- "consumptionHwy": Consumo em estradas,
-				- "favorite": Se deseja favoritar essa rota,
-				- "price": Preço da gasolina,
-				- "type": Tipo do automóvel(limitado a: Truck, Bus, Auto, Motorcycle, truck, bus, auto, motorcycle),
-				- "typeRoute": Caso queira trazer apenas uma rota, Ex: A rota mais eficiente, mais barata ou mais rápida(Limitado a: eficiente, rapida, barata,
-				- "waypoints": Caso queira adicionar pontos de parada(se trata de uma lista de string com nomes dos locais de parada),
+    		    "description": "Calcula as melhores opções de rota a partir de uma origem e destino.\n\nCampos esperados no body:\n- origin: Local de saída\n- destination: Local de chegada\n- axles: Quantidade de eixos\n- consumptionCity: Consumo na cidade\n- consumptionHwy: Consumo na estrada\n- favorite: Se deseja favoritar essa rota\n- price: Preço da gasolina\n- type: Tipo do automóvel (Truck, Bus, Auto, Motorcycle)\n- typeRoute: Caso queira trazer apenas uma rota (eficiente, rapida ou barata)\n- waypoints: Lista de pontos de parada (strings com nomes dos locais)",
                 "consumes": [
                     "application/json"
                 ],
