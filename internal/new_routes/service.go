@@ -414,12 +414,18 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s:axles:%d:type:%s",
-		strings.ToLower(frontInfo.OriginLng),
+	var wpStrings []string
+	for _, wp := range frontInfo.Waypoints {
+		wpStrings = append(wpStrings, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
+	}
+	waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
+
+	cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
 		strings.ToLower(frontInfo.OriginLat),
+		strings.ToLower(frontInfo.OriginLng),
 		strings.ToLower(frontInfo.DestinationLat),
 		strings.ToLower(frontInfo.DestinationLng),
-		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+		waypointsStr,
 		frontInfo.Axles,
 		strings.ToLower(frontInfo.Type),
 	)
@@ -427,7 +433,6 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
-			waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
 			responseJSON, _ := json.Marshal(cachedOutput)
 			requestJSON, _ := json.Marshal(frontInfo)
 
@@ -467,16 +472,13 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.Waypoints {
-		parts := strings.Split(wp, ",")
-		if len(parts) == 2 {
-			lat, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
-			lng, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
-			if err1 == nil && err2 == nil {
-				waypointResults = append(waypointResults, GeocodeResult{
-					Location:         Location{Latitude: lat, Longitude: lng},
-					FormattedAddress: "Waypoint",
-				})
-			}
+		lat, err1 := strconv.ParseFloat(strings.TrimSpace(wp.Lat), 64)
+		lng, err2 := strconv.ParseFloat(strings.TrimSpace(wp.Lng), 64)
+		if err1 == nil && err2 == nil {
+			waypointResults = append(waypointResults, GeocodeResult{
+				Location:         Location{Latitude: lat, Longitude: lng},
+				FormattedAddress: "Waypoint",
+			})
 		}
 	}
 
@@ -586,10 +588,17 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 		neturl.QueryEscape(origin.FormattedAddress),
 		neturl.QueryEscape(destination.FormattedAddress))
+
 	if len(frontInfo.Waypoints) > 0 {
-		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
+		var googleWp []string
+		for _, wp := range frontInfo.Waypoints {
+			googleWp = append(googleWp, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
+		}
+		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(googleWp, "|"))
 	}
+
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
+
 	wazeURL := ""
 	if origin.PlaceID != "" && destination.PlaceID != "" {
 		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
@@ -598,7 +607,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 			currentTimeMillis,
 		)
 		if len(frontInfo.Waypoints) > 0 {
-			wazeURL += "&via=place." + neturl.QueryEscape(frontInfo.Waypoints[0])
+			wazeURL += "&via=place." + neturl.QueryEscape(fmt.Sprintf("%s,%s", frontInfo.Waypoints[0].Lat, frontInfo.Waypoints[0].Lng))
 		}
 	}
 
@@ -772,13 +781,18 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		}
 	}
 
-	waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+	var wpStringsResponse []string
+	for _, wp := range frontInfo.Waypoints {
+		wpStringsResponse = append(wpStringsResponse, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
+	}
+	waypointsStrResponse := strings.ToLower(strings.Join(wpStringsResponse, ","))
+
 	responseJSON, _ := json.Marshal(finalOutput)
 	requestJSON, _ := json.Marshal(frontInfo)
 
 	result, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
 		origin.FormattedAddress, destination.FormattedAddress,
-		waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+		waypointsStrResponse, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 	if errSavedRoutes != nil {
 		return FinalOutput{}, errSavedRoutes
 	}
