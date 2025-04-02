@@ -18,7 +18,7 @@ import (
 	_midlleware "geolocation/infra/middleware"
 )
 
-// @title GO-auth-service
+// @title Geolocation
 // @description Document API
 // @version 1.0
 // @schemes https http
