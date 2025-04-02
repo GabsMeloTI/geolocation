@@ -174,6 +174,21 @@ type FrontInfo struct {
 	Favorite        bool     `json:"favorite"`
 }
 
+type FrontInfoCoordinate struct {
+	OriginLng       string   `json:"origin_lng" validate:"required"`
+	OriginLat       string   `json:"origin_lat" validate:"required"`
+	DestinationLat  string   `json:"destination_lat" validate:"required"`
+	DestinationLng  string   `json:"destination_lng" validate:"required"`
+	ConsumptionCity float64  `json:"consumptionCity"`
+	ConsumptionHwy  float64  `json:"consumptionHwy"`
+	Price           float64  `json:"price"`
+	Axles           int64    `json:"axles"`
+	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	Waypoints       []string `json:"waypoints"`
+	TypeRoute       string   `json:"typeRoute"`
+	PublicOrPrivate string   `json:"public_or_private"`
+	Favorite        bool     `json:"favorite"`
+}
 type GeocodeResult struct {
 	FormattedAddress string
 	PlaceID          string
