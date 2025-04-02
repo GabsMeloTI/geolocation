@@ -455,19 +455,15 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	originLng, _ := validation.ParseStringToFloat(frontInfo.OriginLng)
 	destinationLat, _ := validation.ParseStringToFloat(frontInfo.DestinationLat)
 	destinationLng, _ := validation.ParseStringToFloat(frontInfo.DestinationLng)
+	originAddress, _ := s.reverseGeocode(originLat, originLng)
 	origin := GeocodeResult{
-		Location: Location{
-			Latitude:  originLat,
-			Longitude: originLng,
-		},
-		FormattedAddress: "Origem",
+		Location:         Location{Latitude: originLat, Longitude: originLng},
+		FormattedAddress: originAddress,
 	}
+	destAddress, _ := s.reverseGeocode(destinationLat, destinationLng)
 	destination := GeocodeResult{
-		Location: Location{
-			Latitude:  destinationLat,
-			Longitude: destinationLng,
-		},
-		FormattedAddress: "Destino",
+		Location:         Location{Latitude: destinationLat, Longitude: destinationLng},
+		FormattedAddress: destAddress,
 	}
 
 	var waypointResults []GeocodeResult
@@ -475,9 +471,14 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		lat, err1 := strconv.ParseFloat(strings.TrimSpace(wp.Lat), 64)
 		lng, err2 := strconv.ParseFloat(strings.TrimSpace(wp.Lng), 64)
 		if err1 == nil && err2 == nil {
+			address, err := s.reverseGeocode(lat, lng)
+			if err != nil {
+				log.Printf("Erro ao buscar endereço reverso do waypoint (%f, %f): %v", lat, lng, err)
+				address = fmt.Sprintf("%.6f, %.6f", lat, lng)
+			}
 			waypointResults = append(waypointResults, GeocodeResult{
 				Location:         Location{Latitude: lat, Longitude: lng},
-				FormattedAddress: "Waypoint",
+				FormattedAddress: address,
 			})
 		}
 	}
@@ -601,9 +602,11 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 
 	wazeURL := ""
 	if origin.PlaceID != "" && destination.PlaceID != "" {
-		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
-			neturl.QueryEscape(destination.PlaceID),
-			neturl.QueryEscape(origin.PlaceID),
+		wazeURL := fmt.Sprintf("https://www.waze.com/livemap/directions?from=%f,%f&to=%f,%f&at=%d",
+			origin.Location.Latitude,
+			origin.Location.Longitude,
+			destination.Location.Latitude,
+			destination.Location.Longitude,
 			currentTimeMillis,
 		)
 		if len(frontInfo.Waypoints) > 0 {
