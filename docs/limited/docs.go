@@ -217,7 +217,7 @@ const docTemplate = `{
                 "tags": [
                     "Rotas"
                 ],
-                "summary": "Calcula as rotas disponível.",
+                "summary": "Calcula as rotas disponível por Endereços.",
                 "parameters": [
                     {
                         "description": "Campos necessários",
@@ -274,7 +274,7 @@ const docTemplate = `{
                 "tags": [
                     "Rotas"
                 ],
-                "summary": "Calcula as rotas disponível.",
+                "summary": "Calcula as rotas disponível por Longitude e Latitude.",
                 "parameters": [
                     {
                         "description": "Campos necessários",
