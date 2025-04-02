@@ -45,10 +45,12 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s",
+	cacheKey := fmt.Sprintf("route:%s:%s:%s:axles:%d:type:%s",
 		strings.ToLower(frontInfo.Origin),
 		strings.ToLower(frontInfo.Destination),
 		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+		frontInfo.Axles,
+		strings.ToLower(frontInfo.Type),
 	)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
@@ -294,11 +296,11 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, id i
 					TagAndCash:      totalTollCost,
 					FuelInTheCity:   fuelCostCity,
 					FuelInTheHwy:    fuelCostHwy,
-					Tag:             totalTollCost - (totalTollCost * 0.05),
-					Cash:            totalTollCost,
-					PrepaidCard:     totalTollCost,
-					MaximumTollCost: totalTollCost,
-					MinimumTollCost: totalTollCost,
+					Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
+					Cash:            totalTollCost * float64(frontInfo.Axles),
+					PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
+					MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
+					MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
 					Axles:           int(frontInfo.Axles),
 				},
 				Tolls:        routeTolls,
