@@ -54,6 +54,44 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateRoutesWithCoordinate godoc
+// @Summary Calculate possible routes.
+// @Description Calculates the best routes based on provided information.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCoordinate true "Route calculation request"
+// @Success 200 {object} FinalOutput "Calculated Routes Info"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /check-route-tolls-coordinate [post]
+// @Security ApiKeyAuth
+func (h *Handler) CalculateRoutesWithCoordinate(e echo.Context) error {
+	var frontInfo FrontInfoCoordinate
+	if err := e.Bind(&frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err := validation.Validate(frontInfo)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payloadPublic := get_token.GetPublicPayloadToken(e)
+	payload := get_token.GetUserPayloadToken(e)
+	result, err := h.InterfaceService.CalculateRoutesWithCoordinate(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // GetSimpleRoute godoc
 // @Summary Get simple route information.
 // @Description Retrieves a simple route with distance and duration.

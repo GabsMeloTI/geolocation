@@ -257,6 +257,63 @@ const docTemplate = `{
                 }
             }
         },
+		"/check-route-tolls-coordinate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+    		    "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: Latitude do local de saída\n- origin_lng: Longitude do local de saída\n- destination_lat: Latitude do local de chegada\n- destination_lng: Longitude do local de chegada\n- axles: Quantidade de eixos\n- consumptionCity: Consumo na cidade\n- consumptionHwy: Consumo na estrada\n- favorite: Se deseja favoritar essa rota\n- price: Preço da gasolina\n- type: Tipo do automóvel (Truck, Bus, Auto, Motorcycle)\n- typeRoute: Caso queira trazer apenas uma rota (eficiente, rapida ou barata)\n- waypoints: Lista de pontos de parada (strings com nomes dos locais)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rotas"
+                ],
+                "summary": "Calcula as rotas disponível.",
+                "parameters": [
+                    {
+                        "description": "Campos necessários",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações da rota",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FinalOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/create": {
             "post": {
                 "description": "Cria um usuário gerando um token para acessar as funcionalidades do sistema.",

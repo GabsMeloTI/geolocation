@@ -50,13 +50,13 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s:%s",
+	cacheKey := fmt.Sprintf("route:%s:%s:%s:axles:%d:type:%s",
 		strings.ToLower(frontInfo.Origin),
 		strings.ToLower(frontInfo.Destination),
 		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
-		strings.ToLower(frontInfo.TypeRoute),
+		frontInfo.Axles,
+		strings.ToLower(frontInfo.Type),
 	)
-
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var cachedOutput FinalOutput
@@ -313,11 +313,11 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 					TagAndCash:      totalTollCost,
 					FuelInTheCity:   fuelCostCity,
 					FuelInTheHwy:    fuelCostHwy,
-					Tag:             totalTollCost - (totalTollCost * 0.05),
-					Cash:            totalTollCost,
-					PrepaidCard:     totalTollCost,
-					MaximumTollCost: totalTollCost,
-					MinimumTollCost: totalTollCost,
+					Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
+					Cash:            totalTollCost * float64(frontInfo.Axles),
+					PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
+					MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
+					MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
 					Axles:           int(frontInfo.Axles),
 				},
 				Tolls:        routeTolls,
@@ -414,12 +414,15 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		}
 	}
 
-	cacheKey := fmt.Sprintf("route:%f,%f:%f,%f:%s",
-		frontInfo.OriginLat, frontInfo.OriginLng,
-		frontInfo.DestinationLat, frontInfo.DestinationLng,
+	cacheKey := fmt.Sprintf("route:%s:%s:%s:axles:%d:type:%s",
+		strings.ToLower(frontInfo.OriginLng),
+		strings.ToLower(frontInfo.OriginLat),
+		strings.ToLower(frontInfo.DestinationLat),
+		strings.ToLower(frontInfo.DestinationLng),
 		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
+		frontInfo.Axles,
+		strings.ToLower(frontInfo.Type),
 	)
-
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var cachedOutput FinalOutput
@@ -690,11 +693,11 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 					TagAndCash:      totalTollCost,
 					FuelInTheCity:   fuelCostCity,
 					FuelInTheHwy:    fuelCostHwy,
-					Tag:             totalTollCost - (totalTollCost * 0.05),
-					Cash:            totalTollCost,
-					PrepaidCard:     totalTollCost,
-					MaximumTollCost: totalTollCost,
-					MinimumTollCost: totalTollCost,
+					Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
+					Cash:            totalTollCost * float64(frontInfo.Axles),
+					PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
+					MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
+					MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
 					Axles:           int(frontInfo.Axles),
 				},
 				Tolls:        routeTolls,
@@ -715,7 +718,24 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	routesFast := processRoutes(osrmRespFast, "fatest")
 	routesNoTolls := processRoutes(osrmRespNoTolls, "cheapest")
 	routesEfficient := processRoutes(osrmRespEfficient, "efficient")
-	combinedRoutes := append(append(routesFast, routesNoTolls...), routesEfficient...)
+
+	var combinedRoutes []RouteOutput
+	switch strings.ToLower(frontInfo.TypeRoute) {
+	case "efficient", "eficiente":
+		if len(routesEfficient) > 0 {
+			combinedRoutes = []RouteOutput{routesEfficient[0]}
+		}
+	case "fatest", "fast", "rapida":
+		if len(routesFast) > 0 {
+			combinedRoutes = []RouteOutput{routesFast[0]}
+		}
+	case "cheapest", "cheap", "barata":
+		if len(routesNoTolls) > 0 {
+			combinedRoutes = []RouteOutput{routesNoTolls[0]}
+		}
+	default:
+		combinedRoutes = append(append(routesFast, routesNoTolls...), routesEfficient...)
+	}
 
 	finalOutput := FinalOutput{
 		Summary: Summary{

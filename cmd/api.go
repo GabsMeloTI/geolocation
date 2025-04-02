@@ -71,18 +71,12 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	advertisement := e.Group("/advertisement", _midlleware.CheckUserAuthorization)
 	advertisement.POST("/create", container.HandlerAdvertisement.CreateAdvertisementHandler)
-	advertisement.POST(
-		"/finish/create",
-		container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate,
-	)
+	advertisement.POST("/finish/create", container.HandlerAdvertisement.UpdatedAdvertisementFinishedCreate)
 	advertisement.PUT("/update", container.HandlerAdvertisement.UpdateAdvertisementHandler)
 	advertisement.PUT("/delete/:id", container.HandlerAdvertisement.DeleteAdvertisementHandler)
 	advertisement.GET("/list", container.HandlerAdvertisement.GetAllAdvertisementHandler)
 	advertisement.GET("/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDService)
-	advertisement.GET(
-		"/list/by-user",
-		container.HandlerAdvertisement.GetAllAdvertisementByUserHandler,
-	)
+	advertisement.GET("/list/by-user", container.HandlerAdvertisement.GetAllAdvertisementByUserHandler)
 	advertisement.PUT("/update/route", container.HandlerAdvertisement.UpdateAdsRouteChoose)
 
 	trailer := e.Group("/trailer", _midlleware.CheckUserAuthorization)
@@ -105,11 +99,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	attach.GET("/list/:type", container.HandlerAttachment.GetAllAttachmentById)
 
 	e.POST("/recover-password", container.UserHandler.RecoverPassword)
-	e.PUT(
-		"/recover-password/confirm",
-		container.UserHandler.ConfirmRecoverPassword,
-		_midlleware.CheckUserAuthorization,
-	)
+	e.PUT("/recover-password/confirm", container.UserHandler.ConfirmRecoverPassword, _midlleware.CheckUserAuthorization)
 
 	user := e.Group("/user", _midlleware.CheckUserAuthorization)
 	user.GET("/info", container.UserHandler.GetUserInfo)
@@ -123,20 +113,10 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
-	public.GET(
-		"/advertisement/list",
-		container.HandlerAdvertisement.GetAllAdvertisementPublicHandler,
-	)
-	public.GET(
-		"/advertisement/list/:id",
-		container.HandlerAdvertisement.GetAdvertisementByIDPublicService,
-	)
+	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
+	public.GET("/advertisement/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDPublicService)
 	// easyfrete no user
-	public.POST(
-		"/check-route-tolls",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckPublicAuthorization,
-	)
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
 
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
@@ -151,22 +131,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
 	// simpplify
-	e.POST(
-		"/check-route-tolls-simpplify",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckAuthorization,
-	)
+	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	// easyfrete
-	e.POST(
-		"/check-route-tolls-easy",
-		container.HandlerNewRoutes.CalculateRoutes,
-		_midlleware.CheckUserAuthorization,
-	)
-	e.POST(
-		"/google-route-tolls-public",
-		container.HandlerRoutes.CheckRouteTolls,
-		_midlleware.CheckPublicAuthorization,
-	)
+	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
+	e.POST("/check-route-tolls-coordinate", container.HandlerNewRoutes.CalculateRoutesWithCoordinate, _midlleware.CheckUserAuthorization)
+	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.POST("/login", container.LoginHandler.Login)
 	e.POST("/create", container.LoginHandler.CreateUser)
@@ -178,28 +147,15 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
 
 	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
-	e.GET(
-		"/payment-history",
-		container.HandlerPayment.GetPaymentHistHandler,
-		_midlleware.CheckUserAuthorization,
-	)
+	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
 
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 	address.GET("/state", container.HandlerAddress.FindStateAll)
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
 
-	e.GET(
-		"/token",
-		container.HandlerUserPlan.GetTokenUserHandler,
-		_midlleware.CheckUserAuthorization,
-	)
-
-	e.GET(
-		"/dashboard",
-		container.HandlerDashboard.GetDashboardHandler,
-		_midlleware.CheckUserAuthorization,
-	)
+	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
 
 	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 
