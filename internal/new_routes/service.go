@@ -615,6 +615,9 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 
 	wazeURL := ""
+	fmt.Println(origin)
+	fmt.Println(origin.PlaceID)
+	fmt.Println(destination.PlaceID)
 	if origin.PlaceID != "" && destination.PlaceID != "" {
 		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
 			neturl.QueryEscape(destination.PlaceID),
