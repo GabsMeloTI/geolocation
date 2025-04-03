@@ -490,9 +490,15 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 				log.Printf("Erro ao buscar endereço reverso do waypoint (%f, %f): %v", lat, lng, err)
 				address = fmt.Sprintf("%.6f, %.6f", lat, lng)
 			}
+
+			placeId, err := s.getGeocodeAddress(ctx, address)
+			if err != nil {
+				return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
+			}
 			waypointResults = append(waypointResults, GeocodeResult{
 				Location:         Location{Latitude: lat, Longitude: lng},
 				FormattedAddress: address,
+				PlaceID:          placeId.PlaceID,
 			})
 		}
 	}
