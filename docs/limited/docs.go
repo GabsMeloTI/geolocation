@@ -875,6 +875,81 @@ const docTemplate = `{
                 }
             }
         },
+		"new_routes.FrontInfoCoordinate": {
+            "type": "object",
+            "required": [
+                "destination_lat",
+                "destination_lng",
+                "origin_lat",
+                "origin_lng",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "destination_lat": {
+                    "type": "string"
+                },
+                "destination_lng": {
+                    "type": "string"
+                },
+                "favorite": {
+                    "type": "boolean"
+                },
+                "origin_lat": {
+                    "type": "string"
+                },
+                "origin_lng": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "public_or_private": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
+                    }
+                }
+            }
+        },
+		"new_routes.Coordinate": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "string"
+                },
+                "lng": {
+                    "type": "string"
+                }
+            }
+        },
         "new_routes.FuelEfficiency": {
             "type": "object",
             "properties": {

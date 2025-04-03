@@ -864,6 +864,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/check-route-tolls-coordinate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Calculates the best routes based on provided information.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calculate possible routes.",
+                "parameters": [
+                    {
+                        "description": "Route calculation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCoordinate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Calculated Routes Info",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FinalOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/create": {
             "post": {
                 "security": [
@@ -3590,6 +3647,17 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.Coordinate": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "string"
+                },
+                "lng": {
+                    "type": "string"
+                }
+            }
+        },
         "new_routes.Costs": {
             "type": "object",
             "properties": {
@@ -3710,6 +3778,70 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                }
+            }
+        },
+        "new_routes.FrontInfoCoordinate": {
+            "type": "object",
+            "required": [
+                "destination_lat",
+                "destination_lng",
+                "origin_lat",
+                "origin_lng",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "destination_lat": {
+                    "type": "string"
+                },
+                "destination_lng": {
+                    "type": "string"
+                },
+                "favorite": {
+                    "type": "boolean"
+                },
+                "origin_lat": {
+                    "type": "string"
+                },
+                "origin_lng": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "public_or_private": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
                     }
                 }
             }
@@ -4645,7 +4777,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{"https", "http"},
-	Title:            "GO-auth-service",
+	Title:            "Geolocation",
 	Description:      "Document API",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

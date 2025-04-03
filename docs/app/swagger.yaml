@@ -855,6 +855,13 @@ definitions:
       time:
         type: string
     type: object
+  new_routes.Coordinate:
+    properties:
+      lat:
+        type: string
+      lng:
+        type: string
+    type: object
   new_routes.Costs:
     properties:
       axles:
@@ -937,6 +944,52 @@ definitions:
     required:
     - destination
     - origin
+    - type
+    type: object
+  new_routes.FrontInfoCoordinate:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination_lat:
+        type: string
+      destination_lng:
+        type: string
+      favorite:
+        type: boolean
+      origin_lat:
+        type: string
+      origin_lng:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          $ref: '#/definitions/new_routes.Coordinate'
+        type: array
+    required:
+    - destination_lat
+    - destination_lng
+    - origin_lat
+    - origin_lng
     - type
     type: object
   new_routes.FuelEfficiency:
@@ -1548,7 +1601,7 @@ info:
     name: API Support
     url: https://simpplify.com.br/contact
   description: Document API
-  title: GO-auth-service
+  title: Geolocation
   version: "1.0"
 paths:
   /address/{idState}:
@@ -2091,6 +2144,42 @@ paths:
       summary: Retrieve messages from a chat room.
       tags:
       - WebSocket
+  /check-route-tolls-coordinate:
+    post:
+      consumes:
+      - application/json
+      description: Calculates the best routes based on provided information.
+      parameters:
+      - description: Route calculation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfoCoordinate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Calculated Routes Info
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calculate possible routes.
+      tags:
+      - Routes
   /create:
     post:
       consumes:

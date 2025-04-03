@@ -602,7 +602,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 
 	wazeURL := ""
 	if origin.PlaceID != "" && destination.PlaceID != "" {
-		wazeURL := fmt.Sprintf("https://www.waze.com/livemap/directions?from=%f,%f&to=%f,%f&at=%d",
+		wazeURL = fmt.Sprintf("https://www.waze.com/livemap/directions?from=%f,%f&to=%f,%f&at=%d",
 			origin.Location.Latitude,
 			origin.Location.Longitude,
 			destination.Location.Latitude,
