@@ -430,6 +430,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		strings.ToLower(frontInfo.Type),
 	)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
@@ -455,25 +456,29 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	originLng, _ := validation.ParseStringToFloat(frontInfo.OriginLng)
 	destinationLat, _ := validation.ParseStringToFloat(frontInfo.DestinationLat)
 	destinationLng, _ := validation.ParseStringToFloat(frontInfo.DestinationLng)
-	originAddress, _ := s.reverseGeocode(originLat, originLng)
-	originAddressPlace, err := s.getGeocodeAddress(ctx, originAddress)
+
+	originAddress, err := s.reverseGeocode(originLat, originLng)
+	if err != nil {
+		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
+	}
+	destinationAddress, err := s.reverseGeocode(destinationLat, destinationLng)
+	if err != nil {
+		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso do destino: %w", err)
+	}
+
+	originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
 	}
-	origin := GeocodeResult{
-		Location:         Location{Latitude: originLat, Longitude: originLng},
-		FormattedAddress: originAddress,
-	}
+	origin := originGeocode
+	origin.Location = Location{Latitude: originLat, Longitude: originLng}
 
-	destAddress, _ := s.reverseGeocode(destinationLat, destinationLng)
-	destinationAddressPlace, err := s.getGeocodeAddress(ctx, destAddress)
+	destinationGeocode, err := s.getGeocodeAddress(ctx, destinationAddress)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
 	}
-	destination := GeocodeResult{
-		Location:         Location{Latitude: destinationLat, Longitude: destinationLng},
-		FormattedAddress: destAddress,
-	}
+	destination := destinationGeocode
+	destination.Location = Location{Latitude: destinationLat, Longitude: destinationLng}
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.Waypoints {
@@ -610,16 +615,14 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 
 	wazeURL := ""
-	if originAddressPlace.PlaceID != "" && destinationAddressPlace.PlaceID != "" {
-		wazeURL = fmt.Sprintf("https://www.waze.com/livemap/directions?from=%f,%f&to=%f,%f&at=%d",
-			origin.Location.Latitude,
-			origin.Location.Longitude,
-			destination.Location.Latitude,
-			destination.Location.Longitude,
+	if origin.PlaceID != "" && destination.PlaceID != "" {
+		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
+			neturl.QueryEscape(destination.PlaceID),
+			neturl.QueryEscape(origin.PlaceID),
 			currentTimeMillis,
 		)
-		if len(frontInfo.Waypoints) > 0 {
-			wazeURL += "&via=place." + neturl.QueryEscape(fmt.Sprintf("%s,%s", frontInfo.Waypoints[0].Lat, frontInfo.Waypoints[0].Lng))
+		if len(waypointResults) > 0 && waypointResults[0].PlaceID != "" {
+			wazeURL += "&via=place." + neturl.QueryEscape(waypointResults[0].PlaceID)
 		}
 	}
 
