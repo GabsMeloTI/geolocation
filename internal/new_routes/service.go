@@ -456,11 +456,20 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	destinationLat, _ := validation.ParseStringToFloat(frontInfo.DestinationLat)
 	destinationLng, _ := validation.ParseStringToFloat(frontInfo.DestinationLng)
 	originAddress, _ := s.reverseGeocode(originLat, originLng)
+	originAddressPlace, err := s.getGeocodeAddress(ctx, originAddress)
+	if err != nil {
+		return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
+	}
 	origin := GeocodeResult{
 		Location:         Location{Latitude: originLat, Longitude: originLng},
 		FormattedAddress: originAddress,
 	}
+
 	destAddress, _ := s.reverseGeocode(destinationLat, destinationLng)
+	destinationAddressPlace, err := s.getGeocodeAddress(ctx, destAddress)
+	if err != nil {
+		return FinalOutput{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
+	}
 	destination := GeocodeResult{
 		Location:         Location{Latitude: destinationLat, Longitude: destinationLng},
 		FormattedAddress: destAddress,
@@ -601,7 +610,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 
 	wazeURL := ""
-	if origin.PlaceID != "" && destination.PlaceID != "" {
+	if originAddressPlace.PlaceID != "" && destinationAddressPlace.PlaceID != "" {
 		wazeURL = fmt.Sprintf("https://www.waze.com/livemap/directions?from=%f,%f&to=%f,%f&at=%d",
 			origin.Location.Latitude,
 			origin.Location.Longitude,
