@@ -282,7 +282,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/new_routes.FrontInfo"
+                            "$ref": "#/definitions/new_routes.FrontInfoCoordinate"
                         }
                     }
                 ],
