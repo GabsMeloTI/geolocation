@@ -264,7 +264,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-    		    "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: Latitude do local de saída\n- origin_lng: Longitude do local de saída\n- destination_lat: Latitude do local de chegada\n- destination_lng: Longitude do local de chegada\n- axles: Quantidade de eixos\n- consumptionCity: Consumo na cidade\n- consumptionHwy: Consumo na estrada\n- favorite: Se deseja favoritar essa rota\n- price: Preço da gasolina\n- type: Tipo do automóvel (Truck, Bus, Auto, Motorcycle)\n- typeRoute: Caso queira trazer apenas uma rota (eficiente, rapida ou barata)\n- waypoints: Lista de pontos de parada (strings com nomes dos locais)",
+    		    "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: Latitude do local de saída\n- origin_lng: Longitude do local de saída\n- destination_lat: Latitude do local de chegada\n- destination_lng: Longitude do local de chegada\n- axles: Quantidade de eixos\n- consumptionCity: Consumo na cidade\n- consumptionHwy: Consumo na estrada\n- favorite: Se deseja favoritar essa rota\n- price: Preço da gasolina\n- type: Tipo do automóvel (Truck, Bus, Auto, Motorcycle)\n- typeRoute: Caso queira trazer apenas uma rota (eficiente, rapida ou barata)\n- waypoints: Lista de pontos de parada, através de latitude e longitude do local de saída e chegada.",
                 "consumes": [
                     "application/json"
                 ],
