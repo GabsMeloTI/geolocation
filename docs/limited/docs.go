@@ -1188,7 +1188,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{"https", "http"},
-	Title:            "GO-auth-service",
+	Title:            "Geolocation",
 	Description:      "Document API",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
