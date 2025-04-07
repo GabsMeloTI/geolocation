@@ -90,7 +90,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "cep",
-                        "name": "CEP",
+                        "name": "cep",
                         "in": "path",
                         "required": true
                     }

@@ -44,7 +44,7 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 // @Tags Address
 // @Accept json
 // @Produce json
-// @Param CEP query string true "cep"
+// @Param CEP path string true "cep"
 // @Success 200 {object} AddressCEPResponse[] "Address Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"

@@ -132,7 +132,7 @@ func (p *Handler) GetTrailerHandler(c echo.Context) error {
 // GetTrailerByIdHandler godoc
 // @Summary Get Tractor Unit.
 // @Description Get Tractor Unit.
-// @Tags Trailers
+// @Tags Trailer
 // @Accept json
 // @Produce json
 // @Param id path string true "Trailer id"
