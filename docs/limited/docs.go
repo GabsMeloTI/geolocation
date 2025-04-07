@@ -506,7 +506,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/route/favorite/remove/:id": {
+        "/route/favorite/remove/{id}": {
             "put": {
                 "security": [
                     {
@@ -529,7 +529,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "FavoriteRoute id",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
