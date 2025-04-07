@@ -116,7 +116,7 @@ const docTemplate = `{
 					}
 				}
 			}
-		}
+		},
         "/address/state": {
             "get": {
                 "security": [
@@ -527,9 +527,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "FavoriteRoute id",
+                        "description": "id",
                         "name": "id",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
