@@ -68,7 +68,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/find/cep/{cep}": {
+        "/address/find/{cep}": {
             "get": {
                 "security": [
                     {
@@ -3758,6 +3758,9 @@ const docTemplate = `{
                 "public_or_private": {
                     "type": "string"
                 },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
+                },
                 "type": {
                     "type": "string",
                     "enum": [
@@ -3916,6 +3919,35 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.RouteOptions": {
+            "type": "object",
+            "properties": {
+                "include_freight_calc": {
+                    "description": "Se deve calcular frete",
+                    "type": "boolean"
+                },
+                "include_fuel_stations": {
+                    "description": "Se deve incluir postos de combustível",
+                    "type": "boolean"
+                },
+                "include_polyline": {
+                    "description": "Se deve retornar polyline",
+                    "type": "boolean"
+                },
+                "include_route_map": {
+                    "description": "Se deve incluir rotograma",
+                    "type": "boolean"
+                },
+                "include_toll_costs": {
+                    "description": "Se deve incluir pedágios",
+                    "type": "boolean"
+                },
+                "include_weigh_stations": {
+                    "description": "Se deve incluir balanças",
+                    "type": "boolean"
+                }
+            }
+        },
         "new_routes.RouteOutput": {
             "type": "object",
             "properties": {
@@ -3967,6 +3999,9 @@ const docTemplate = `{
                 },
                 "route_type": {
                     "type": "string"
+                },
+                "total_fuel_cost": {
+                    "type": "number"
                 },
                 "url": {
                     "type": "string"

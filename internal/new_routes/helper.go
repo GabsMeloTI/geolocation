@@ -556,3 +556,12 @@ func haversineDistanceTolls(lat1, lng1, lat2, lng2 float64) float64 {
 
 	return R * c
 }
+
+func isAllRouteOptionsDisabled(options RouteOptions) bool {
+	return !options.IncludeFuelStations &&
+		!options.IncludeRouteMap &&
+		!options.IncludeTollCosts &&
+		!options.IncludeWeighStations &&
+		!options.IncludeFreightCalc &&
+		!options.IncludePolyline
+}

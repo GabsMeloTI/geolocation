@@ -127,7 +127,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":          {"full"},
 		"continue_straight": {"false"},
 	}.Encode()
-	fmt.Println(osrmURLFast)
 
 	osrmURLNoTolls := baseOSRMURL + "?" + url.Values{
 		"alternatives": {"3"},
@@ -135,7 +134,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":     {"full"},
 		"exclude":      {"toll"},
 	}.Encode()
-	fmt.Println(osrmURLNoTolls)
 
 	osrmURLEfficient := baseOSRMURL + "?" + url.Values{
 		"alternatives": {"3"},
@@ -143,7 +141,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":     {"full"},
 		"exclude":      {"motorway"},
 	}.Encode()
-	fmt.Println(osrmURLEfficient)
 
 	type osrmResult struct {
 		resp     OSRMResponse
@@ -297,6 +294,10 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 			fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * (float64(distVal) / 1000))
 			fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * (float64(distVal) / 1000))
 
+			avgConsumption := (frontInfo.ConsumptionCity + frontInfo.ConsumptionHwy) / 2
+			totalKm := float64(distVal) / 1000
+			totalFuelCost := math.Round((frontInfo.Price / avgConsumption) * totalKm)
+
 			output = append(output, RouteOutput{
 				Summary: RouteSummary{
 					RouteType: routeType,
@@ -309,26 +310,68 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 						Text:  durText,
 						Value: durVal,
 					},
-					URL:     googleURL,
-					URLWaze: wazeURL,
+					URL:           googleURL,
+					URLWaze:       wazeURL,
+					TotalFuelCost: totalFuelCost,
 				},
-				Costs: Costs{
-					TagAndCash:      totalTollCost,
-					FuelInTheCity:   fuelCostCity,
-					FuelInTheHwy:    fuelCostHwy,
-					Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
-					Cash:            totalTollCost * float64(frontInfo.Axles),
-					PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
-					MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
-					MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
-					Axles:           int(frontInfo.Axles),
-				},
-				Tolls:        routeTolls,
-				Balances:     routeBalancas,
-				GasStations:  routeGasStations,
-				Instructions: finalInstructions,
-				FreightLoad:  freight,
-				Polyline:     route.Geometry,
+				Costs: func() *Costs {
+					if frontInfo.RouteOptions.IncludeTollCosts {
+						return &Costs{
+							TagAndCash:      totalTollCost,
+							FuelInTheCity:   fuelCostCity,
+							FuelInTheHwy:    fuelCostHwy,
+							Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
+							Cash:            totalTollCost * float64(frontInfo.Axles),
+							PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
+							MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
+							MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
+							Axles:           int(frontInfo.Axles),
+						}
+					}
+					return nil
+				}(),
+
+				Tolls: func() []Toll {
+					if frontInfo.RouteOptions.IncludeTollCosts {
+						return routeTolls
+					}
+					return nil
+				}(),
+
+				Balances: func() interface{} {
+					if frontInfo.RouteOptions.IncludeWeighStations {
+						return routeBalancas
+					}
+					return nil
+				}(),
+
+				GasStations: func() []GasStation {
+					if frontInfo.RouteOptions.IncludeFuelStations {
+						return routeGasStations
+					}
+					return nil
+				}(),
+
+				Instructions: func() []Instruction {
+					if frontInfo.RouteOptions.IncludeRouteMap {
+						return finalInstructions
+					}
+					return nil
+				}(),
+
+				FreightLoad: func() map[string]interface{} {
+					if frontInfo.RouteOptions.IncludeFreightCalc {
+						return freight
+					}
+					return nil
+				}(),
+
+				Polyline: func() string {
+					if frontInfo.RouteOptions.IncludePolyline {
+						return route.Geometry
+					}
+					return ""
+				}(),
 			})
 		}
 
@@ -336,6 +379,82 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 			return len(output[i].Tolls) < len(output[j].Tolls)
 		})
 		return output
+	}
+
+	if isAllRouteOptionsDisabled(frontInfo.RouteOptions) {
+		var osrmRoute OSRMResponse
+		if len(osrmRespEfficient.Routes) > 0 {
+			osrmRoute = osrmRespEfficient
+		} else if len(osrmRespFast.Routes) > 0 {
+			osrmRoute = osrmRespFast
+		} else if len(osrmRespNoTolls.Routes) > 0 {
+			osrmRoute = osrmRespNoTolls
+		} else {
+			return FinalOutput{}, fmt.Errorf("nenhuma rota disponível para retorno mínimo")
+		}
+
+		route := osrmRoute.Routes[0]
+		distText, distVal := formatDistance(route.Distance)
+		durText, durVal := formatDuration(route.Duration)
+
+		avgConsumption := (frontInfo.ConsumptionCity + frontInfo.ConsumptionHwy) / 2
+		totalKm := float64(distVal) / 1000
+		totalFuelCost := math.Round((frontInfo.Price / avgConsumption) * totalKm)
+
+		minimalRoute := RouteOutput{
+			Summary: RouteSummary{
+				RouteType:     "efficient",
+				HasTolls:      false,
+				Distance:      Distance{Text: distText, Value: distVal},
+				Duration:      Duration{Text: durText, Value: durVal},
+				URL:           googleURL,
+				URLWaze:       wazeURL,
+				TotalFuelCost: totalFuelCost,
+			},
+		}
+
+		finalOutput := FinalOutput{
+			Summary: Summary{
+				LocationOrigin: AddressInfo{
+					Location: Location{
+						Latitude:  origin.Location.Latitude,
+						Longitude: origin.Location.Longitude,
+					},
+					Address: origin.FormattedAddress,
+				},
+				LocationDestination: AddressInfo{
+					Location: Location{
+						Latitude:  destination.Location.Latitude,
+						Longitude: destination.Location.Longitude,
+					},
+					Address: destination.FormattedAddress,
+				},
+				AllStoppingPoints: func() []interface{} {
+					var stops []interface{}
+					for _, wp := range waypointResults {
+						stops = append(stops, wp)
+					}
+					return stops
+				}(),
+				FuelPrice:      fuelPrice,
+				FuelEfficiency: fuelEfficiency,
+			},
+			Routes: []RouteOutput{minimalRoute},
+		}
+
+		responseJSON, _ := json.Marshal(finalOutput)
+		requestJSON, _ := json.Marshal(frontInfo)
+		waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
+
+		result, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+			origin.FormattedAddress, destination.FormattedAddress,
+			waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+		if errSavedRoutes != nil {
+			return FinalOutput{}, errSavedRoutes
+		}
+		finalOutput.Summary.RouteHistID = result
+
+		return finalOutput, nil
 	}
 
 	routesFast := processRoutes(osrmRespFast, "fatest")
@@ -421,39 +540,39 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	for _, wp := range frontInfo.Waypoints {
 		wpStrings = append(wpStrings, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
 	}
-	waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
+	//waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
 
-	cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
-		strings.ToLower(frontInfo.OriginLat),
-		strings.ToLower(frontInfo.OriginLng),
-		strings.ToLower(frontInfo.DestinationLat),
-		strings.ToLower(frontInfo.DestinationLng),
-		waypointsStr,
-		frontInfo.Axles,
-		strings.ToLower(frontInfo.Type),
-	)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-
-	if err == nil {
-		var cachedOutput FinalOutput
-		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
-			responseJSON, _ := json.Marshal(cachedOutput)
-			requestJSON, _ := json.Marshal(frontInfo)
-
-			routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
-				cachedOutput.Summary.LocationOrigin.Address,
-				cachedOutput.Summary.LocationDestination.Address,
-				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
-			if errSavedRoutes != nil {
-				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
-			}
-			cachedOutput.Summary.RouteHistID = routeHistID
-
-			return cachedOutput, nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
-	}
+	//cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
+	//	strings.ToLower(frontInfo.OriginLat),
+	//	strings.ToLower(frontInfo.OriginLng),
+	//	strings.ToLower(frontInfo.DestinationLat),
+	//	strings.ToLower(frontInfo.DestinationLng),
+	//	waypointsStr,
+	//	frontInfo.Axles,
+	//	strings.ToLower(frontInfo.Type),
+	//)
+	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	//
+	//if err == nil {
+	//	var cachedOutput FinalOutput
+	//	if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
+	//		responseJSON, _ := json.Marshal(cachedOutput)
+	//		requestJSON, _ := json.Marshal(frontInfo)
+	//
+	//		routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+	//			cachedOutput.Summary.LocationOrigin.Address,
+	//			cachedOutput.Summary.LocationDestination.Address,
+	//			waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+	//		if errSavedRoutes != nil {
+	//			log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+	//		}
+	//		cachedOutput.Summary.RouteHistID = routeHistID
+	//
+	//		return cachedOutput, nil
+	//	}
+	//} else if !errors.Is(err, redis.Nil) {
+	//	log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
+	//}
 
 	originLat, _ := validation.ParseStringToFloat(frontInfo.OriginLat)
 	originLng, _ := validation.ParseStringToFloat(frontInfo.OriginLng)
@@ -624,9 +743,6 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 
 	wazeURL := ""
-	fmt.Println(origin)
-	fmt.Println(origin.PlaceID)
-	fmt.Println(destination.PlaceID)
 	if origin.PlaceID != "" && destination.PlaceID != "" {
 		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
 			neturl.QueryEscape(destination.PlaceID),
@@ -710,6 +826,10 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 			fuelCostCity := math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * (float64(distVal) / 1000))
 			fuelCostHwy := math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * (float64(distVal) / 1000))
 
+			avgConsumption := (frontInfo.ConsumptionCity + frontInfo.ConsumptionHwy) / 2
+			totalKm := float64(distVal) / 1000
+			totalFuelCost := math.Round((frontInfo.Price / avgConsumption) * totalKm)
+
 			output = append(output, RouteOutput{
 				Summary: RouteSummary{
 					RouteType: routeType,
@@ -722,26 +842,68 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 						Text:  durText,
 						Value: durVal,
 					},
-					URL:     googleURL,
-					URLWaze: wazeURL,
+					URL:           googleURL,
+					URLWaze:       wazeURL,
+					TotalFuelCost: totalFuelCost,
 				},
-				Costs: Costs{
-					TagAndCash:      totalTollCost,
-					FuelInTheCity:   fuelCostCity,
-					FuelInTheHwy:    fuelCostHwy,
-					Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
-					Cash:            totalTollCost * float64(frontInfo.Axles),
-					PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
-					MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
-					MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
-					Axles:           int(frontInfo.Axles),
-				},
-				Tolls:        routeTolls,
-				Balances:     routeBalancas,
-				GasStations:  routeGasStations,
-				Instructions: finalInstructions,
-				FreightLoad:  freight,
-				Polyline:     route.Geometry,
+				Costs: func() *Costs {
+					if frontInfo.RouteOptions.IncludeTollCosts {
+						return &Costs{
+							TagAndCash:      totalTollCost,
+							FuelInTheCity:   fuelCostCity,
+							FuelInTheHwy:    fuelCostHwy,
+							Tag:             (totalTollCost - (totalTollCost * 0.05)) * float64(frontInfo.Axles),
+							Cash:            totalTollCost * float64(frontInfo.Axles),
+							PrepaidCard:     totalTollCost * float64(frontInfo.Axles),
+							MaximumTollCost: totalTollCost * float64(frontInfo.Axles),
+							MinimumTollCost: totalTollCost * float64(frontInfo.Axles),
+							Axles:           int(frontInfo.Axles),
+						}
+					}
+					return nil
+				}(),
+
+				Tolls: func() []Toll {
+					if frontInfo.RouteOptions.IncludeTollCosts {
+						return routeTolls
+					}
+					return nil
+				}(),
+
+				Balances: func() interface{} {
+					if frontInfo.RouteOptions.IncludeWeighStations {
+						return routeBalancas
+					}
+					return nil
+				}(),
+
+				GasStations: func() []GasStation {
+					if frontInfo.RouteOptions.IncludeFuelStations {
+						return routeGasStations
+					}
+					return nil
+				}(),
+
+				Instructions: func() []Instruction {
+					if frontInfo.RouteOptions.IncludeRouteMap {
+						return finalInstructions
+					}
+					return nil
+				}(),
+
+				FreightLoad: func() map[string]interface{} {
+					if frontInfo.RouteOptions.IncludeFreightCalc {
+						return freight
+					}
+					return nil
+				}(),
+
+				Polyline: func() string {
+					if frontInfo.RouteOptions.IncludePolyline {
+						return route.Geometry
+					}
+					return ""
+				}(),
 			})
 		}
 
@@ -749,6 +911,86 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 			return len(output[i].Tolls) < len(output[j].Tolls)
 		})
 		return output
+	}
+
+	if isAllRouteOptionsDisabled(frontInfo.RouteOptions) {
+		var osrmRoute OSRMResponse
+		if len(osrmRespEfficient.Routes) > 0 {
+			osrmRoute = osrmRespEfficient
+		} else if len(osrmRespFast.Routes) > 0 {
+			osrmRoute = osrmRespFast
+		} else if len(osrmRespNoTolls.Routes) > 0 {
+			osrmRoute = osrmRespNoTolls
+		} else {
+			return FinalOutput{}, fmt.Errorf("nenhuma rota disponível para retorno mínimo")
+		}
+
+		route := osrmRoute.Routes[0]
+		distText, distVal := formatDistance(route.Distance)
+		durText, durVal := formatDuration(route.Duration)
+
+		avgConsumption := (frontInfo.ConsumptionCity + frontInfo.ConsumptionHwy) / 2
+		totalKm := float64(distVal) / 1000
+		totalFuelCost := math.Round((frontInfo.Price / avgConsumption) * totalKm)
+
+		minimalRoute := RouteOutput{
+			Summary: RouteSummary{
+				RouteType:     "efficient",
+				HasTolls:      false,
+				Distance:      Distance{Text: distText, Value: distVal},
+				Duration:      Duration{Text: durText, Value: durVal},
+				URL:           googleURL,
+				URLWaze:       wazeURL,
+				TotalFuelCost: totalFuelCost,
+			},
+		}
+
+		finalOutput := FinalOutput{
+			Summary: Summary{
+				LocationOrigin: AddressInfo{
+					Location: Location{
+						Latitude:  origin.Location.Latitude,
+						Longitude: origin.Location.Longitude,
+					},
+					Address: origin.FormattedAddress,
+				},
+				LocationDestination: AddressInfo{
+					Location: Location{
+						Latitude:  destination.Location.Latitude,
+						Longitude: destination.Location.Longitude,
+					},
+					Address: destination.FormattedAddress,
+				},
+				AllStoppingPoints: func() []interface{} {
+					var stops []interface{}
+					for _, wp := range waypointResults {
+						stops = append(stops, wp)
+					}
+					return stops
+				}(),
+				FuelPrice:      fuelPrice,
+				FuelEfficiency: fuelEfficiency,
+			},
+			Routes: []RouteOutput{minimalRoute},
+		}
+
+		responseJSON, _ := json.Marshal(finalOutput)
+		requestJSON, _ := json.Marshal(frontInfo)
+		var wpStrings []string
+		for _, wp := range frontInfo.Waypoints {
+			wpStrings = append(wpStrings, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
+		}
+		waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
+
+		result, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+			origin.FormattedAddress, destination.FormattedAddress,
+			waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+		if errSavedRoutes != nil {
+			return FinalOutput{}, errSavedRoutes
+		}
+		finalOutput.Summary.RouteHistID = result
+
+		return finalOutput, nil
 	}
 
 	routesFast := processRoutes(osrmRespFast, "fatest")
@@ -802,11 +1044,11 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		Routes: combinedRoutes,
 	}
 
-	if data, err := json.Marshal(finalOutput); err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
-		}
-	}
+	//if data, err := json.Marshal(finalOutput); err == nil {
+	//	if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+	//		log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+	//	}
+	//}
 
 	var wpStringsResponse []string
 	for _, wp := range frontInfo.Waypoints {
@@ -1466,17 +1708,17 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 }
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	address = StateToCapital(strings.ToLower(address))
-	cacheKey := fmt.Sprintf("geocode:%s", address)
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	if err == nil {
-		var result GeocodeResult
-		if json.Unmarshal([]byte(cached), &result) == nil {
-			return result, nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
-	}
+	//address = StateToCapital(strings.ToLower(address))
+	//cacheKey := fmt.Sprintf("geocode:%s", address)
+	//cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	//if err == nil {
+	//	var result GeocodeResult
+	//	if json.Unmarshal([]byte(cached), &result) == nil {
+	//		return result, nil
+	//	}
+	//} else if !errors.Is(err, redis.Nil) {
+	//	fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
+	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -1515,12 +1757,12 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		},
 	}
 
-	data, err := json.Marshal(result)
-	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
-		}
-	}
+	//data, err := json.Marshal(result)
+	//if err == nil {
+	//	if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+	//		fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
+	//	}
+	//}
 	return result, nil
 }
 

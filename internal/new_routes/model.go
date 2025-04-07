@@ -78,12 +78,13 @@ type Duration struct {
 }
 
 type RouteSummary struct {
-	RouteType string   `json:"route_type"`
-	HasTolls  bool     `json:"hasTolls"`
-	Distance  Distance `json:"distance"`
-	Duration  Duration `json:"duration"`
-	URL       string   `json:"url"`
-	URLWaze   string   `json:"url_waze"`
+	RouteType     string   `json:"route_type"`
+	HasTolls      bool     `json:"hasTolls"`
+	Distance      Distance `json:"distance"`
+	Duration      Duration `json:"duration"`
+	URL           string   `json:"url"`
+	URLWaze       string   `json:"url_waze"`
+	TotalFuelCost float64  `json:"total_fuel_cost,omitempty"`
 }
 
 type Costs struct {
@@ -105,13 +106,17 @@ type Instruction struct {
 
 type RouteOutput struct {
 	Summary      RouteSummary           `json:"summary"`
-	Costs        Costs                  `json:"costs"`
+	Costs        *Costs                 `json:"costs,omitempty"`
 	Tolls        []Toll                 `json:"tolls,omitempty"`
-	Balances     interface{}            `json:"balances"`
-	GasStations  []GasStation           `json:"gas_stations"`
-	Instructions []Instruction          `json:"instructions"`
-	FreightLoad  map[string]interface{} `json:"freight_load"`
-	Polyline     string                 `json:"polyline"`
+	Balances     interface{}            `json:"balances,omitempty"`
+	GasStations  []GasStation           `json:"gas_stations,omitempty"`
+	Instructions []Instruction          `json:"instructions,omitempty"`
+	FreightLoad  map[string]interface{} `json:"freight_load,omitempty"`
+	Polyline     string                 `json:"polyline,omitempty"`
+}
+
+type RouteOutputSimp struct {
+	Summary RouteSummary `json:"summary"`
 }
 
 type GasStation struct {
@@ -123,6 +128,11 @@ type GasStation struct {
 type FinalOutput struct {
 	Summary Summary       `json:"summary"`
 	Routes  []RouteOutput `json:"routes"`
+}
+
+type FinalOutputSimp struct {
+	Summary Summary           `json:"summary"`
+	Routes  []RouteOutputSimp `json:"routes"`
 }
 
 type OSRMResponse struct {
@@ -160,18 +170,28 @@ type LatLng struct {
 	Lng float64
 }
 
+type RouteOptions struct {
+	IncludeFuelStations  bool `json:"include_fuel_stations"`  // Se deve incluir postos de combustível
+	IncludeRouteMap      bool `json:"include_route_map"`      // Se deve incluir rotograma
+	IncludeTollCosts     bool `json:"include_toll_costs"`     // Se deve incluir pedágios
+	IncludeWeighStations bool `json:"include_weigh_stations"` // Se deve incluir balanças
+	IncludeFreightCalc   bool `json:"include_freight_calc"`   // Se deve calcular frete
+	IncludePolyline      bool `json:"include_polyline"`       // Se deve retornar polyline
+}
+
 type FrontInfo struct {
-	Origin          string   `json:"origin" validate:"required"`
-	Destination     string   `json:"destination" validate:"required"`
-	ConsumptionCity float64  `json:"consumptionCity"`
-	ConsumptionHwy  float64  `json:"consumptionHwy"`
-	Price           float64  `json:"price"`
-	Axles           int64    `json:"axles"`
-	Type            string   `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
-	Waypoints       []string `json:"waypoints"`
-	TypeRoute       string   `json:"typeRoute"`
-	PublicOrPrivate string   `json:"public_or_private"`
-	Favorite        bool     `json:"favorite"`
+	Origin          string       `json:"origin" validate:"required"`
+	Destination     string       `json:"destination" validate:"required"`
+	ConsumptionCity float64      `json:"consumptionCity"`
+	ConsumptionHwy  float64      `json:"consumptionHwy"`
+	Price           float64      `json:"price"`
+	Axles           int64        `json:"axles"`
+	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	Waypoints       []string     `json:"waypoints"`
+	TypeRoute       string       `json:"typeRoute"`
+	PublicOrPrivate string       `json:"public_or_private"`
+	Favorite        bool         `json:"favorite"`
+	RouteOptions    RouteOptions `json:"route_options"`
 }
 
 type FrontInfoCoordinate struct {
@@ -188,6 +208,7 @@ type FrontInfoCoordinate struct {
 	TypeRoute       string       `json:"typeRoute"`
 	PublicOrPrivate string       `json:"public_or_private"`
 	Favorite        bool         `json:"favorite"`
+	RouteOptions    RouteOptions `json:"route_options"`
 }
 
 type Coordinate struct {
