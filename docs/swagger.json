@@ -1,7 +1,18 @@
 {
+    "schemes": [
+        "https",
+        "http"
+    ],
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "Document API",
+        "title": "Geolocation",
+        "contact": {
+            "name": "API Support",
+            "url": "https://simpplify.com.br/contact",
+            "email": "support@swagger.io"
+        },
+        "version": "1.0"
     },
     "paths": {
         "/address/city/{idState}": {
@@ -4788,6 +4799,13 @@
                     "type": "integer"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }
