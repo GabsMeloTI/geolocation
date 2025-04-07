@@ -18,15 +18,15 @@ func NewDriversHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CreateDriverHandler godoc
-// @Summary Create a Driver.
-// @Description Create a Driver.
-// @Tags Drivers
+// @Summary Criar um Motorista.
+// @Description Cria um motorista.
+// @Tags Motoristas
 // @Accept json
 // @Produce json
-// @Param request body CreateDriverRequest true "Driver Request"
-// @Success 200 {object} DriverResponse "Driver Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body CreateDriverRequest true "Requisição de Motorista"
+// @Success 200 {object} DriverResponse "Informações do Motorista"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /driver/create [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateDriverHandler(c echo.Context) error {
@@ -43,9 +43,9 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Telefone inválido")
 	}
 
-	//if !validation.ValidateCNH(request.LicenseNumber) {
-	//	return c.JSON(http.StatusBadRequest, "CNH inválida")
-	//}
+	// if !validation.ValidateCNH(request.LicenseNumber) {
+	//     return c.JSON(http.StatusBadRequest, "CNH inválida")
+	// }
 
 	payload := get_token.GetUserPayloadToken(c)
 	data := CreateDriverDto{
@@ -63,15 +63,15 @@ func (p *Handler) CreateDriverHandler(c echo.Context) error {
 }
 
 // UpdateDriverHandler godoc
-// @Summary Update a Driver.
-// @Description Update a Driver.
-// @Tags Drivers
+// @Summary Atualizar um Motorista.
+// @Description Atualiza os dados de um motorista.
+// @Tags Motoristas
 // @Accept json
 // @Produce json
-// @Param user body UpdateDriverRequest true "Driver Request"
-// @Success 200 {object} DriverResponse "Driver Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateDriverRequest true "Requisição de Motorista"
+// @Success 200 {object} DriverResponse "Informações do Motorista"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /driver/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateDriverHandler(c echo.Context) error {
@@ -99,15 +99,15 @@ func (p *Handler) UpdateDriverHandler(c echo.Context) error {
 }
 
 // DeleteDriversHandler godoc
-// @Summary Delete Driver.
-// @Description Delete Driver.
-// @Tags Drivers
+// @Summary Excluir um Motorista.
+// @Description Exclui um motorista.
+// @Tags Motoristas
 // @Accept json
 // @Produce json
-// @Param id path string true "Driver id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID do Motorista"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /driver/delete/{id} [put]
 // @Security ApiKeyAuth
 func (p *Handler) DeleteDriversHandler(c echo.Context) error {
@@ -122,20 +122,19 @@ func (p *Handler) DeleteDriversHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, "Success")
+	return c.JSON(http.StatusOK, "Sucesso")
 }
 
 // GetDriverHandler godoc
-// @Summary Get Driver.
-// @Description Get Driver.
-// @Tags Drivers
+// @Summary Obter Motorista.
+// @Description Recupera as informações do motorista.
+// @Tags Motoristas
 // @Accept json
 // @Produce json
-// @Param id path string true "Driver id"
-// @Success 200 {object} DriverResponse "Driver Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /driver/list [put]
+// @Success 200 {object} DriverResponse "Informações do Motorista"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /driver/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetDriverHandler(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
@@ -149,16 +148,16 @@ func (p *Handler) GetDriverHandler(c echo.Context) error {
 }
 
 // GetDriverByIdHandler godoc
-// @Summary Get Tractor Unit.
-// @Description Get Tractor Unit.
-// @Tags Drivers
+// @Summary Obter Motorista por ID.
+// @Description Recupera as informações do motorista a partir do ID.
+// @Tags Motoristas
 // @Accept json
 // @Produce json
-// @Param id path string true "Driver id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /tractor-unit/list/{id} [get]
+// @Param id path string true "ID do Motorista"
+// @Success 200 {object} DriverResponse "Informações do Motorista"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /driver/list/{id} [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetDriverByIdHandler(c echo.Context) error {
 	idStr := c.Param("id")

@@ -1462,6 +1462,13 @@ definitions:
       width:
         type: number
     type: object
+  user.ConfirmRecoverPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      password:
+        type: string
+    type: object
   user.GetUserResponse:
     properties:
       cep:
@@ -1499,6 +1506,20 @@ definitions:
       street_number:
         type: string
       updated_at:
+        type: string
+    type: object
+  user.RecoverPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  user.UpdatePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      old_password:
+        type: string
+      password:
         type: string
     type: object
   user.UpdateUserAddressRequest:
@@ -1585,6 +1606,11 @@ definitions:
       street_number:
         type: string
     type: object
+  user.UserExitsRequest:
+    properties:
+      email:
+        type: string
+    type: object
   ws.CreateChatRoomRequest:
     properties:
       advertisement_id:
@@ -1635,9 +1661,10 @@ paths:
     get:
       consumes:
       - application/json
-      description: Returns all cities in a specific state by their ID.
+      description: Retorna todas as cidades de um estado específico, utilizando o
+        ID do estado.
       parameters:
-      - description: State ID
+      - description: ID do Estado
         in: path
         name: idState
         required: true
@@ -1646,30 +1673,32 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of Cities
+          description: Lista de Cidades
           schema:
-            $ref: '#/definitions/address.CityResponse'
+            items:
+              $ref: '#/definitions/address.CityResponse'
+            type: array
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Find All Cities by State ID
+      summary: Buscar Cidades por Estado
       tags:
-      - Address
+      - Endereços
   /address/find:
     get:
       consumes:
       - application/json
-      description: Find address by search, it can be 1. And, 2. Latitude, Longitude
-        or 3. Address (Street, neighborhood, number).
+      description: 'Busca um endereço por pesquisa. Pode ser: 1. Nome de localidade,
+        2. Latitude e Longitude ou 3. Endereço completo (Rua, bairro, número).'
       parameters:
-      - description: Address Query
+      - description: Consulta do Endereço
         in: query
         name: q
         required: true
@@ -1678,29 +1707,32 @@ paths:
       - application/json
       responses:
         "200":
-          description: Address Info
+          description: Informações do Endereço
           schema:
-            $ref: '#/definitions/address.AddressResponse'
+            items:
+              $ref: '#/definitions/address.AddressResponse'
+            type: array
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Find Address By Query
+      summary: Buscar Endereço por Consulta
       tags:
-      - Address
+      - Endereços
   /address/find/{cep}:
     get:
       consumes:
       - application/json
-      description: Finds address by zip code, returns type based on repetitions found
+      description: Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições
+        encontradas.
       parameters:
-      - description: cep
+      - description: CEP
         in: path
         name: cep
         required: true
@@ -1709,50 +1741,54 @@ paths:
       - application/json
       responses:
         "200":
-          description: Address Info
+          description: Informações do Endereço
           schema:
-            $ref: '#/definitions/address.AddressCEPResponse'
+            items:
+              $ref: '#/definitions/address.AddressCEPResponse'
+            type: array
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Find Address By CEP
+      summary: Buscar Endereço por CEP
       tags:
-      - Address
+      - Endereços
   /address/state:
     get:
       consumes:
       - application/json
-      description: Returns all available states.
+      description: Retorna todos os estados disponíveis.
       produces:
       - application/json
       responses:
         "200":
-          description: List of States
+          description: Lista de Estados
           schema:
-            $ref: '#/definitions/address.StateResponse'
+            items:
+              $ref: '#/definitions/address.StateResponse'
+            type: array
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Find All States
+      summary: Buscar Todos os Estados
       tags:
-      - Address
+      - Endereços
   /advertisement/create:
     post:
       consumes:
       - application/json
-      description: Create a Advertisement.
+      description: Cria um anúncio.
       parameters:
-      - description: Advertisement Request
+      - description: Requisição de Anúncio
         in: body
         name: request
         required: true
@@ -1762,29 +1798,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Advertisement Info
+          description: Informações do Anúncio
           schema:
             $ref: '#/definitions/advertisement.AdvertisementResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Create a Advertisement.
+      summary: Criar um Anúncio.
       tags:
-      - Advertisement
+      - Anúncio
   /advertisement/delete/{id}:
     put:
       consumes:
       - application/json
-      description: Delete Advertisement.
+      description: Exclui um anúncio.
       parameters:
-      - description: Advertisement id
+      - description: ID do Anúncio
         in: path
         name: id
         required: true
@@ -1795,48 +1831,48 @@ paths:
         "200":
           description: OK
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Delete Advertisement.
+      summary: Excluir um Anúncio.
       tags:
-      - Advertisement
+      - Anúncio
   /advertisement/list:
     get:
       consumes:
       - application/json
-      description: Retrieve all Advertisement
+      description: Recupera todos os anúncios.
       produces:
       - application/json
       responses:
         "200":
-          description: List of Advertisement
+          description: Lista de Anúncios
           schema:
             items:
               $ref: '#/definitions/advertisement.AdvertisementResponseAll'
             type: array
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get All Advertisement
+      summary: Obter Todos os Anúncios.
       tags:
-      - Advertisement
+      - Anúncio
   /advertisement/route:
     put:
       consumes:
       - application/json
-      description: Update the route choosen in the advertisement.
+      description: Atualiza a rota escolhida no anúncio.
       parameters:
-      - description: Advertisement Request
+      - description: Requisição para escolha de rota do anúncio
         in: body
         name: user
         required: true
@@ -1846,29 +1882,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: Sucesso
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update Advertisement Route Choose
+      summary: Atualizar Escolha de Rota do Anúncio.
       tags:
-      - Advertisement
+      - Anúncio
   /advertisement/update:
     put:
       consumes:
       - application/json
-      description: Update a Advertisement.
+      description: Atualiza um anúncio.
       parameters:
-      - description: Advertisement Request
+      - description: Requisição de Anúncio
         in: body
         name: user
         required: true
@@ -1878,29 +1914,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Advertisement Info
+          description: Informações do Anúncio
           schema:
             $ref: '#/definitions/advertisement.AdvertisementResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update a Advertisement.
+      summary: Atualizar um Anúncio.
       tags:
-      - Advertisement
+      - Anúncio
   /appointment/{id}:
     get:
       consumes:
       - application/json
-      description: Get list Appointment.
+      description: Recupera a lista de agendamentos para um usuário.
       parameters:
-      - description: User id
+      - description: ID do Usuário
         in: path
         name: id
         required: true
@@ -1909,29 +1945,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Appointment Info
+          description: Informações dos Agendamentos
           schema:
             $ref: '#/definitions/appointments.AppointmentResponseList'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get list Appointment.
+      summary: Obter lista de Agendamentos.
       tags:
-      - Appointments
+      - Agendamentos
   /appointment/delete/{id}:
     put:
       consumes:
       - application/json
-      description: Delete Appointment.
+      description: Exclui um agendamento.
       parameters:
-      - description: Appointment id
+      - description: ID do Agendamento
         in: path
         name: id
         required: true
@@ -1940,27 +1976,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Sucesso
+          schema:
+            type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Delete Appointment.
+      summary: Excluir um Agendamento.
       tags:
-      - Appointments
+      - Agendamentos
   /appointment/update:
     put:
       consumes:
       - application/json
-      description: Update an Appointment.
+      description: Atualiza um agendamento.
       parameters:
-      - description: Appointment Request
+      - description: Requisição de Agendamento
         in: body
         name: user
         required: true
@@ -1970,22 +2008,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: Sucesso
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update an Appointment.
+      summary: Atualizar um Agendamento.
       tags:
-      - Appointments
+      - Agendamentos
   /attach/update:
     put:
       consumes:
@@ -2109,7 +2147,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get Attachment.
       tags:
-      - Drivers
+      - Attach
   /chat/create-room:
     post:
       consumes:
@@ -2179,21 +2217,24 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Calcula as melhores opções de rota a partir de uma latitude e
-        longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat:
-        "-25.550520" (Latitude do local de saída)\n- origin_lng: "-48.633309" (Longitude
-        do local de saída)\n- destination_lat: "-31.0368176" (Latitude do local de
-        chegada)\n- destination_lng: "-52.2089887" (Longitude do local de chegada)\n-
-        axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity:
-        20 (Consumo de combústivel na cidade)\n- consumptionHwy: 22 (Consumo de combústivel
-        na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [{\"lat\": \"-23.223701\",\"lng\":
-        \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista
-        de pontos de parada, através de latitude e longitude do local de saída e chegada)\n-
-        favorite: true (Se deseja favoritar essa rota)\n- type: \"Auto\" (Tipo do
-        automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\n- typeRoute:
-        \"eficiente\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).'
+      description: |-
+        Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.
+
+        Campos esperados no body:
+        - origin_lat: \"-25.550520\" (Latitude do local de saída)
+        - origin_lng: \"-48.633309\" (Longitude do local de saída)
+        - destination_lat: \"-31.0368176\" (Latitude do local de chegada)
+        - destination_lng: \"-51.0368176\" (Longitude do local de chegada)
+        - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+        - consumptionCity: 20 (Consumo de combústivel na cidade)
+        - consumptionHwy: 22 (Consumo de combústivel na estrada)
+        - price: 6.20 (Preço da gasolina)
+        - waypoints: [{\"lat\": \"-23.223701\",\"lng\": \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)
+        - favorite: true (Se deseja favoritar essa rota)
+        - type: \"Auto\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: \"eficiente\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).
       parameters:
-      - description: Route calculation request
+      - description: Route calculation by coordinate request
         in: body
         name: request
         required: true
@@ -2220,293 +2261,26 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Calculate possible routes.
+      summary: Calculate routes based on coordinates.
       tags:
       - Routes
-  /create:
+  /check-route-tolls-easy:
     post:
       consumes:
       - application/json
-      description: Register a new user in the system.
-      parameters:
-      - description: User Creation Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/login.RequestCreateUser'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Created User Info
-          schema:
-            $ref: '#/definitions/login.ResponseCreateUser'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create a new user.
-      tags:
-      - Users
-  /create/client:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user client in the system.
-      parameters:
-      - description: User Creation Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/login.RequestCreateUser'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Created User Info
-          schema:
-            $ref: '#/definitions/login.ResponseCreateUser'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Create a new user client.
-      tags:
-      - Users
-  /driver/create:
-    post:
-      consumes:
-      - application/json
-      description: Create a Driver.
-      parameters:
-      - description: Driver Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/drivers.CreateDriverRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Driver Info
-          schema:
-            $ref: '#/definitions/drivers.DriverResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Create a Driver.
-      tags:
-      - Drivers
-  /driver/delete/{id}:
-    put:
-      consumes:
-      - application/json
-      description: Delete Driver.
-      parameters:
-      - description: Driver id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Delete Driver.
-      tags:
-      - Drivers
-  /driver/list:
-    put:
-      consumes:
-      - application/json
-      description: Get Driver.
-      parameters:
-      - description: Driver id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Driver Info
-          schema:
-            $ref: '#/definitions/drivers.DriverResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Get Driver.
-      tags:
-      - Drivers
-  /driver/update:
-    put:
-      consumes:
-      - application/json
-      description: Update a Driver.
-      parameters:
-      - description: Driver Request
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/drivers.UpdateDriverRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Driver Info
-          schema:
-            $ref: '#/definitions/drivers.DriverResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Update a Driver.
-      tags:
-      - Drivers
-  /login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticate a user by email and password.
-      parameters:
-      - description: Login Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/login.RequestLogin'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Authenticated User Info
-          schema:
-            $ref: '#/definitions/login.ResponseLogin'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Authenticate a user.
-      tags:
-      - Users
-  /payment-history:
-    get:
-      consumes:
-      - application/json
-      description: Fetches the payment history for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of Payment History
-          schema:
-            items:
-              $ref: '#/definitions/payment.PaymentHistResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Retrieve Payment History
-      tags:
-      - Payments
-  /public/advertisement/list:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve all Advertisement
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of Advertisement
-          schema:
-            items:
-              $ref: '#/definitions/advertisement.AdvertisementResponseNoUser'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get By ID Advertisement
-      tags:
-      - Advertisement
-  /public/check-route-tolls:
-    post:
-      consumes:
-      - application/json
-      description: 'Calcula as melhores opções de rota a partir de uma origem e destino.\n\nCampos
-        esperados no body:\n- origin: \"São Paulo\" (Local de chegada)\n- destination:
-        \"Salvador\" (Local de saída)\n- axles: 2 (Quantidade de eixos, possível somente:
-        2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combústivel na cidade)\n-
-        consumptionHwy: 22 (Consumo de combústivel na estrada)\n- price: 6.20 (Preço
-        da gasolina)\n- waypoints: [\"Rio de Janeiro\", \"Vitória da Conquista\"]
-        (Lista de pontos de parada - strings com nomes dos locais)\n- favorite: true
-        (Se deseja favoritar essa rota)\n- type: \"Auto\" (Tipo do automóvel, sendo
-        possível somente: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \"eficiente\"
-        (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).'
+      description: |-
+        Calcúla as melhores opções de rota a partir de uma origem e destino.
+        Campos esperados no body:
+        - origin: "São Paulo" (Local de chegada)
+        - destination: "Salvador" (Local de saída)
+        - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+        - consumptionCity: 20 (Consumo de combustível na cidade)
+        - consumptionHwy: 22 (Consumo de combustível na estrada)
+        - price: 6.20 (Preço da gasolina)
+        - waypoints: ["Rio de Janeiro", "Vitória da Conquista"] (Lista de pontos de parada)
+        - favorite: true (Se deseja favoritar essa rota)
+        - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
       parameters:
       - description: Route calculation request
         in: body
@@ -2538,6 +2312,342 @@ paths:
       summary: Calculate possible routes.
       tags:
       - Routes
+  /create:
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo usuário no sistema.
+      parameters:
+      - description: Requisição para criação de usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Criado
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Criar um novo usuário.
+      tags:
+      - Usuários
+  /create/client:
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo cliente usuário no sistema.
+      parameters:
+      - description: Requisição para criação de usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Criado
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um novo cliente usuário.
+      tags:
+      - Usuários
+  /dashboard/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do Dashboard.
+      parameters:
+      - description: ID do Dashboard
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data de início (formato YYYY-MM-DD)
+        in: query
+        name: start
+        type: string
+      - description: Data de fim (formato YYYY-MM-DD)
+        in: query
+        name: end
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Dashboard
+          schema:
+            $ref: '#/definitions/dashboard.Response'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Dashboard.
+      tags:
+      - Dashboard
+  /driver/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria um motorista.
+      parameters:
+      - description: Requisição de Motorista
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/drivers.CreateDriverRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um Motorista.
+      tags:
+      - Motoristas
+  /driver/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui um motorista.
+      parameters:
+      - description: ID do Motorista
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Motorista.
+      tags:
+      - Motoristas
+  /driver/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do motorista.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Motorista.
+      tags:
+      - Motoristas
+  /driver/list/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do motorista a partir do ID.
+      parameters:
+      - description: ID do Motorista
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Motorista por ID.
+      tags:
+      - Motoristas
+  /driver/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados de um motorista.
+      parameters:
+      - description: Requisição de Motorista
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/drivers.UpdateDriverRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar um Motorista.
+      tags:
+      - Motoristas
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica um usuário utilizando email e senha.
+      parameters:
+      - description: Requisição de Login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Autenticado
+          schema:
+            $ref: '#/definitions/login.ResponseLogin'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Autenticar um usuário.
+      tags:
+      - Usuários
+  /payment-history:
+    get:
+      consumes:
+      - application/json
+      description: Recupera o histórico de pagamentos de um usuário.
+      parameters:
+      - description: ID do Usuário
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista do Histórico de Pagamentos
+          schema:
+            items:
+              $ref: '#/definitions/payment.PaymentHistResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Histórico de Pagamentos
+      tags:
+      - Pagamentos
+  /public/advertisement/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera um anúncio pelo seu ID (público).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Anúncio
+          schema:
+            items:
+              $ref: '#/definitions/advertisement.AdvertisementResponseNoUser'
+            type: array
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Obter Anúncio por ID (Público).
+      tags:
+      - Anúncio
   /route/favorite/list:
     get:
       consumes:
@@ -2568,7 +2678,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get FavoriteRoute.
       tags:
-      - FavoriteRoutes
+      - Rotas Favoritas
   /route/favorite/remove/:id:
     put:
       consumes:
@@ -2597,9 +2707,9 @@ paths:
       - ApiKeyAuth: []
       summary: Get FavoriteRoute.
       tags:
-      - FavoriteRoutes
+      - Rotas Favoritas
   /route/simple:
-    post:
+    get:
       consumes:
       - application/json
       description: Retrieves a simple route with distance and duration.
@@ -2634,13 +2744,39 @@ paths:
       summary: Get simple route information.
       tags:
       - Routes
+  /tractor-unit/check-plate/{plate}:
+    get:
+      consumes:
+      - application/json
+      description: Verifica se a placa existe ou já está cadastrada.
+      parameters:
+      - description: Placa do Veículo
+        in: path
+        name: plate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resultado da verificação da placa
+          schema: {}
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Verificar Placa.
+      tags:
+      - Cavalo
   /tractor-unit/create:
     post:
       consumes:
       - application/json
-      description: Create a TractorUnit.
+      description: Cria uma unidade tratora.
       parameters:
-      - description: TractorUnit Request
+      - description: Requisição de Unidade Tratora
         in: body
         name: request
         required: true
@@ -2650,29 +2786,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: TractorUnit Info
+          description: Informações da Unidade Tratora
           schema:
             $ref: '#/definitions/tractor_unit.TractorUnitResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Create a TractorUnit.
+      summary: Criar uma Unidade Tratora.
       tags:
-      - TractorUnits
+      - Cavalo
   /tractor-unit/delete/{id}:
     put:
       consumes:
       - application/json
-      description: Delete TractorUnit.
+      description: Exclui uma unidade tratora.
       parameters:
-      - description: TractorUnit id
+      - description: ID da Unidade Tratora
         in: path
         name: id
         required: true
@@ -2681,27 +2817,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Sucesso
+          schema:
+            type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Delete TractorUnit.
+      summary: Excluir uma Unidade Tratora.
       tags:
-      - TractorUnits
+      - Cavalo
   /tractor-unit/list:
     get:
       consumes:
       - application/json
-      description: Get Tractor Unit.
+      description: Recupera as informações da unidade tratora.
       parameters:
-      - description: TractorUnit id
+      - description: ID da Unidade Tratora
         in: path
         name: id
         required: true
@@ -2710,27 +2848,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Informações da Unidade Tratora
+          schema:
+            $ref: '#/definitions/tractor_unit.TractorUnitResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get Tractor Unit.
+      summary: Obter Unidade Tratora.
       tags:
-      - TractorUnits
+      - Cavalo
   /tractor-unit/list/{id}:
     get:
       consumes:
       - application/json
-      description: Get Tractor Unit.
+      description: Recupera as informações do reboque a partir do ID.
       parameters:
-      - description: Trailer id
+      - description: ID do Carroceria
         in: path
         name: id
         required: true
@@ -2739,27 +2879,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get Tractor Unit.
+      summary: Obter Carroceria por ID.
       tags:
-      - Trailer
+      - Carroceria
   /tractor-unit/update:
     put:
       consumes:
       - application/json
-      description: Update a TractorUnit.
+      description: Atualiza os dados de uma unidade tratora.
       parameters:
-      - description: TractorUnit Request
+      - description: Requisição de Unidade Tratora
         in: body
         name: user
         required: true
@@ -2769,29 +2911,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: TractorUnit Info
+          description: Informações da Unidade Tratora
           schema:
             $ref: '#/definitions/tractor_unit.TractorUnitResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update a TractorUnit.
+      summary: Atualizar uma Unidade Tratora.
       tags:
-      - TractorUnits
+      - Cavalo
   /trailer/create:
     post:
       consumes:
       - application/json
-      description: Create a Trailer.
+      description: Cria um reboque.
       parameters:
-      - description: Trailer Request
+      - description: Requisição de Carroceria
         in: body
         name: request
         required: true
@@ -2801,29 +2943,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Trailer Info
+          description: Informações do Carroceria
           schema:
             $ref: '#/definitions/trailer.TrailerResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Create a Trailer.
+      summary: Criar um Carroceria.
       tags:
-      - Trailer
+      - Carroceria
   /trailer/delete/{id}:
     put:
       consumes:
       - application/json
-      description: Delete Trailer.
+      description: Exclui um reboque.
       parameters:
-      - description: Trailer id
+      - description: ID do Carroceria
         in: path
         name: id
         required: true
@@ -2832,27 +2974,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Sucesso
+          schema:
+            type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Delete Trailer.
+      summary: Excluir um Carroceria.
       tags:
-      - Trailer
+      - Carroceria
   /trailer/list:
-    put:
+    get:
       consumes:
       - application/json
-      description: Get Trailer.
+      description: Recupera as informações do reboque.
       parameters:
-      - description: Trailer id
+      - description: ID do Carroceria
         in: path
         name: id
         required: true
@@ -2861,27 +3005,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get Trailer.
+      summary: Obter Carroceria.
       tags:
-      - Trailer
+      - Carroceria
   /trailer/update:
     put:
       consumes:
       - application/json
-      description: Update a Trailer.
+      description: Atualiza as informações de um reboque.
       parameters:
-      - description: Trailer Request
+      - description: Requisição de Carroceria
         in: body
         name: user
         required: true
@@ -2891,29 +3037,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Trailer Info
+          description: Informações do Carroceria
           schema:
             $ref: '#/definitions/trailer.TrailerResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update a Trailer.
+      summary: Atualizar um Carroceria.
       tags:
-      - Trailer
+      - Carroceria
   /user/address/update:
     put:
       consumes:
       - application/json
-      description: Updates the address details of a user.
+      description: Atualiza os detalhes do endereço do usuário.
       parameters:
-      - description: User Address Update Request
+      - description: Requisição de Atualização de Endereço do Usuário
         in: body
         name: request
         required: true
@@ -2923,77 +3069,135 @@ paths:
       - application/json
       responses:
         "200":
-          description: Updated Address Info
+          description: Informações Atualizadas do Endereço
           schema:
             $ref: '#/definitions/user.UpdateUserResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update User Address.
+      summary: Atualizar Endereço do Usuário.
       tags:
-      - Users
+      - Usuários
   /user/delete:
     delete:
       consumes:
       - application/json
-      description: Deletes the authenticated user account.
+      description: Exclui a conta do usuário autenticado.
       produces:
       - application/json
       responses:
         "200":
-          description: Success message
+          description: Mensagem de sucesso
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Delete a User.
+      summary: Excluir um Usuário.
       tags:
-      - Users
-  /user/info:
-    get:
+      - Usuários
+  /user/exists:
+    post:
       consumes:
       - application/json
-      description: Retrieve all user data.
+      description: Verifica se o usuário existe a partir do e-mail fornecido.
+      parameters:
+      - description: Requisição para Verificar Existência do Usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UserExitsRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: 'Get User '
+          description: Dados do Usuário
+          schema:
+            $ref: '#/definitions/user.GetUserResponse'
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Verificar Existência do Usuário.
+      tags:
+      - Usuários
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: Recupera todos os dados do usuário.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário
           schema:
             $ref: '#/definitions/user.GetUserResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Get User Info.
+      summary: Obter Informações do Usuário.
       tags:
-      - Users
+      - Usuários
+  /user/password/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza a senha do usuário autenticado.
+      parameters:
+      - description: Requisição de Atualização de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdatePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Senha do Usuário.
+      tags:
+      - Usuários
   /user/personal/update:
     put:
       consumes:
       - application/json
-      description: Updates the personal details of a user.
+      description: Atualiza os dados pessoais do usuário.
       parameters:
-      - description: User Personal Info Update Request
+      - description: Requisição de Atualização de Informações Pessoais do Usuário
         in: body
         name: request
         required: true
@@ -3003,29 +3207,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Updated Personal Info
+          description: Informações Pessoais Atualizadas
           schema:
             $ref: '#/definitions/user.UpdateUserResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update User Personal Info.
+      summary: Atualizar Informações Pessoais do Usuário.
       tags:
-      - Users
+      - Usuários
   /user/plan:
     post:
       consumes:
       - application/json
-      description: Assigns a user to a selected plan.
+      description: Atribui um usuário a um plano selecionado.
       parameters:
-      - description: Plan ID
+      - description: ID do Plano
         in: path
         name: id
         required: true
@@ -3034,29 +3238,91 @@ paths:
       - application/json
       responses:
         "200":
-          description: User Plan Info
+          description: Informações do Plano do Usuário
           schema:
             $ref: '#/definitions/plans.UserPlanResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Create a User Plan.
+      summary: Criar um Plano de Usuário.
       tags:
-      - Users
+      - Usuários
+  /user/recover:
+    post:
+      consumes:
+      - application/json
+      description: Inicia o processo de recuperação de senha para o usuário.
+      parameters:
+      - description: Requisição de Recuperação de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.RecoverPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Recuperar Senha.
+      tags:
+      - Usuários
+  /user/recover/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Confirma a recuperação de senha utilizando o token recebido.
+      parameters:
+      - description: Requisição de Confirmação de Recuperação de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.ConfirmRecoverPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Confirmar Recuperação de Senha.
+      tags:
+      - Usuários
   /user/update:
     put:
       consumes:
       - application/json
-      description: Update the authenticated user’s profile information.
+      description: Atualiza as informações do perfil do usuário autenticado.
       parameters:
-      - description: User Update Request
+      - description: Requisição de Atualização do Usuário
         in: body
         name: request
         required: true
@@ -3066,47 +3332,47 @@ paths:
       - application/json
       responses:
         "200":
-          description: Updated User Info
+          description: Informações Atualizadas do Usuário
           schema:
             $ref: '#/definitions/user.UpdateUserResponse'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Update User Information.
+      summary: Atualizar Informações do Usuário.
       tags:
-      - Users
+      - Usuários
   /webhook/stripe:
     post:
       consumes:
       - application/json
-      description: Receives and processes Stripe webhook events
+      description: Recebe e processa os eventos do webhook do Stripe.
       produces:
       - application/json
       responses:
         "200":
-          description: Success
+          description: Sucesso
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Process Stripe Webhook
+      summary: Processar Webhook do Stripe
       tags:
-      - Payments
+      - Pagamentos
   /ws:
     get:
       consumes:

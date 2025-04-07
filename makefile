@@ -8,7 +8,7 @@ endif
 # Swagger
 swag:
 	@echo "$(YELLOW) Generating $(CYAN) Swagger $(GREEN). $(NC)"
-	swag init -g cmd/api.go --output docs/app
+	swag init -g cmd/api.go
 
 # Local Setup
 postgres-setup:

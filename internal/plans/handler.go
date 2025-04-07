@@ -21,15 +21,15 @@ func NewUserPlanHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CreateUserPlanHandler godoc
-// @Summary Create a User Plan.
-// @Description Assigns a user to a selected plan.
-// @Tags Users
+// @Summary Criar um Plano de Usuário.
+// @Description Atribui um usuário a um plano selecionado.
+// @Tags Usuários
 // @Accept json
 // @Produce json
-// @Param id path int true "Plan ID"
-// @Success 200 {object} UserPlanResponse "User Plan Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path int true "ID do Plano"
+// @Success 200 {object} UserPlanResponse "Informações do Plano do Usuário"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /user/plan [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateUserPlanHandler(c echo.Context) error {

@@ -16,15 +16,15 @@ func NewTrailersHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CreateTrailerHandler godoc
-// @Summary Create a Trailer.
-// @Description Create a Trailer.
-// @Tags Trailer
+// @Summary Criar um Carroceria.
+// @Description Cria um reboque.
+// @Tags Carroceria
 // @Accept json
 // @Produce json
-// @Param request body CreateTrailerRequest true "Trailer Request"
-// @Success 200 {object} TrailerResponse "Trailer Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body CreateTrailerRequest true "Requisição de Carroceria"
+// @Success 200 {object} TrailerResponse "Informações do Carroceria"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /trailer/create [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateTrailerHandler(c echo.Context) error {
@@ -48,15 +48,15 @@ func (p *Handler) CreateTrailerHandler(c echo.Context) error {
 }
 
 // UpdateTrailerHandler godoc
-// @Summary Update a Trailer.
-// @Description Update a Trailer.
-// @Tags Trailer
+// @Summary Atualizar um Carroceria.
+// @Description Atualiza as informações de um reboque.
+// @Tags Carroceria
 // @Accept json
 // @Produce json
-// @Param user body UpdateTrailerRequest true "Trailer Request"
-// @Success 200 {object} TrailerResponse "Trailer Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateTrailerRequest true "Requisição de Carroceria"
+// @Success 200 {object} TrailerResponse "Informações do Carroceria"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /trailer/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
@@ -80,15 +80,15 @@ func (p *Handler) UpdateTrailerHandler(c echo.Context) error {
 }
 
 // DeleteTrailerHandler godoc
-// @Summary Delete Trailer.
-// @Description Delete Trailer.
-// @Tags Trailer
+// @Summary Excluir um Carroceria.
+// @Description Exclui um reboque.
+// @Tags Carroceria
 // @Accept json
 // @Produce json
-// @Param id path string true "Trailer id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID do Carroceria"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /trailer/delete/{id} [put]
 // @Security ApiKeyAuth
 func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
@@ -103,20 +103,20 @@ func (p *Handler) DeleteTrailerHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, "Success")
+	return c.JSON(http.StatusOK, "Sucesso")
 }
 
 // GetTrailerHandler godoc
-// @Summary Get Trailer.
-// @Description Get Trailer.
-// @Tags Trailer
+// @Summary Obter Carroceria.
+// @Description Recupera as informações do reboque.
+// @Tags Carroceria
 // @Accept json
 // @Produce json
-// @Param id path string true "Trailer id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /trailer/list [put]
+// @Param id path string true "ID do Carroceria"
+// @Success 200 {object} TrailerResponse "Informações do Carroceria"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /trailer/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTrailerHandler(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
@@ -130,15 +130,15 @@ func (p *Handler) GetTrailerHandler(c echo.Context) error {
 }
 
 // GetTrailerByIdHandler godoc
-// @Summary Get Tractor Unit.
-// @Description Get Tractor Unit.
-// @Tags Trailer
+// @Summary Obter Carroceria por ID.
+// @Description Recupera as informações do reboque a partir do ID.
+// @Tags Carroceria
 // @Accept json
 // @Produce json
-// @Param id path string true "Trailer id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID do Carroceria"
+// @Success 200 {object} TrailerResponse "Informações do Carroceria"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/list/{id} [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTrailerByIdHandler(c echo.Context) error {

@@ -1026,7 +1026,7 @@ const docTemplate = `{
                 "balances": {
 				  "type": "object",
 				  "additionalProperties": true
-				}
+				},
                 "costs": {
                     "$ref": "#/definitions/new_routes.Costs"
                 },

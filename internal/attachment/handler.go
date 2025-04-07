@@ -80,7 +80,7 @@ func (h *Handler) UpdateAttachHandler(c echo.Context) error {
 // GetAllAttachmentById godoc
 // @Summary Get Attachment.
 // @Description Get Attachment.
-// @Tags Drivers
+// @Tags Attach
 // @Accept json
 // @Produce json
 // @Param id path string true "Driver id"

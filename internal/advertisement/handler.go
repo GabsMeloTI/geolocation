@@ -20,15 +20,15 @@ func NewAdvertisementHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CreateAdvertisementHandler godoc
-// @Summary Create a Advertisement.
-// @Description Create a Advertisement.
-// @Tags Advertisement
+// @Summary Criar um Anúncio.
+// @Description Cria um anúncio.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Param request body CreateAdvertisementRequest true "Advertisement Request"
-// @Success 200 {object} AdvertisementResponse "Advertisement Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body CreateAdvertisementRequest true "Requisição de Anúncio"
+// @Success 200 {object} AdvertisementResponse "Informações do Anúncio"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /advertisement/create [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateAdvertisementHandler(c echo.Context) error {
@@ -77,15 +77,15 @@ func (p *Handler) UpdatedAdvertisementFinishedCreate(c echo.Context) error {
 }
 
 // UpdateAdvertisementHandler godoc
-// @Summary Update a Advertisement.
-// @Description Update a Advertisement.
-// @Tags Advertisement
+// @Summary Atualizar um Anúncio.
+// @Description Atualiza um anúncio.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Param user body UpdateAdvertisementRequest true "Advertisement Request"
-// @Success 200 {object} AdvertisementResponse "Advertisement Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateAdvertisementRequest true "Requisição de Anúncio"
+// @Success 200 {object} AdvertisementResponse "Informações do Anúncio"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /advertisement/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
@@ -117,15 +117,15 @@ func (p *Handler) UpdateAdvertisementHandler(c echo.Context) error {
 }
 
 // DeleteAdvertisementHandler godoc
-// @Summary Delete Advertisement.
-// @Description Delete Advertisement.
-// @Tags Advertisement
+// @Summary Excluir um Anúncio.
+// @Description Exclui um anúncio.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Param id path string true "Advertisement id"
+// @Param id path string true "ID do Anúncio"
 // @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /advertisement/delete/{id} [put]
 // @Security ApiKeyAuth
 func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
@@ -152,13 +152,13 @@ func (p *Handler) DeleteAdvertisementHandler(c echo.Context) error {
 }
 
 // GetAllAdvertisementHandler godoc
-// @Summary Get All Advertisement
-// @Description Retrieve all Advertisement
-// @Tags Advertisement
+// @Summary Obter Todos os Anúncios.
+// @Description Recupera todos os anúncios.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Success 200 {object} []AdvertisementResponseAll "List of Advertisement"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200 {object} []AdvertisementResponseAll "Lista de Anúncios"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /advertisement/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetAllAdvertisementHandler(c echo.Context) error {
@@ -182,13 +182,13 @@ func (p *Handler) GetAllAdvertisementByUserHandler(c echo.Context) error {
 }
 
 // GetAllAdvertisementPublicHandler godoc
-// @Summary Get All Advertisement
-// @Description Retrieve all Advertisement
-// @Tags Advertisement
+// @Summary Obter Todos os Anúncios (Público).
+// @Description Recupera todos os anúncios públicos.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200 {object} []AdvertisementResponseNoUser "Lista de Anúncios"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /public/advertisement/list [get]
 func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
 	result, err := p.InterfaceService.GetAllAdvertisementPublic(c.Request().Context())
@@ -200,15 +200,15 @@ func (p *Handler) GetAllAdvertisementPublicHandler(c echo.Context) error {
 }
 
 // UpdateAdsRouteChoose godoc
-// @Summary Update Advertisement Route Choose
-// @Description Update the route choosen in the advertisement.
-// @Tags Advertisement
+// @Summary Atualizar Escolha de Rota do Anúncio.
+// @Description Atualiza a rota escolhida no anúncio.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Param user body UpdateAdsRouteChooseRequest true "Advertisement Request"
-// @Success 200 {string} string "Success"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateAdsRouteChooseRequest true "Requisição para escolha de rota do anúncio"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /advertisement/route [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateAdsRouteChoose(c echo.Context) error {
@@ -233,13 +233,13 @@ func (p *Handler) UpdateAdsRouteChoose(c echo.Context) error {
 }
 
 // GetAdvertisementByIDService godoc
-// @Summary Get By ID Advertisement
-// @Description Retrieve all Advertisement
-// @Tags Advertisement
+// @Summary Obter Anúncio por ID.
+// @Description Recupera um anúncio pelo seu ID.
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200 {object} []AdvertisementResponseNoUser "Informações do Anúncio"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /public/advertisement/list [get]
 func (p *Handler) GetAdvertisementByIDService(c echo.Context) error {
 	idStr := c.Param("id")
@@ -257,13 +257,13 @@ func (p *Handler) GetAdvertisementByIDService(c echo.Context) error {
 }
 
 // GetAdvertisementByIDPublicService godoc
-// @Summary Get By ID Advertisement
-// @Description Retrieve all Advertisement
-// @Tags Advertisement
+// @Summary Obter Anúncio por ID (Público).
+// @Description Recupera um anúncio pelo seu ID (público).
+// @Tags Anúncio
 // @Accept json
 // @Produce json
-// @Success 200 {object} []AdvertisementResponseNoUser "List of Advertisement"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200 {object} []AdvertisementResponseNoUser "Informações do Anúncio"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /public/advertisement/list [get]
 func (p *Handler) GetAdvertisementByIDPublicService(c echo.Context) error {
 	idStr := c.Param("id")

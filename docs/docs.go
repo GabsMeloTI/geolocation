@@ -26,7 +26,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns all cities in a specific state by their ID.",
+                "description": "Retorna todas as cidades de um estado específico, utilizando o ID do estado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -34,13 +34,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Address"
+                    "Endereços"
                 ],
-                "summary": "Find All Cities by State ID",
+                "summary": "Buscar Cidades por Estado",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "State ID",
+                        "description": "ID do Estado",
                         "name": "idState",
                         "in": "path",
                         "required": true
@@ -48,19 +48,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of Cities",
+                        "description": "Lista de Cidades",
                         "schema": {
-                            "$ref": "#/definitions/address.CityResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/address.CityResponse"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -75,7 +78,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Find address by search, it can be 1. And, 2. Latitude, Longitude or 3. Address (Street, neighborhood, number).",
+                "description": "Busca um endereço por pesquisa. Pode ser: 1. Nome de localidade, 2. Latitude e Longitude ou 3. Endereço completo (Rua, bairro, número).",
                 "consumes": [
                     "application/json"
                 ],
@@ -83,13 +86,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Address"
+                    "Endereços"
                 ],
-                "summary": "Find Address By Query",
+                "summary": "Buscar Endereço por Consulta",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Address Query",
+                        "description": "Consulta do Endereço",
                         "name": "q",
                         "in": "query",
                         "required": true
@@ -97,19 +100,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Address Info",
+                        "description": "Informações do Endereço",
                         "schema": {
-                            "$ref": "#/definitions/address.AddressResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/address.AddressResponse"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -124,7 +130,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Finds address by zip code, returns type based on repetitions found",
+                "description": "Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições encontradas.",
                 "consumes": [
                     "application/json"
                 ],
@@ -132,13 +138,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Address"
+                    "Endereços"
                 ],
-                "summary": "Find Address By CEP",
+                "summary": "Buscar Endereço por CEP",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "cep",
+                        "description": "CEP",
                         "name": "cep",
                         "in": "path",
                         "required": true
@@ -146,19 +152,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Address Info",
+                        "description": "Informações do Endereço",
                         "schema": {
-                            "$ref": "#/definitions/address.AddressCEPResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/address.AddressCEPResponse"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -173,7 +182,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns all available states.",
+                "description": "Retorna todos os estados disponíveis.",
                 "consumes": [
                     "application/json"
                 ],
@@ -181,18 +190,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Address"
+                    "Endereços"
                 ],
-                "summary": "Find All States",
+                "summary": "Buscar Todos os Estados",
                 "responses": {
                     "200": {
-                        "description": "List of States",
+                        "description": "Lista de Estados",
                         "schema": {
-                            "$ref": "#/definitions/address.StateResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/address.StateResponse"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -207,7 +219,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Advertisement.",
+                "description": "Cria um anúncio.",
                 "consumes": [
                     "application/json"
                 ],
@@ -215,12 +227,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Advertisement"
+                    "Anúncio"
                 ],
-                "summary": "Create a Advertisement.",
+                "summary": "Criar um Anúncio.",
                 "parameters": [
                     {
-                        "description": "Advertisement Request",
+                        "description": "Requisição de Anúncio",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -231,19 +243,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Advertisement Info",
+                        "description": "Informações do Anúncio",
                         "schema": {
                             "$ref": "#/definitions/advertisement.AdvertisementResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -258,7 +270,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Delete Advertisement.",
+                "description": "Exclui um anúncio.",
                 "consumes": [
                     "application/json"
                 ],
@@ -266,13 +278,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Advertisement"
+                    "Anúncio"
                 ],
-                "summary": "Delete Advertisement.",
+                "summary": "Excluir um Anúncio.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Advertisement id",
+                        "description": "ID do Anúncio",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -283,13 +295,13 @@ const docTemplate = `{
                         "description": "OK"
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -304,7 +316,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Retrieve all Advertisement",
+                "description": "Recupera todos os anúncios.",
                 "consumes": [
                     "application/json"
                 ],
@@ -312,12 +324,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Advertisement"
+                    "Anúncio"
                 ],
-                "summary": "Get All Advertisement",
+                "summary": "Obter Todos os Anúncios.",
                 "responses": {
                     "200": {
-                        "description": "List of Advertisement",
+                        "description": "Lista de Anúncios",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -326,7 +338,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -341,7 +353,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update the route choosen in the advertisement.",
+                "description": "Atualiza a rota escolhida no anúncio.",
                 "consumes": [
                     "application/json"
                 ],
@@ -349,12 +361,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Advertisement"
+                    "Anúncio"
                 ],
-                "summary": "Update Advertisement Route Choose",
+                "summary": "Atualizar Escolha de Rota do Anúncio.",
                 "parameters": [
                     {
-                        "description": "Advertisement Request",
+                        "description": "Requisição para escolha de rota do anúncio",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -365,19 +377,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Sucesso",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -392,7 +404,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a Advertisement.",
+                "description": "Atualiza um anúncio.",
                 "consumes": [
                     "application/json"
                 ],
@@ -400,12 +412,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Advertisement"
+                    "Anúncio"
                 ],
-                "summary": "Update a Advertisement.",
+                "summary": "Atualizar um Anúncio.",
                 "parameters": [
                     {
-                        "description": "Advertisement Request",
+                        "description": "Requisição de Anúncio",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -416,19 +428,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Advertisement Info",
+                        "description": "Informações do Anúncio",
                         "schema": {
                             "$ref": "#/definitions/advertisement.AdvertisementResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -443,7 +455,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Delete Appointment.",
+                "description": "Exclui um agendamento.",
                 "consumes": [
                     "application/json"
                 ],
@@ -451,13 +463,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Appointments"
+                    "Agendamentos"
                 ],
-                "summary": "Delete Appointment.",
+                "summary": "Excluir um Agendamento.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment id",
+                        "description": "ID do Agendamento",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -465,16 +477,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -489,7 +504,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update an Appointment.",
+                "description": "Atualiza um agendamento.",
                 "consumes": [
                     "application/json"
                 ],
@@ -497,12 +512,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Appointments"
+                    "Agendamentos"
                 ],
-                "summary": "Update an Appointment.",
+                "summary": "Atualizar um Agendamento.",
                 "parameters": [
                     {
-                        "description": "Appointment Request",
+                        "description": "Requisição de Agendamento",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -513,19 +528,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Sucesso",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -540,7 +555,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get list Appointment.",
+                "description": "Recupera a lista de agendamentos para um usuário.",
                 "consumes": [
                     "application/json"
                 ],
@@ -548,13 +563,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Appointments"
+                    "Agendamentos"
                 ],
-                "summary": "Get list Appointment.",
+                "summary": "Obter lista de Agendamentos.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User id",
+                        "description": "ID do Usuário",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -562,19 +577,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Appointment Info",
+                        "description": "Informações dos Agendamentos",
                         "schema": {
                             "$ref": "#/definitions/appointments.AppointmentResponseList"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -740,7 +755,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Drivers"
+                    "Attach"
                 ],
                 "summary": "Get Attachment.",
                 "parameters": [
@@ -881,7 +896,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\\n\\nCampos esperados no body:\\n- origin_lat: \"-25.550520\" (Latitude do local de saída)\\n- origin_lng: \"-48.633309\" (Longitude do local de saída)\\n- destination_lat: \"-31.0368176\" (Latitude do local de chegada)\\n- destination_lng: \"-52.2089887\" (Longitude do local de chegada)\\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\\n- consumptionCity: 20 (Consumo de combústivel na cidade)\\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\\n- price: 6.20 (Preço da gasolina)\\n- waypoints: [{\\\"lat\\\": \\\"-23.223701\\\",\\\"lng\\\": \\\"-45.900907\\\"},{\\\"lat\\\": \\\"-22.755611\\\",\\\"lng\\\": \\\"-44.168869\\\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)\\n- favorite: true (Se deseja favoritar essa rota)\\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
+                "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: \\\"-25.550520\\\" (Latitude do local de saída)\n- origin_lng: \\\"-48.633309\\\" (Longitude do local de saída)\n- destination_lat: \\\"-31.0368176\\\" (Latitude do local de chegada)\n- destination_lng: \\\"-51.0368176\\\" (Longitude do local de chegada)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combústivel na cidade)\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [{\\\"lat\\\": \\\"-23.223701\\\",\\\"lng\\\": \\\"-45.900907\\\"},{\\\"lat\\\": \\\"-22.755611\\\",\\\"lng\\\": \\\"-44.168869\\\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
                 "consumes": [
                     "application/json"
                 ],
@@ -891,10 +906,10 @@ const docTemplate = `{
                 "tags": [
                     "Routes"
                 ],
-                "summary": "Calculate possible routes.",
+                "summary": "Calculate routes based on coordinates.",
                 "parameters": [
                     {
-                        "description": "Route calculation request",
+                        "description": "Route calculation by coordinate request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -931,438 +946,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/create": {
-            "post": {
-                "description": "Register a new user in the system.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Create a new user.",
-                "parameters": [
-                    {
-                        "description": "User Creation Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/login.RequestCreateUser"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Created User Info",
-                        "schema": {
-                            "$ref": "#/definitions/login.ResponseCreateUser"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/create/client": {
+        "/check-route-tolls-easy": {
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Register a new user client in the system.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Create a new user client.",
-                "parameters": [
-                    {
-                        "description": "User Creation Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/login.RequestCreateUser"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Created User Info",
-                        "schema": {
-                            "$ref": "#/definitions/login.ResponseCreateUser"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/driver/create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a Driver.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Drivers"
-                ],
-                "summary": "Create a Driver.",
-                "parameters": [
-                    {
-                        "description": "Driver Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/drivers.CreateDriverRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Driver Info",
-                        "schema": {
-                            "$ref": "#/definitions/drivers.DriverResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/driver/delete/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete Driver.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Drivers"
-                ],
-                "summary": "Delete Driver.",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Driver id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/driver/list": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get Driver.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Drivers"
-                ],
-                "summary": "Get Driver.",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Driver id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Driver Info",
-                        "schema": {
-                            "$ref": "#/definitions/drivers.DriverResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/driver/update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update a Driver.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Drivers"
-                ],
-                "summary": "Update a Driver.",
-                "parameters": [
-                    {
-                        "description": "Driver Request",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/drivers.UpdateDriverRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Driver Info",
-                        "schema": {
-                            "$ref": "#/definitions/drivers.DriverResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/login": {
-            "post": {
-                "description": "Authenticate a user by email and password.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Authenticate a user.",
-                "parameters": [
-                    {
-                        "description": "Login Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/login.RequestLogin"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Authenticated User Info",
-                        "schema": {
-                            "$ref": "#/definitions/login.ResponseLogin"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/payment-history": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Fetches the payment history for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Retrieve Payment History",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of Payment History",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/payment.PaymentHistResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/public/advertisement/list": {
-            "get": {
-                "description": "Retrieve all Advertisement",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Advertisement"
-                ],
-                "summary": "Get By ID Advertisement",
-                "responses": {
-                    "200": {
-                        "description": "List of Advertisement",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/advertisement.AdvertisementResponseNoUser"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/public/check-route-tolls": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Calcula as melhores opções de rota a partir de uma origem e destino.\\n\\nCampos esperados no body:\\n- origin: \\\"São Paulo\\\" (Local de chegada)\\n- destination: \\\"Salvador\\\" (Local de saída)\\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\\n- consumptionCity: 20 (Consumo de combústivel na cidade)\\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\\n- price: 6.20 (Preço da gasolina)\\n- waypoints: [\\\"Rio de Janeiro\\\", \\\"Vitória da Conquista\\\"] (Lista de pontos de parada - strings com nomes dos locais)\\n- favorite: true (Se deseja favoritar essa rota)\\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
+                "description": "Calcúla as melhores opções de rota a partir de uma origem e destino.\nCampos esperados no body:\n- origin: \"São Paulo\" (Local de chegada)\n- destination: \"Salvador\" (Local de saída)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combustível na cidade)\n- consumptionHwy: 22 (Consumo de combustível na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [\"Rio de Janeiro\", \"Vitória da Conquista\"] (Lista de pontos de parada)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \"Auto\" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1412,6 +1003,534 @@ const docTemplate = `{
                 }
             }
         },
+        "/create": {
+            "post": {
+                "description": "Registra um novo usuário no sistema.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Criar um novo usuário.",
+                "parameters": [
+                    {
+                        "description": "Requisição para criação de usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestCreateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Usuário Criado",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseCreateUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/create/client": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Registra um novo cliente usuário no sistema.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Criar um novo cliente usuário.",
+                "parameters": [
+                    {
+                        "description": "Requisição para criação de usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestCreateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Usuário Criado",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseCreateUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/dashboard/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Recupera as informações do Dashboard.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Obter Dashboard.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Dashboard",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Data de início (formato YYYY-MM-DD)",
+                        "name": "start",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Data de fim (formato YYYY-MM-DD)",
+                        "name": "end",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Dashboard",
+                        "schema": {
+                            "$ref": "#/definitions/dashboard.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cria um motorista.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Motoristas"
+                ],
+                "summary": "Criar um Motorista.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Motorista",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/drivers.CreateDriverRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Motorista",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/delete/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Exclui um motorista.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Motoristas"
+                ],
+                "summary": "Excluir um Motorista.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Motorista",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Recupera as informações do motorista.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Motoristas"
+                ],
+                "summary": "Obter Motorista.",
+                "responses": {
+                    "200": {
+                        "description": "Informações do Motorista",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/list/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Recupera as informações do motorista a partir do ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Motoristas"
+                ],
+                "summary": "Obter Motorista por ID.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Motorista",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Motorista",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/driver/update": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Atualiza os dados de um motorista.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Motoristas"
+                ],
+                "summary": "Atualizar um Motorista.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Motorista",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/drivers.UpdateDriverRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Motorista",
+                        "schema": {
+                            "$ref": "#/definitions/drivers.DriverResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Autentica um usuário utilizando email e senha.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Autenticar um usuário.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Login",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestLogin"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Usuário Autenticado",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseLogin"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/payment-history": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Recupera o histórico de pagamentos de um usuário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Pagamentos"
+                ],
+                "summary": "Obter Histórico de Pagamentos",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista do Histórico de Pagamentos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/payment.PaymentHistResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/advertisement/list": {
+            "get": {
+                "description": "Recupera um anúncio pelo seu ID (público).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Anúncio"
+                ],
+                "summary": "Obter Anúncio por ID (Público).",
+                "responses": {
+                    "200": {
+                        "description": "Informações do Anúncio",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/advertisement.AdvertisementResponseNoUser"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/route/favorite/list": {
             "get": {
                 "security": [
@@ -1427,7 +1546,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "FavoriteRoutes"
+                    "Rotas Favoritas"
                 ],
                 "summary": "Get FavoriteRoute.",
                 "parameters": [
@@ -1476,7 +1595,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "FavoriteRoutes"
+                    "Rotas Favoritas"
                 ],
                 "summary": "Get FavoriteRoute.",
                 "parameters": [
@@ -1508,7 +1627,7 @@ const docTemplate = `{
             }
         },
         "/route/simple": {
-            "post": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -1564,14 +1683,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/tractor-unit/create": {
-            "post": {
+        "/tractor-unit/check-plate/{plate}": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a TractorUnit.",
+                "description": "Verifica se a placa existe ou já está cadastrada.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1579,12 +1698,53 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "TractorUnits"
+                    "Cavalo"
                 ],
-                "summary": "Create a TractorUnit.",
+                "summary": "Verificar Placa.",
                 "parameters": [
                     {
-                        "description": "TractorUnit Request",
+                        "type": "string",
+                        "description": "Placa do Veículo",
+                        "name": "plate",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado da verificação da placa",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tractor-unit/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cria uma unidade tratora.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cavalo"
+                ],
+                "summary": "Criar uma Unidade Tratora.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Unidade Tratora",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1595,19 +1755,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "TractorUnit Info",
+                        "description": "Informações da Unidade Tratora",
                         "schema": {
                             "$ref": "#/definitions/tractor_unit.TractorUnitResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1622,7 +1782,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Delete TractorUnit.",
+                "description": "Exclui uma unidade tratora.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1630,13 +1790,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "TractorUnits"
+                    "Cavalo"
                 ],
-                "summary": "Delete TractorUnit.",
+                "summary": "Excluir uma Unidade Tratora.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TractorUnit id",
+                        "description": "ID da Unidade Tratora",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1644,16 +1804,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1668,7 +1831,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get Tractor Unit.",
+                "description": "Recupera as informações da unidade tratora.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1676,13 +1839,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "TractorUnits"
+                    "Cavalo"
                 ],
-                "summary": "Get Tractor Unit.",
+                "summary": "Obter Unidade Tratora.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TractorUnit id",
+                        "description": "ID da Unidade Tratora",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1690,16 +1853,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Informações da Unidade Tratora",
+                        "schema": {
+                            "$ref": "#/definitions/tractor_unit.TractorUnitResponse"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1714,7 +1880,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get Tractor Unit.",
+                "description": "Recupera as informações do reboque a partir do ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1722,13 +1888,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailer"
+                    "Carroceria"
                 ],
-                "summary": "Get Tractor Unit.",
+                "summary": "Obter Carroceria por ID.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trailer id",
+                        "description": "ID do Carroceria",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1736,16 +1902,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Informações do Carroceria",
+                        "schema": {
+                            "$ref": "#/definitions/trailer.TrailerResponse"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1760,7 +1929,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a TractorUnit.",
+                "description": "Atualiza os dados de uma unidade tratora.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1768,12 +1937,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "TractorUnits"
+                    "Cavalo"
                 ],
-                "summary": "Update a TractorUnit.",
+                "summary": "Atualizar uma Unidade Tratora.",
                 "parameters": [
                     {
-                        "description": "TractorUnit Request",
+                        "description": "Requisição de Unidade Tratora",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -1784,19 +1953,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "TractorUnit Info",
+                        "description": "Informações da Unidade Tratora",
                         "schema": {
                             "$ref": "#/definitions/tractor_unit.TractorUnitResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1811,7 +1980,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Trailer.",
+                "description": "Cria um reboque.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1819,12 +1988,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailer"
+                    "Carroceria"
                 ],
-                "summary": "Create a Trailer.",
+                "summary": "Criar um Carroceria.",
                 "parameters": [
                     {
-                        "description": "Trailer Request",
+                        "description": "Requisição de Carroceria",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1835,19 +2004,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Trailer Info",
+                        "description": "Informações do Carroceria",
                         "schema": {
                             "$ref": "#/definitions/trailer.TrailerResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1862,7 +2031,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Delete Trailer.",
+                "description": "Exclui um reboque.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1870,13 +2039,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailer"
+                    "Carroceria"
                 ],
-                "summary": "Delete Trailer.",
+                "summary": "Excluir um Carroceria.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trailer id",
+                        "description": "ID do Carroceria",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1884,16 +2053,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1902,13 +2074,13 @@ const docTemplate = `{
             }
         },
         "/trailer/list": {
-            "put": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get Trailer.",
+                "description": "Recupera as informações do reboque.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1916,13 +2088,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailer"
+                    "Carroceria"
                 ],
-                "summary": "Get Trailer.",
+                "summary": "Obter Carroceria.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trailer id",
+                        "description": "ID do Carroceria",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1930,16 +2102,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Informações do Carroceria",
+                        "schema": {
+                            "$ref": "#/definitions/trailer.TrailerResponse"
+                        }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -1954,7 +2129,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update a Trailer.",
+                "description": "Atualiza as informações de um reboque.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1962,12 +2137,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailer"
+                    "Carroceria"
                 ],
-                "summary": "Update a Trailer.",
+                "summary": "Atualizar um Carroceria.",
                 "parameters": [
                     {
-                        "description": "Trailer Request",
+                        "description": "Requisição de Carroceria",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -1978,19 +2153,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Trailer Info",
+                        "description": "Informações do Carroceria",
                         "schema": {
                             "$ref": "#/definitions/trailer.TrailerResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2005,7 +2180,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Updates the address details of a user.",
+                "description": "Atualiza os detalhes do endereço do usuário.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2013,12 +2188,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Update User Address.",
+                "summary": "Atualizar Endereço do Usuário.",
                 "parameters": [
                     {
-                        "description": "User Address Update Request",
+                        "description": "Requisição de Atualização de Endereço do Usuário",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2029,19 +2204,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Updated Address Info",
+                        "description": "Informações Atualizadas do Endereço",
                         "schema": {
                             "$ref": "#/definitions/user.UpdateUserResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2056,7 +2231,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Deletes the authenticated user account.",
+                "description": "Exclui a conta do usuário autenticado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2064,12 +2239,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Delete a User.",
+                "summary": "Excluir um Usuário.",
                 "responses": {
                     "200": {
-                        "description": "Success message",
+                        "description": "Mensagem de sucesso",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2078,7 +2253,47 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/exists": {
+            "post": {
+                "description": "Verifica se o usuário existe a partir do e-mail fornecido.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Verificar Existência do Usuário.",
+                "parameters": [
+                    {
+                        "description": "Requisição para Verificar Existência do Usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UserExitsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dados do Usuário",
+                        "schema": {
+                            "$ref": "#/definitions/user.GetUserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2093,7 +2308,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Retrieve all user data.",
+                "description": "Recupera todos os dados do usuário.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2101,24 +2316,75 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Get User Info.",
+                "summary": "Obter Informações do Usuário.",
                 "responses": {
                     "200": {
-                        "description": "Get User ",
+                        "description": "Informações do Usuário",
                         "schema": {
                             "$ref": "#/definitions/user.GetUserResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password/update": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Atualiza a senha do usuário autenticado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Atualizar Senha do Usuário.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Atualização de Senha",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdatePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2133,7 +2399,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Updates the personal details of a user.",
+                "description": "Atualiza os dados pessoais do usuário.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2141,12 +2407,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Update User Personal Info.",
+                "summary": "Atualizar Informações Pessoais do Usuário.",
                 "parameters": [
                     {
-                        "description": "User Personal Info Update Request",
+                        "description": "Requisição de Atualização de Informações Pessoais do Usuário",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2157,19 +2423,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Updated Personal Info",
+                        "description": "Informações Pessoais Atualizadas",
                         "schema": {
                             "$ref": "#/definitions/user.UpdateUserResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2184,7 +2450,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Assigns a user to a selected plan.",
+                "description": "Atribui um usuário a um plano selecionado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2192,13 +2458,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Create a User Plan.",
+                "summary": "Criar um Plano de Usuário.",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Plan ID",
+                        "description": "ID do Plano",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2206,19 +2472,116 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User Plan Info",
+                        "description": "Informações do Plano do Usuário",
                         "schema": {
                             "$ref": "#/definitions/plans.UserPlanResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/recover": {
+            "post": {
+                "description": "Inicia o processo de recuperação de senha para o usuário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Recuperar Senha.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Recuperação de Senha",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.RecoverPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/recover/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Confirma a recuperação de senha utilizando o token recebido.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Confirmar Recuperação de Senha.",
+                "parameters": [
+                    {
+                        "description": "Requisição de Confirmação de Recuperação de Senha",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.ConfirmRecoverPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2233,7 +2596,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update the authenticated user’s profile information.",
+                "description": "Atualiza as informações do perfil do usuário autenticado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2241,12 +2604,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Usuários"
                 ],
-                "summary": "Update User Information.",
+                "summary": "Atualizar Informações do Usuário.",
                 "parameters": [
                     {
-                        "description": "User Update Request",
+                        "description": "Requisição de Atualização do Usuário",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2257,19 +2620,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Updated User Info",
+                        "description": "Informações Atualizadas do Usuário",
                         "schema": {
                             "$ref": "#/definitions/user.UpdateUserResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -2284,7 +2647,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Receives and processes Stripe webhook events",
+                "description": "Recebe e processa os eventos do webhook do Stripe.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2292,24 +2655,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Payments"
+                    "Pagamentos"
                 ],
-                "summary": "Process Stripe Webhook",
+                "summary": "Processar Webhook do Stripe",
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Sucesso",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -4560,6 +4923,17 @@ const docTemplate = `{
                 }
             }
         },
+        "user.ConfirmRecoverPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "user.GetUserResponse": {
             "type": "object",
             "properties": {
@@ -4615,6 +4989,28 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.RecoverPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.UpdatePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "old_password": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -4743,6 +5139,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "street_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.UserExitsRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }

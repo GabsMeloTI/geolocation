@@ -19,15 +19,15 @@ func NewHandler(service ServiceInterface) *Handler {
 }
 
 // Login godoc
-// @Summary Authenticate a user.
-// @Description Authenticate a user by email and password.
-// @Tags Users
+// @Summary Autenticar um usuário.
+// @Description Autentica um usuário utilizando email e senha.
+// @Tags Usuários
 // @Accept json
 // @Produce json
-// @Param request body RequestLogin true "Login Request"
-// @Success 200 {object} ResponseLogin "Authenticated User Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body RequestLogin true "Requisição de Login"
+// @Success 200 {object} ResponseLogin "Informações do Usuário Autenticado"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /login [post]
 func (h *Handler) Login(e echo.Context) error {
 	var request RequestLogin
@@ -44,15 +44,15 @@ func (h *Handler) Login(e echo.Context) error {
 }
 
 // CreateUser godoc
-// @Summary Create a new user.
-// @Description Register a new user in the system.
-// @Tags Users
+// @Summary Criar um novo usuário.
+// @Description Registra um novo usuário no sistema.
+// @Tags Usuários
 // @Accept json
 // @Produce json
-// @Param request body RequestCreateUser true "User Creation Request"
-// @Success 200 {object} ResponseCreateUser "Created User Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body RequestCreateUser true "Requisição para criação de usuário"
+// @Success 200 {object} ResponseCreateUser "Informações do Usuário Criado"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /create [post]
 func (h *Handler) CreateUser(e echo.Context) error {
 	var request RequestCreateUser
@@ -66,16 +66,16 @@ func (h *Handler) CreateUser(e echo.Context) error {
 
 	_, err := mail.ParseAddress(request.Email)
 	if err != nil {
-		return e.JSON(http.StatusBadRequest, "invalid email address")
+		return e.JSON(http.StatusBadRequest, "endereço de email inválido")
 	}
 
 	if request.Token == "" {
 		if ok := validation.ValidatePassword(request.Password); !ok {
-			return e.JSON(http.StatusBadRequest, "invalid password")
+			return e.JSON(http.StatusBadRequest, "senha inválida")
 		}
 
 		if ok := request.Password == request.ConfirmPassword; !ok {
-			return e.JSON(http.StatusBadRequest, "password and confirm password are different")
+			return e.JSON(http.StatusBadRequest, "a senha e a confirmação são diferentes")
 		}
 	}
 
@@ -88,15 +88,15 @@ func (h *Handler) CreateUser(e echo.Context) error {
 }
 
 // CreateUserClient godoc
-// @Summary Create a new user client.
-// @Description Register a new user client in the system.
-// @Tags Users
+// @Summary Criar um novo cliente usuário.
+// @Description Registra um novo cliente usuário no sistema.
+// @Tags Usuários
 // @Accept json
 // @Produce json
-// @Param request body RequestCreateUser true "User Creation Request"
-// @Success 200 {object} ResponseCreateUser "Created User Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body RequestCreateUser true "Requisição para criação de usuário"
+// @Success 200 {object} ResponseCreateUser "Informações do Usuário Criado"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /create/client [post]
 // @Security ApiKeyAuth
 func (h *Handler) CreateUserClient(e echo.Context) error {
@@ -111,15 +111,15 @@ func (h *Handler) CreateUserClient(e echo.Context) error {
 
 	_, err := mail.ParseAddress(request.Email)
 	if err != nil {
-		return e.JSON(http.StatusBadRequest, "invalid email address")
+		return e.JSON(http.StatusBadRequest, "endereço de email inválido")
 	}
 
 	if ok := validation.ValidatePassword(request.Password); !ok {
-		return e.JSON(http.StatusBadRequest, "invalid password")
+		return e.JSON(http.StatusBadRequest, "senha inválida")
 	}
 
 	if ok := request.Password == request.ConfirmPassword; !ok {
-		return e.JSON(http.StatusBadRequest, "password and confirm password are different")
+		return e.JSON(http.StatusBadRequest, "a senha e a confirmação são diferentes")
 	}
 
 	payload := get_token.GetUserPayloadToken(e)
