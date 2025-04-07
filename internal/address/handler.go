@@ -48,7 +48,7 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 // @Success 200 {object} AddressCEPResponse[] "Address Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /address/find/{cep} [get]
+// @Router /address/find/:cep [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 	cep := c.Param("cep")
@@ -67,7 +67,7 @@ func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} StateResponse[] "List of States"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /address/states [get]
+// @Router /address/state [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindStateAll(c echo.Context) error {
 	result, err := h.InterfaceService.FindStateAll(c.Request().Context())
@@ -87,7 +87,7 @@ func (h *Handler) FindStateAll(c echo.Context) error {
 // @Success 200 {object} CityResponse[] "List of Cities"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /address/{idState} [get]
+// @Router /address/city/{idState} [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindCityAll(c echo.Context) error {
 	idStr := c.Param("idState")
