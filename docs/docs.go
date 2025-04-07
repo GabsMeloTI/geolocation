@@ -113,7 +113,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/find/:cep": {
+        "/address/find/{cep}": {
             "get": {
                 "security": [
                     {

@@ -1688,7 +1688,7 @@ paths:
       summary: Find Address By Query
       tags:
       - Address
-  /address/find/:cep:
+  /address/find/{cep}:
     get:
       consumes:
       - application/json
