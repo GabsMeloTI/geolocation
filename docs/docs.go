@@ -135,8 +135,8 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "cep",
-                        "name": "CEP",
-                        "in": "query",
+                        "name": "cep",
+                        "in": "path",
                         "required": true
                     }
                 ],
