@@ -124,8 +124,8 @@
                     {
                         "type": "string",
                         "description": "cep",
-                        "name": "CEP",
-                        "in": "query",
+                        "name": "cep",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -423,6 +423,11 @@
         },
         "/appointment/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Appointment.",
                 "consumes": [
                     "application/json"
@@ -515,6 +520,11 @@
         },
         "/appointment/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get list Appointment.",
                 "consumes": [
                     "application/json"
@@ -908,11 +918,6 @@
         },
         "/create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Register a new user in the system.",
                 "consumes": [
                     "application/json"
@@ -1061,6 +1066,11 @@
         },
         "/driver/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -1202,11 +1212,6 @@
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Authenticate a user by email and password.",
                 "consumes": [
                     "application/json"
@@ -1702,7 +1707,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Trailers"
+                    "Trailer"
                 ],
                 "summary": "Get Tractor Unit.",
                 "parameters": [

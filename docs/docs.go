@@ -434,6 +434,11 @@ const docTemplate = `{
         },
         "/appointment/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Appointment.",
                 "consumes": [
                     "application/json"
@@ -526,6 +531,11 @@ const docTemplate = `{
         },
         "/appointment/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get list Appointment.",
                 "consumes": [
                     "application/json"
@@ -919,11 +929,6 @@ const docTemplate = `{
         },
         "/create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Register a new user in the system.",
                 "consumes": [
                     "application/json"
@@ -1072,6 +1077,11 @@ const docTemplate = `{
         },
         "/driver/delete/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete Driver.",
                 "consumes": [
                     "application/json"
@@ -1213,11 +1223,6 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Authenticate a user by email and password.",
                 "consumes": [
                     "application/json"
@@ -1713,7 +1718,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Trailers"
+                    "Trailer"
                 ],
                 "summary": "Get Tractor Unit.",
                 "parameters": [

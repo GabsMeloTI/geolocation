@@ -1695,8 +1695,8 @@ paths:
       description: Finds address by zip code, returns type based on repetitions found
       parameters:
       - description: cep
-        in: query
-        name: CEP
+        in: path
+        name: cep
         required: true
         type: string
       produces:
@@ -1914,6 +1914,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get list Appointment.
       tags:
       - Appointments
@@ -1941,6 +1943,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete Appointment.
       tags:
       - Appointments
@@ -2240,8 +2244,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Create a new user.
       tags:
       - Users
@@ -2333,6 +2335,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete Driver.
       tags:
       - Drivers
@@ -2426,8 +2430,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
       summary: Authenticate a user.
       tags:
       - Users
@@ -2744,7 +2746,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get Tractor Unit.
       tags:
-      - Trailers
+      - Trailer
   /tractor-unit/update:
     put:
       consumes:

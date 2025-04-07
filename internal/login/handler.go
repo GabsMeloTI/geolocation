@@ -29,7 +29,6 @@ func NewHandler(service ServiceInterface) *Handler {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /login [post]
-// @Security ApiKeyAuth
 func (h *Handler) Login(e echo.Context) error {
 	var request RequestLogin
 	if err := e.Bind(&request); err != nil {
@@ -55,7 +54,6 @@ func (h *Handler) Login(e echo.Context) error {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /create [post]
-// @Security ApiKeyAuth
 func (h *Handler) CreateUser(e echo.Context) error {
 	var request RequestCreateUser
 	if err := e.Bind(&request); err != nil {
