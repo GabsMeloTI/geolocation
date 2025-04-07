@@ -2234,12 +2234,12 @@ paths:
         - type: \"Auto\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)
         - typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)
         - route_options: {
-        include_fuel_stations: false,
-        include_route_map: false,
-        include_toll_costs: false,
-        include_weigh_stations: false,
-        include_freight_calc: false,
-        include_polyline: false
+        include_fuel_stations: false, (traz postos de gasolina)
+        include_route_map: false, (traz rotograma da rota)
+        include_toll_costs: false, (traz pedágios e os custos gerais)
+        include_weigh_stations: false, (traz balanças)
+        include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+        include_polyline: false (traz polyline para renderizar em mapas)
         } (Opções adicionais para a rota)
       parameters:
       - description: Requisição para cálculo de rota por coordenadas
@@ -2291,12 +2291,12 @@ paths:
         - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
         - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
         - route_options: {
-        include_fuel_stations: false,
-        include_route_map: false,
-        include_toll_costs: false,
-        include_weigh_stations: false,
-        include_freight_calc: false,
-        include_polyline: false
+        include_fuel_stations: false, (traz postos de gasolina)
+        include_route_map: false, (traz rotograma da rota)
+        include_toll_costs: false, (traz pedágios e os custos gerais)
+        include_weigh_stations: false, (traz balanças)
+        include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+        include_polyline: false (traz polyline para renderizar em mapas)
         } (Opções adicionais para a rota)
       parameters:
       - description: Requisição para cálculo de rota

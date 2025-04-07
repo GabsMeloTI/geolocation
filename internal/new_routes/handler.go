@@ -32,12 +32,12 @@ func NewRoutesNewHandler(InterfaceService InterfaceService) *Handler {
 // @Description - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
 // @Description - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
 // @Description - route_options: {
-// @Description       include_fuel_stations: false,
-// @Description       include_route_map: false,
-// @Description       include_toll_costs: false,
-// @Description       include_weigh_stations: false,
-// @Description       include_freight_calc: false,
-// @Description       include_polyline: false
+// @Description       include_fuel_stations: false, (traz postos de gasolina)
+// @Description       include_route_map: false, (traz rotograma da rota)
+// @Description       include_toll_costs: false, (traz pedágios e os custos gerais)
+// @Description       include_weigh_stations: false, (traz balanças)
+// @Description       include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+// @Description       include_polyline: false (traz polyline para renderizar em mapas)
 // @Description   } (Opções adicionais para a rota)
 // @Tags Routes
 // @Accept json
@@ -92,12 +92,12 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 // @Description - type: \"Auto\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)
 // @Description - typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)
 // @Description - route_options: {
-// @Description       include_fuel_stations: false,
-// @Description       include_route_map: false,
-// @Description       include_toll_costs: false,
-// @Description       include_weigh_stations: false,
-// @Description       include_freight_calc: false,
-// @Description       include_polyline: false
+// @Description       include_fuel_stations: false, (traz postos de gasolina)
+// @Description       include_route_map: false, (traz rotograma da rota)
+// @Description       include_toll_costs: false, (traz pedágios e os custos gerais)
+// @Description       include_weigh_stations: false, (traz balanças)
+// @Description       include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+// @Description       include_polyline: false (traz polyline para renderizar em mapas)
 // @Description   } (Opções adicionais para a rota)
 // @Tags Routes
 // @Accept json
