@@ -69,54 +69,54 @@ const docTemplate = `{
             }
         },
         "/address/find/{cep}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Encontra um endereço pelo CEP, retornando o tipo com base nas repetições encontradas.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Endereços"
-                ],
-                "summary": "Busca um endereço pelo CEP",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "cep",
-                        "name": "CEP",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Informação do endereço",
-                        "schema": {
-                            "$ref": "#/definitions/address.AddressCEPResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
+			"get": {
+				"security": [
+					{
+						"ApiKeyAuth": []
+					}
+				],
+				"description": "Encontra um endereço pelo CEP, retornando o tipo com base nas repetições encontradas.",
+				"consumes": [
+					"application/json"
+				],
+				"produces": [
+					"application/json"
+				],
+				"tags": [
+					"Endereços"
+				],
+				"summary": "Busca um endereço pelo CEP",
+				"parameters": [
+					{
+						"type": "string",
+						"description": "cep",
+						"name": "cep",
+						"in": "path",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Informação do endereço",
+						"schema": {
+							"$ref": "#/definitions/address.AddressCEPResponse"
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"schema": {
+							"type": "string"
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"schema": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		}
         "/address/state": {
             "get": {
                 "security": [
