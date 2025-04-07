@@ -136,7 +136,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "cep",
                         "name": "CEP",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -867,7 +867,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calculates the best routes based on provided information.",
+                "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\\n\\nCampos esperados no body:\\n- origin_lat: \"-25.550520\" (Latitude do local de saída)\\n- origin_lng: \"-48.633309\" (Longitude do local de saída)\\n- destination_lat: \"-31.0368176\" (Latitude do local de chegada)\\n- destination_lng: \"-52.2089887\" (Longitude do local de chegada)\\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\\n- consumptionCity: 20 (Consumo de combústivel na cidade)\\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\\n- price: 6.20 (Preço da gasolina)\\n- waypoints: [{\\\"lat\\\": \\\"-23.223701\\\",\\\"lng\\\": \\\"-45.900907\\\"},{\\\"lat\\\": \\\"-22.755611\\\",\\\"lng\\\": \\\"-44.168869\\\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)\\n- favorite: true (Se deseja favoritar essa rota)\\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1353,7 +1353,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calculates the best routes based on provided information.",
+                "description": "Calcula as melhores opções de rota a partir de uma origem e destino.\\n\\nCampos esperados no body:\\n- origin: \\\"São Paulo\\\" (Local de chegada)\\n- destination: \\\"Salvador\\\" (Local de saída)\\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\\n- consumptionCity: 20 (Consumo de combústivel na cidade)\\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\\n- price: 6.20 (Preço da gasolina)\\n- waypoints: [\\\"Rio de Janeiro\\\", \\\"Vitória da Conquista\\\"] (Lista de pontos de parada - strings com nomes dos locais)\\n- favorite: true (Se deseja favoritar essa rota)\\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
                 "consumes": [
                     "application/json"
                 ],
