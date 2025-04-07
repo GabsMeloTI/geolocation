@@ -68,7 +68,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/find/cep/{cep}": {
+        "/address/find/{cep}": {
             "get": {
                 "security": [
                     {
@@ -117,7 +117,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/states": {
+        "/address/state": {
             "get": {
                 "security": [
                     {
@@ -151,7 +151,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/{idState}": {
+        "/address/city/{idState}": {
             "get": {
                 "security": [
                     {

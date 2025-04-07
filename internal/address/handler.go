@@ -48,7 +48,7 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 // @Success 200 {object} AddressCEPResponse[] "Address Info"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /address/find/cep/{cep} [get]
+// @Router /address/find/{cep} [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 	cep := c.Param("cep")

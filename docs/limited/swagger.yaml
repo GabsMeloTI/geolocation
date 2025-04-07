@@ -367,7 +367,7 @@ info:
   title: GO-auth-service
   version: "1.0"
 paths:
-  /address/{idState}:
+  /address/city/{idState}:
     get:
       consumes:
       - application/json
@@ -430,7 +430,7 @@ paths:
       summary: Buscar Endereço por Consulta
       tags:
       - Endereços
-  /address/find/cep/{cep}:
+  /address/find/{cep}:
     get:
       consumes:
       - application/json
@@ -462,7 +462,7 @@ paths:
       summary: Busca um endereço pelo CEP
       tags:
       - Endereços
-  /address/states:
+  /address/state:
     get:
       consumes:
       - application/json

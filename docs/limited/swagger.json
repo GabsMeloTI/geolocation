@@ -64,7 +64,7 @@
                 }
             }
         },
-        "/address/find/cep/{cep}": {
+        "/address/find/{cep}": {
             "get": {
                 "security": [
                     {
@@ -113,7 +113,7 @@
                 }
             }
         },
-        "/address/states": {
+        "/address/state": {
             "get": {
                 "security": [
                     {
@@ -147,7 +147,7 @@
                 }
             }
         },
-        "/address/{idState}": {
+        "/address/city/{idState}": {
             "get": {
                 "security": [
                     {
