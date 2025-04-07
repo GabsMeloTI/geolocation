@@ -2226,15 +2226,23 @@ paths:
         - destination_lat: \"-31.0368176\" (Latitude do local de chegada)
         - destination_lng: \"-51.0368176\" (Longitude do local de chegada)
         - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
-        - consumptionCity: 20 (Consumo de combústivel na cidade)
-        - consumptionHwy: 22 (Consumo de combústivel na estrada)
+        - consumptionCity: 20 (Consumo de combustível na cidade)
+        - consumptionHwy: 22 (Consumo de combustível na estrada)
         - price: 6.20 (Preço da gasolina)
-        - waypoints: [{\"lat\": \"-23.223701\",\"lng\": \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)
+        - waypoints: [{\"lat\": \"-23.223701\",\"lng\": \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista de pontos de parada, definida pelas coordenadas)
         - favorite: true (Se deseja favoritar essa rota)
-        - type: \"Auto\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)
-        - typeRoute: \"eficiente\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).
+        - type: \"Auto\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false,
+        include_route_map: false,
+        include_toll_costs: false,
+        include_weigh_stations: false,
+        include_freight_calc: false,
+        include_polyline: false
+        } (Opções adicionais para a rota)
       parameters:
-      - description: Route calculation by coordinate request
+      - description: Requisição para cálculo de rota por coordenadas
         in: body
         name: request
         required: true
@@ -2244,24 +2252,24 @@ paths:
       - application/json
       responses:
         "200":
-          description: Calculated Routes Info
+          description: Informações calculadas da rota
           schema:
             $ref: '#/definitions/new_routes.FinalOutput'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "404":
-          description: Not Found
+          description: Não Encontrado
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Calculate routes based on coordinates.
+      summary: Calcular rotas com base em coordenadas.
       tags:
       - Routes
   /check-route-tolls-easy:
@@ -2269,7 +2277,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Calcúla as melhores opções de rota a partir de uma origem e destino.
+        Calcula as melhores opções de rota a partir de uma origem e destino.
+
         Campos esperados no body:
         - origin: "São Paulo" (Local de chegada)
         - destination: "Salvador" (Local de saída)
@@ -2281,8 +2290,16 @@ paths:
         - favorite: true (Se deseja favoritar essa rota)
         - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
         - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false,
+        include_route_map: false,
+        include_toll_costs: false,
+        include_weigh_stations: false,
+        include_freight_calc: false,
+        include_polyline: false
+        } (Opções adicionais para a rota)
       parameters:
-      - description: Route calculation request
+      - description: Requisição para cálculo de rota
         in: body
         name: request
         required: true
@@ -2292,24 +2309,24 @@ paths:
       - application/json
       responses:
         "200":
-          description: Calculated Routes Info
+          description: Informações calculadas da rota
           schema:
             $ref: '#/definitions/new_routes.FinalOutput'
         "400":
-          description: Bad Request
+          description: Requisição Inválida
           schema:
             type: string
         "404":
-          description: Not Found
+          description: Não Encontrado
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Erro Interno do Servidor
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Calculate possible routes.
+      summary: Calcular rotas possíveis.
       tags:
       - Routes
   /create:

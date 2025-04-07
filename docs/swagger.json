@@ -892,7 +892,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: \\\"-25.550520\\\" (Latitude do local de saída)\n- origin_lng: \\\"-48.633309\\\" (Longitude do local de saída)\n- destination_lat: \\\"-31.0368176\\\" (Latitude do local de chegada)\n- destination_lng: \\\"-51.0368176\\\" (Longitude do local de chegada)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combústivel na cidade)\n- consumptionHwy: 22 (Consumo de combústivel na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [{\\\"lat\\\": \\\"-23.223701\\\",\\\"lng\\\": \\\"-45.900907\\\"},{\\\"lat\\\": \\\"-22.755611\\\",\\\"lng\\\": \\\"-44.168869\\\"}] (Lista de pontos de parada, através de latitude e longitude do local de saída e chegada)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \\\"Auto\\\" (Tipo do automóvel, sendo possível somente: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \\\"eficiente\\\" (Caso queira trazer apenas uma rota - eficiente, rapida ou barata).",
+                "description": "Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.\n\nCampos esperados no body:\n- origin_lat: \\\"-25.550520\\\" (Latitude do local de saída)\n- origin_lng: \\\"-48.633309\\\" (Longitude do local de saída)\n- destination_lat: \\\"-31.0368176\\\" (Latitude do local de chegada)\n- destination_lng: \\\"-51.0368176\\\" (Longitude do local de chegada)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combustível na cidade)\n- consumptionHwy: 22 (Consumo de combustível na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [{\\\"lat\\\": \\\"-23.223701\\\",\\\"lng\\\": \\\"-45.900907\\\"},{\\\"lat\\\": \\\"-22.755611\\\",\\\"lng\\\": \\\"-44.168869\\\"}] (Lista de pontos de parada, definida pelas coordenadas)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \\\"Auto\\\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \\\"eficiente\\\" (Caso queira apenas uma rota: eficiente, rápida ou barata)\n- route_options: {\ninclude_fuel_stations: false,\ninclude_route_map: false,\ninclude_toll_costs: false,\ninclude_weigh_stations: false,\ninclude_freight_calc: false,\ninclude_polyline: false\n} (Opções adicionais para a rota)",
                 "consumes": [
                     "application/json"
                 ],
@@ -902,10 +902,10 @@
                 "tags": [
                     "Routes"
                 ],
-                "summary": "Calculate routes based on coordinates.",
+                "summary": "Calcular rotas com base em coordenadas.",
                 "parameters": [
                     {
-                        "description": "Route calculation by coordinate request",
+                        "description": "Requisição para cálculo de rota por coordenadas",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -916,25 +916,25 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Calculated Routes Info",
+                        "description": "Informações calculadas da rota",
                         "schema": {
                             "$ref": "#/definitions/new_routes.FinalOutput"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Não Encontrado",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -949,7 +949,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Calcúla as melhores opções de rota a partir de uma origem e destino.\nCampos esperados no body:\n- origin: \"São Paulo\" (Local de chegada)\n- destination: \"Salvador\" (Local de saída)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combustível na cidade)\n- consumptionHwy: 22 (Consumo de combustível na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [\"Rio de Janeiro\", \"Vitória da Conquista\"] (Lista de pontos de parada)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \"Auto\" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)",
+                "description": "Calcula as melhores opções de rota a partir de uma origem e destino.\n\nCampos esperados no body:\n- origin: \"São Paulo\" (Local de chegada)\n- destination: \"Salvador\" (Local de saída)\n- axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)\n- consumptionCity: 20 (Consumo de combustível na cidade)\n- consumptionHwy: 22 (Consumo de combustível na estrada)\n- price: 6.20 (Preço da gasolina)\n- waypoints: [\"Rio de Janeiro\", \"Vitória da Conquista\"] (Lista de pontos de parada)\n- favorite: true (Se deseja favoritar essa rota)\n- type: \"Auto\" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)\n- route_options: {\ninclude_fuel_stations: false,\ninclude_route_map: false,\ninclude_toll_costs: false,\ninclude_weigh_stations: false,\ninclude_freight_calc: false,\ninclude_polyline: false\n} (Opções adicionais para a rota)",
                 "consumes": [
                     "application/json"
                 ],
@@ -959,10 +959,10 @@
                 "tags": [
                     "Routes"
                 ],
-                "summary": "Calculate possible routes.",
+                "summary": "Calcular rotas possíveis.",
                 "parameters": [
                     {
-                        "description": "Route calculation request",
+                        "description": "Requisição para cálculo de rota",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -973,25 +973,25 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Calculated Routes Info",
+                        "description": "Informações calculadas da rota",
                         "schema": {
                             "$ref": "#/definitions/new_routes.FinalOutput"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Não Encontrado",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
