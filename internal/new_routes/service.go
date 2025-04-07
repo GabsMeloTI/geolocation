@@ -127,6 +127,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":          {"full"},
 		"continue_straight": {"false"},
 	}.Encode()
+	fmt.Println(osrmURLFast)
 
 	osrmURLNoTolls := baseOSRMURL + "?" + url.Values{
 		"alternatives": {"3"},
@@ -134,6 +135,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":     {"full"},
 		"exclude":      {"toll"},
 	}.Encode()
+	fmt.Println(osrmURLNoTolls)
 
 	osrmURLEfficient := baseOSRMURL + "?" + url.Values{
 		"alternatives": {"3"},
@@ -141,6 +143,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		"overview":     {"full"},
 		"exclude":      {"motorway"},
 	}.Encode()
+	fmt.Println(osrmURLEfficient)
 
 	type osrmResult struct {
 		resp     OSRMResponse
