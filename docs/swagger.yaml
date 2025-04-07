@@ -1625,7 +1625,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /address/{idState}:
+  /address/city/{idState}:
     get:
       consumes:
       - application/json
@@ -1688,7 +1688,7 @@ paths:
       summary: Find Address By Query
       tags:
       - Address
-  /address/find/{cep}:
+  /address/find/:cep:
     get:
       consumes:
       - application/json
@@ -1719,7 +1719,7 @@ paths:
       summary: Find Address By CEP
       tags:
       - Address
-  /address/states:
+  /address/state:
     get:
       consumes:
       - application/json

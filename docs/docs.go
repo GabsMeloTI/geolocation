@@ -15,6 +15,55 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/address/city/{idState}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns all cities in a specific state by their ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Address"
+                ],
+                "summary": "Find All Cities by State ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "State ID",
+                        "name": "idState",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of Cities",
+                        "schema": {
+                            "$ref": "#/definitions/address.CityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/address/find": {
             "get": {
                 "security": [
@@ -64,7 +113,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/find/{cep}": {
+        "/address/find/:cep": {
             "get": {
                 "security": [
                     {
@@ -113,7 +162,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/address/states": {
+        "/address/state": {
             "get": {
                 "security": [
                     {
@@ -136,55 +185,6 @@ const docTemplate = `{
                         "description": "List of States",
                         "schema": {
                             "$ref": "#/definitions/address.StateResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/address/{idState}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns all cities in a specific state by their ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Address"
-                ],
-                "summary": "Find All Cities by State ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "State ID",
-                        "name": "idState",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of Cities",
-                        "schema": {
-                            "$ref": "#/definitions/address.CityResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
