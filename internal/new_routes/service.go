@@ -540,39 +540,39 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	for _, wp := range frontInfo.Waypoints {
 		wpStrings = append(wpStrings, fmt.Sprintf("%s,%s", wp.Lat, wp.Lng))
 	}
-	//waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
+	waypointsStr := strings.ToLower(strings.Join(wpStrings, ","))
 
-	//cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
-	//	strings.ToLower(frontInfo.OriginLat),
-	//	strings.ToLower(frontInfo.OriginLng),
-	//	strings.ToLower(frontInfo.DestinationLat),
-	//	strings.ToLower(frontInfo.DestinationLng),
-	//	waypointsStr,
-	//	frontInfo.Axles,
-	//	strings.ToLower(frontInfo.Type),
-	//)
-	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-	//
-	//if err == nil {
-	//	var cachedOutput FinalOutput
-	//	if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
-	//		responseJSON, _ := json.Marshal(cachedOutput)
-	//		requestJSON, _ := json.Marshal(frontInfo)
-	//
-	//		routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
-	//			cachedOutput.Summary.LocationOrigin.Address,
-	//			cachedOutput.Summary.LocationDestination.Address,
-	//			waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
-	//		if errSavedRoutes != nil {
-	//			log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
-	//		}
-	//		cachedOutput.Summary.RouteHistID = routeHistID
-	//
-	//		return cachedOutput, nil
-	//	}
-	//} else if !errors.Is(err, redis.Nil) {
-	//	log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
-	//}
+	cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
+		strings.ToLower(frontInfo.OriginLat),
+		strings.ToLower(frontInfo.OriginLng),
+		strings.ToLower(frontInfo.DestinationLat),
+		strings.ToLower(frontInfo.DestinationLng),
+		waypointsStr,
+		frontInfo.Axles,
+		strings.ToLower(frontInfo.Type),
+	)
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+
+	if err == nil {
+		var cachedOutput FinalOutput
+		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
+			responseJSON, _ := json.Marshal(cachedOutput)
+			requestJSON, _ := json.Marshal(frontInfo)
+
+			routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+				cachedOutput.Summary.LocationOrigin.Address,
+				cachedOutput.Summary.LocationDestination.Address,
+				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+			if errSavedRoutes != nil {
+				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+			}
+			cachedOutput.Summary.RouteHistID = routeHistID
+
+			return cachedOutput, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
+	}
 
 	originLat, _ := validation.ParseStringToFloat(frontInfo.OriginLat)
 	originLng, _ := validation.ParseStringToFloat(frontInfo.OriginLng)
@@ -1044,11 +1044,11 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		Routes: combinedRoutes,
 	}
 
-	//if data, err := json.Marshal(finalOutput); err == nil {
-	//	if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
-	//		log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
-	//	}
-	//}
+	if data, err := json.Marshal(finalOutput); err == nil {
+		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+		}
+	}
 
 	var wpStringsResponse []string
 	for _, wp := range frontInfo.Waypoints {
