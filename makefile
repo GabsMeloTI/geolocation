@@ -1,12 +1,14 @@
 # include
 include .env
 
-#migrate create -ext sql -dir db/migration -seq
+ifneq ($(filter migrate,$(MAKECMDGOALS)),)
+  MIGRATION_NAME := $(word 2,$(MAKECMDGOALS))
+endif
 
 # Swagger
 swag:
 	@echo "$(YELLOW) Generating $(CYAN) Swagger $(GREEN). $(NC)"
-	swag init -g cmd/api.go --output docs/app
+	swag init -g cmd/api.go
 
 # Local Setup
 postgres-setup:
@@ -42,3 +44,9 @@ sqlc:
 
 nodemon:
 	nodemon --exec go run main.go --signal SIGTERM
+
+migrate:
+	@echo "Creating migration: $(MIGRATION_NAME)"
+	migrate create -ext sql -dir db/migration -seq $(MIGRATION_NAME)
+%:
+	@:

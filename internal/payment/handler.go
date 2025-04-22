@@ -20,14 +20,14 @@ func NewPaymentHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // StripeWebhookHandler godoc
-// @Summary Process Stripe Webhook
-// @Description Receives and processes Stripe webhook events
-// @Tags Payments
+// @Summary Processar Webhook do Stripe
+// @Description Recebe e processa os eventos do webhook do Stripe.
+// @Tags Pagamentos
 // @Accept json
 // @Produce json
-// @Success 200 {string} string "Success"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /webhook/stripe [post]
 // @Security ApiKeyAuth
 func (p *Handler) StripeWebhookHandler(c echo.Context) error {
@@ -67,15 +67,15 @@ func (p *Handler) StripeWebhookHandler(c echo.Context) error {
 }
 
 // GetPaymentHistHandler godoc
-// @Summary Retrieve Payment History
-// @Description Fetches the payment history for a user
-// @Tags Payments
+// @Summary Obter Histórico de Pagamentos
+// @Description Recupera o histórico de pagamentos de um usuário.
+// @Tags Pagamentos
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
-// @Success 200 {object} []PaymentHistResponse "List of Payment History"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path int true "ID do Usuário"
+// @Success 200 {object} []PaymentHistResponse "Lista do Histórico de Pagamentos"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /payment-history [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetPaymentHistHandler(c echo.Context) error {

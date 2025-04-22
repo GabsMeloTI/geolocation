@@ -40,3 +40,5 @@ create table history_recover_password
     token                varchar not null,
     date_update_password timestamp
 );
+
+alter table users add column client BIGINT null references users(id);

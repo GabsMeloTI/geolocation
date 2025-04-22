@@ -3,8 +3,14 @@ SELECT
     s.id AS street_id,
     s.name AS street_name,
     n.name AS neighborhood_name,
+    n.lat AS neighborhood_lat,
+    n.lon AS neighborhood_lon,
     c.name AS city_name,
+    c.lat AS city_lat,
+    c.lon AS city_lon,
     st.uf AS state_uf,
+    st.lat AS state_lat,
+    st.lon AS state_lon,
     a.id AS address_id,
     a.number,
     a.cep,
@@ -16,23 +22,29 @@ FROM streets s
          JOIN states st ON c.state_id = st.id
          LEFT JOIN addresses a ON a.street_id = s.id
 WHERE
-    (COALESCE(NULLIF($1, ''), NULLIF($2, ''), NULLIF($3, ''), NULLIF($4, '')) IS NOT NULL)
-  AND (s.search_vector @@ plainto_tsquery('portuguese', $1) OR $1 = '')
-  AND (c.search_vector @@ plainto_tsquery('portuguese', $2) OR $2 = '')
-  AND (st.search_vector @@ plainto_tsquery('portuguese', $3) OR $3 = '')
-  AND (n.search_vector @@ plainto_tsquery('portuguese', $4) OR $4 = '')
-  AND ($5 = '' OR a.number ILIKE $5 || '%')
+    (COALESCE(NULLIF(sqlc.arg(street), ''), NULLIF(sqlc.arg(city), ''), NULLIF(sqlc.arg(state), ''), NULLIF(sqlc.arg(neighborhood), '')) IS NOT NULL)
+  AND (s.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(street)) OR sqlc.arg(street) = '')
+  AND (c.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(city)) OR sqlc.arg(city) = '')
+  AND (st.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(state)) OR sqlc.arg(state) = '')
+  AND (n.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(neighborhood)) OR sqlc.arg(neighborhood) = '')
+  AND (sqlc.arg(number) = '' OR a.number ILIKE sqlc.arg(number) || '%')
 ORDER BY random()
 limit 100;
 
 -- name: FindAddressesByLatLon :many
 SELECT
-    a.id AS address_id,
-    s.name AS street_name,
     s.id AS street_id,
+    s.name AS street_name,
     n.name AS neighborhood_name,
+    n.lat AS neighborhood_lat,
+    n.lon AS neighborhood_lon,
     c.name AS city_name,
+    c.lat AS city_lat,
+    c.lon AS city_lon,
     st.uf AS state_uf,
+    st.lat AS state_lat,
+    st.lon AS state_lon,
+    a.id AS address_id,
     a.number,
     a.cep,
     a.lat,
@@ -47,12 +59,18 @@ limit 100;
 
 -- name: FindAddressesByCEP :many
 SELECT
-    a.id AS address_id,
-    s.name AS street_name,
     s.id AS street_id,
+    s.name AS street_name,
     n.name AS neighborhood_name,
+    n.lat AS neighborhood_lat,
+    n.lon AS neighborhood_lon,
     c.name AS city_name,
+    c.lat AS city_lat,
+    c.lon AS city_lon,
     st.uf AS state_uf,
+    st.lat AS state_lat,
+    st.lon AS state_lon,
+    a.id AS address_id,
     a.number,
     a.cep,
     a.lat,
@@ -65,26 +83,23 @@ FROM addresses a
 WHERE a.cep = $1
 limit 100;
 
--- name: IsState :one
-SELECT EXISTS(
-    SELECT 1
-    FROM states
-    WHERE search_vector @@ plainto_tsquery('portuguese', $1)
-) AS is_state;
+-- name: FindStatesByName :many
+SELECT *
+FROM states
+WHERE search_vector @@ plainto_tsquery('portuguese', $1);
 
--- name: IsCity :one
-SELECT EXISTS(
-    SELECT 1
-    FROM cities
-    WHERE search_vector @@ plainto_tsquery('portuguese', $1)
-) AS is_city;
+-- name: FindCitiesByName :many
+SELECT c.*, s.uf
+FROM cities c
+JOIN states s ON c.state_id = s.id
+WHERE c.search_vector @@ plainto_tsquery('portuguese', $1);
 
--- name: IsNeighborhood :one
-SELECT EXISTS(
-    SELECT 1
-    FROM neighborhoods
-    WHERE search_vector @@ plainto_tsquery('portuguese', $1)
-) AS is_neighborhood;
+-- name: FindNeighborhoodsByName :many
+SELECT n.*, c.name as city, s.uf
+FROM neighborhoods n
+JOIN cities c ON n.city_id = c.id
+JOIN states s ON c.state_id = s.id
+WHERE n.search_vector @@ plainto_tsquery('portuguese', $1);
 
 -- name: FindStateAll :many
 select * from states order by name;

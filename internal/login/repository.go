@@ -12,6 +12,7 @@ type RepositoryInterface interface {
 	CreateUser(context.Context, db.NewCreateUserParams) (db.User, error)
 	GetProfileById(ctx context.Context, id int64) (db.Profile, error)
 	GetUserByEmail(ctx context.Context, email string) (db.User, error)
+	CreateUserClient(ctx context.Context, arg db.CreateUserClientParams) (db.User, error)
 }
 
 type Repository struct {
@@ -37,6 +38,10 @@ func (r *Repository) GetUser(ctx context.Context, arg db.LoginParams) (db.User, 
 
 func (r *Repository) CreateUser(ctx context.Context, arg db.NewCreateUserParams) (db.User, error) {
 	return r.Queries.NewCreateUser(ctx, arg)
+}
+
+func (r *Repository) CreateUserClient(ctx context.Context, arg db.CreateUserClientParams) (db.User, error) {
+	return r.Queries.CreateUserClient(ctx, arg)
 }
 
 func (r *Repository) GetProfileById(ctx context.Context, id int64) (db.Profile, error) {

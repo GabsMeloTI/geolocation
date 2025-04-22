@@ -16,18 +16,18 @@ func NewDashboardHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // GetDashboardHandler godoc
-// @Summary Get Driver.
-// @Description Get Driver.
-// @Tags Drivers
+// @Summary Obter Dashboard.
+// @Description Recupera as informações do Dashboard.
+// @Tags Dashboard
 // @Accept json
 // @Produce json
-// @Param id path string true "Driver id"
+// @Param id path string true "ID do Dashboard"
 // @Param start query string false "Data de início (formato YYYY-MM-DD)"
 // @Param end query string false "Data de fim (formato YYYY-MM-DD)"
-// @Success 200 {object} DriverResponse "Driver Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /driver/list [put]
+// @Success 200 {object} Response "Informações do Dashboard"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /dashboard/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetDashboardHandler(c echo.Context) error {
 	startStr := c.QueryParam("start")

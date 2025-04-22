@@ -17,17 +17,37 @@ func NewRoutesNewHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CalculateRoutes godoc
-// @Summary Calculate possible routes.
-// @Description Calculates the best routes based on provided information.
+// @Summary Calcular rotas possíveis.
+// @Description Calcula as melhores opções de rota a partir de uma origem e destino.
+// @Description
+// @Description Campos esperados no body:
+// @Description - origin: "São Paulo" (Local de chegada)
+// @Description - destination: "Salvador" (Local de saída)
+// @Description - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+// @Description - consumptionCity: 20 (Consumo de combustível na cidade)
+// @Description - consumptionHwy: 22 (Consumo de combustível na estrada)
+// @Description - price: 6.20 (Preço da gasolina)
+// @Description - waypoints: ["Rio de Janeiro", "Vitória da Conquista"] (Lista de pontos de parada)
+// @Description - favorite: true (Se deseja favoritar essa rota)
+// @Description - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
+// @Description - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+// @Description - route_options: {
+// @Description       include_fuel_stations: false, (traz postos de gasolina)
+// @Description       include_route_map: false, (traz rotograma da rota)
+// @Description       include_toll_costs: false, (traz pedágios e os custos gerais)
+// @Description       include_weigh_stations: false, (traz balanças)
+// @Description       include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+// @Description       include_polyline: false (traz polyline para renderizar em mapas)
+// @Description   } (Opções adicionais para a rota)
 // @Tags Routes
 // @Accept json
 // @Produce json
-// @Param request body FrontInfo true "Route calculation request"
-// @Success 200 {object} FinalOutput "Calculated Routes Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /public/check-route-tolls [post]
+// @Param request body FrontInfo true "Requisição para cálculo de rota"
+// @Success 200 {object} FinalOutput "Informações calculadas da rota"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /check-route-tolls-easy [post]
 // @Security ApiKeyAuth
 func (h *Handler) CalculateRoutes(e echo.Context) error {
 	var frontInfo FrontInfo
@@ -54,6 +74,66 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateRoutesWithCoordinate godoc
+// @Summary Calcular rotas com base em coordenadas.
+// @Description Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.
+// @Description
+// @Description Campos esperados no body:
+// @Description - origin_lat: \"-25.550520\" (Latitude do local de saída)
+// @Description - origin_lng: \"-48.633309\" (Longitude do local de saída)
+// @Description - destination_lat: \"-31.0368176\" (Latitude do local de chegada)
+// @Description - destination_lng: \"-51.0368176\" (Longitude do local de chegada)
+// @Description - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+// @Description - consumptionCity: 20 (Consumo de combustível na cidade)
+// @Description - consumptionHwy: 22 (Consumo de combustível na estrada)
+// @Description - price: 6.20 (Preço da gasolina)
+// @Description - waypoints: [{\"lat\": \"-23.223701\",\"lng\": \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista de pontos de parada, definida pelas coordenadas)
+// @Description - favorite: true (Se deseja favoritar essa rota)
+// @Description - type: \"Auto\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)
+// @Description - typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+// @Description - route_options: {
+// @Description       include_fuel_stations: false, (traz postos de gasolina)
+// @Description       include_route_map: false, (traz rotograma da rota)
+// @Description       include_toll_costs: false, (traz pedágios e os custos gerais)
+// @Description       include_weigh_stations: false, (traz balanças)
+// @Description       include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+// @Description       include_polyline: false (traz polyline para renderizar em mapas)
+// @Description   } (Opções adicionais para a rota)
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCoordinate true "Requisição para cálculo de rota por coordenadas"
+// @Success 200 {object} FinalOutput "Informações calculadas da rota"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /check-route-tolls-coordinate [post]
+// @Security ApiKeyAuth
+func (h *Handler) CalculateRoutesWithCoordinate(e echo.Context) error {
+	var frontInfo FrontInfoCoordinate
+	if err := e.Bind(&frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err := validation.Validate(frontInfo)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payloadPublic := get_token.GetPublicPayloadToken(e)
+	payload := get_token.GetUserPayloadToken(e)
+	result, err := h.InterfaceService.CalculateRoutesWithCoordinate(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // GetSimpleRoute godoc
 // @Summary Get simple route information.
 // @Description Retrieves a simple route with distance and duration.
@@ -65,7 +145,7 @@ func (h *Handler) CalculateRoutes(e echo.Context) error {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /route/simple [post]
+// @Router /route/simple [get]
 // @Security ApiKeyAuth
 func (h *Handler) GetSimpleRoute(e echo.Context) error {
 	var request SimpleRouteRequest
@@ -88,7 +168,7 @@ func (h *Handler) GetSimpleRoute(e echo.Context) error {
 // GetFavoriteRouteHandler godoc
 // @Summary Get FavoriteRoute.
 // @Description Get FavoriteRoute.
-// @Tags FavoriteRoutes
+// @Tags Rotas Favoritas
 // @Accept json
 // @Produce json
 // @Param id path string true "FavoriteRoute id"
@@ -111,7 +191,7 @@ func (h *Handler) GetFavoriteRouteHandler(c echo.Context) error {
 // RemoveFavoriteRouteHandler godoc
 // @Summary Get FavoriteRoute.
 // @Description Get FavoriteRoute.
-// @Tags FavoriteRoutes
+// @Tags Rotas Favoritas
 // @Accept json
 // @Produce json
 // @Param id path string true "FavoriteRoute id"

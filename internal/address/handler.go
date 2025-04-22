@@ -15,21 +15,21 @@ func NewAddressHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // FindAddressByQueryHandler godoc
-// @Summary Find Address By Query
-// @Description Find address by search, it can be 1. And, 2. Latitude, Longitude or 3. Address (Street, neighborhood, number).
-// @Tags Address
+// @Summary Buscar Endereço por Consulta
+// @Description Busca um endereço por pesquisa. Pode ser: 1. Nome de localidade, 2. Latitude e Longitude ou 3. Endereço completo (Rua, bairro, número).
+// @Tags Endereços
 // @Accept json
 // @Produce json
-// @Param q query string true "Address Query"
-// @Success 200 {object} AddressResponse[] "Address Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param q query string true "Consulta do Endereço"
+// @Success 200 {object} []AddressResponse "Informações do Endereço"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /address/find [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 	q := c.QueryParam("q")
 	if q == "" {
-		return c.JSON(http.StatusBadRequest, "Query parameter 'q' is required")
+		return c.JSON(http.StatusBadRequest, "O parâmetro de consulta 'q' é obrigatório")
 	}
 	result, err := h.InterfaceService.FindAddressesByQueryService(c.Request().Context(), q)
 	if err != nil {
@@ -39,16 +39,16 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 }
 
 // FindAddressByCEPHandler godoc
-// @Summary Find Address By CEP
-// @Description Finds address by zip code, returns type based on repetitions found
-// @Tags Address
+// @Summary Buscar Endereço por CEP
+// @Description Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições encontradas.
+// @Tags Endereços
 // @Accept json
 // @Produce json
-// @Param CEP path string true "cep"
-// @Success 200 {object} AddressCEPResponse[] "Address Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /address/find/cep/{cep} [get]
+// @Param cep path string true "CEP"
+// @Success 200 {object} []AddressCEPResponse "Informações do Endereço"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /address/find/{cep} [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 	cep := c.Param("cep")
@@ -60,14 +60,14 @@ func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 }
 
 // FindStateAll godoc
-// @Summary Find All States
-// @Description Returns all available states.
-// @Tags Address
+// @Summary Buscar Todos os Estados
+// @Description Retorna todos os estados disponíveis.
+// @Tags Endereços
 // @Accept json
 // @Produce json
-// @Success 200 {object} StateResponse[] "List of States"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /address/states [get]
+// @Success 200 {object} []StateResponse "Lista de Estados"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /address/state [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindStateAll(c echo.Context) error {
 	result, err := h.InterfaceService.FindStateAll(c.Request().Context())
@@ -78,16 +78,16 @@ func (h *Handler) FindStateAll(c echo.Context) error {
 }
 
 // FindCityAll godoc
-// @Summary Find All Cities by State ID
-// @Description Returns all cities in a specific state by their ID.
-// @Tags Address
+// @Summary Buscar Cidades por Estado
+// @Description Retorna todas as cidades de um estado específico, utilizando o ID do estado.
+// @Tags Endereços
 // @Accept json
 // @Produce json
-// @Param idState path int32 true "State ID"
-// @Success 200 {object} CityResponse[] "List of Cities"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /address/{idState} [get]
+// @Param idState path int true "ID do Estado"
+// @Success 200 {object} []CityResponse "Lista de Cidades"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /address/city/{idState} [get]
 // @Security ApiKeyAuth
 func (h *Handler) FindCityAll(c echo.Context) error {
 	idStr := c.Param("idState")

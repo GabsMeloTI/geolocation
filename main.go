@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"geolocation/pkg"
 	"os/signal"
 	"syscall"
 
 	"geolocation/cmd"
 	_ "geolocation/docs"
 	"geolocation/infra"
-	"geolocation/pkg"
 )
 
 func main() {

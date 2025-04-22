@@ -1,7 +1,6 @@
 package tractor_unit
 
 import (
-	"fmt"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
 	"github.com/labstack/echo/v4"
@@ -17,15 +16,15 @@ func NewTractorUnitsHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // CreateTractorUnitHandler godoc
-// @Summary Create a TractorUnit.
-// @Description Create a TractorUnit.
-// @Tags TractorUnits
+// @Summary Criar uma Unidade Tratora.
+// @Description Cria uma unidade tratora.
+// @Tags Cavalo
 // @Accept json
 // @Produce json
-// @Param request body CreateTractorUnitRequest true "TractorUnit Request"
-// @Success 200 {object} TractorUnitResponse "TractorUnit Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param request body CreateTractorUnitRequest true "Requisição de Unidade Tratora"
+// @Success 200 {object} TractorUnitResponse "Informações da Unidade Tratora"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/create [post]
 // @Security ApiKeyAuth
 func (p *Handler) CreateTractorUnitHandler(c echo.Context) error {
@@ -34,11 +33,10 @@ func (p *Handler) CreateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetPayloadToken(c)
-	id, err := validation.ParseStringToInt64(payload.UserID)
+	payload := get_token.GetUserPayloadToken(c)
 	data := CreateTractorUnitDto{
 		CreateTractorUnitRequest: request,
-		UserID:                   id,
+		UserID:                   payload.ID,
 	}
 
 	result, err := p.InterfaceService.CreateTractorUnitService(c.Request().Context(), data)
@@ -50,15 +48,15 @@ func (p *Handler) CreateTractorUnitHandler(c echo.Context) error {
 }
 
 // UpdateTractorUnitHandler godoc
-// @Summary Update a TractorUnit.
-// @Description Update a TractorUnit.
-// @Tags TractorUnits
+// @Summary Atualizar uma Unidade Tratora.
+// @Description Atualiza os dados de uma unidade tratora.
+// @Tags Cavalo
 // @Accept json
 // @Produce json
-// @Param user body UpdateTractorUnitRequest true "TractorUnit Request"
-// @Success 200 {object} TractorUnitResponse "TractorUnit Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateTractorUnitRequest true "Requisição de Unidade Tratora"
+// @Success 200 {object} TractorUnitResponse "Informações da Unidade Tratora"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateTractorUnitHandler(c echo.Context) error {
@@ -67,13 +65,12 @@ func (p *Handler) UpdateTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetPayloadToken(c)
-	id, err := validation.ParseStringToInt64(payload.UserID)
+	payload := get_token.GetUserPayloadToken(c)
 	data := UpdateTractorUnitDto{
 		UpdateTractorUnitRequest: request,
-		UserID:                   id,
+		UserID:                   payload.ID,
 	}
-	fmt.Println(data)
+
 	result, err := p.InterfaceService.UpdateTractorUnitService(c.Request().Context(), data)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -83,15 +80,15 @@ func (p *Handler) UpdateTractorUnitHandler(c echo.Context) error {
 }
 
 // DeleteTractorUnitHandler godoc
-// @Summary Delete TractorUnit.
-// @Description Delete TractorUnit.
-// @Tags TractorUnits
+// @Summary Excluir uma Unidade Tratora.
+// @Description Exclui uma unidade tratora.
+// @Tags Cavalo
 // @Accept json
 // @Produce json
-// @Param id path string true "TractorUnit id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID da Unidade Tratora"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/delete/{id} [put]
 // @Security ApiKeyAuth
 func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
@@ -101,33 +98,30 @@ func (p *Handler) DeleteTractorUnitHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	payload := get_token.GetPayloadToken(c)
-	idUser, err := validation.ParseStringToInt64(payload.UserID)
-	fmt.Println(id, " - ", idUser)
-	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id, idUser)
+	payload := get_token.GetUserPayloadToken(c)
+	err = p.InterfaceService.DeleteTractorUnitService(c.Request().Context(), id, payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, "Success")
+	return c.JSON(http.StatusOK, "Sucesso")
 }
 
 // GetTractorUnitHandler godoc
-// @Summary Get Tractor Unit.
-// @Description Get Tractor Unit.
-// @Tags TractorUnits
+// @Summary Obter Unidade Tratora.
+// @Description Recupera as informações da unidade tratora.
+// @Tags Cavalo
 // @Accept json
 // @Produce json
-// @Param id path string true "TractorUnit id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID da Unidade Tratora"
+// @Success 200 {object} TractorUnitResponse "Informações da Unidade Tratora"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/list [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTractorUnitHandler(c echo.Context) error {
-	payload := get_token.GetPayloadToken(c)
-	idUser, err := validation.ParseStringToInt64(payload.UserID)
-	
-	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), idUser)
+	payload := get_token.GetUserPayloadToken(c)
+
+	result, err := p.InterfaceService.GetTractorUnitService(c.Request().Context(), payload.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -136,15 +130,15 @@ func (p *Handler) GetTractorUnitHandler(c echo.Context) error {
 }
 
 // GetTractorUnitByIdHandler godoc
-// @Summary Get Tractor Unit.
-// @Description Get Tractor Unit.
-// @Tags TractorUnits
+// @Summary Obter Unidade Tratora por ID.
+// @Description Recupera as informações da unidade tratora a partir do ID.
+// @Tags Cavalo
 // @Accept json
 // @Produce json
-// @Param id path string true "TractorUnit id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID da Unidade Tratora"
+// @Success 200 {object} TractorUnitResponse "Informações da Unidade Tratora"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /tractor-unit/list/{id} [get]
 // @Security ApiKeyAuth
 func (p *Handler) GetTractorUnitByIdHandler(c echo.Context) error {
@@ -162,6 +156,17 @@ func (p *Handler) GetTractorUnitByIdHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// CheckPlateHandler godoc
+// @Summary Verificar Placa.
+// @Description Verifica se a placa existe ou já está cadastrada.
+// @Tags Cavalo
+// @Accept json
+// @Produce json
+// @Param plate path string true "Placa do Veículo"
+// @Success 200 {object} interface{} "Resultado da verificação da placa"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /tractor-unit/check-plate/{plate} [get]
+// @Security ApiKeyAuth
 func (p *Handler) CheckPlateHandler(c echo.Context) error {
 	plate := c.Param("plate")
 

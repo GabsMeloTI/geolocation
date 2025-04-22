@@ -16,15 +16,15 @@ func NewAppointmentHandler(InterfaceService InterfaceService) *Handler {
 }
 
 // UpdateAppointmentHandler godoc
-// @Summary Update an Appointment.
-// @Description Update an Appointment.
-// @Tags Appointments
+// @Summary Atualizar um Agendamento.
+// @Description Atualiza um agendamento.
+// @Tags Agendamentos
 // @Accept json
 // @Produce json
-// @Param user body UpdateAppointmentRequest true "Appointment Request"
-// @Success 200 {string} string "Success"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param user body UpdateAppointmentRequest true "Requisição de Agendamento"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /appointment/update [put]
 // @Security ApiKeyAuth
 func (p *Handler) UpdateAppointmentHandler(c echo.Context) error {
@@ -44,20 +44,21 @@ func (p *Handler) UpdateAppointmentHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, "Success")
+	return c.JSON(http.StatusOK, "Sucesso")
 }
 
 // DeleteAppointmentsHandler godoc
-// @Summary Delete Appointment.
-// @Description Delete Appointment.
-// @Tags Appointments
+// @Summary Excluir um Agendamento.
+// @Description Exclui um agendamento.
+// @Tags Agendamentos
 // @Accept json
 // @Produce json
-// @Param id path string true "Appointment id"
-// @Success 200
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID do Agendamento"
+// @Success 200 {string} string "Sucesso"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /appointment/delete/{id} [put]
+// @Security ApiKeyAuth
 func (p *Handler) DeleteAppointmentsHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
@@ -69,20 +70,21 @@ func (p *Handler) DeleteAppointmentsHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, "Success")
+	return c.JSON(http.StatusOK, "Sucesso")
 }
 
 // GetAppointmentByUserIDHandler godoc
-// @Summary Get list Appointment.
-// @Description Get list Appointment.
-// @Tags Appointments
+// @Summary Obter lista de Agendamentos.
+// @Description Recupera a lista de agendamentos para um usuário.
+// @Tags Agendamentos
 // @Accept json
 // @Produce json
-// @Param id path string true "User id"
-// @Success 200 {object} AppointmentResponseList "Appointment Info"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Param id path string true "ID do Usuário"
+// @Success 200 {object} AppointmentResponseList "Informações dos Agendamentos"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /appointment/{id} [get]
+// @Security ApiKeyAuth
 func (p *Handler) GetAppointmentByUserIDHandler(c echo.Context) error {
 	idStr := c.Param("id")
 	id, err := validation.ParseStringToInt64(idStr)
