@@ -60,7 +60,20 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var cachedOutput FinalOutput
-		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
+
+		if json.Unmarshal([]byte(cached), &cachedOutput) != nil {
+			log.Printf("Erro ao deserializar o cache: %v", err)
+			return FinalOutput{}, err
+		}
+
+		routeOptionsChanged := cachedOutput.Summary.RouteOptions.IncludeFuelStations != frontInfo.RouteOptions.IncludeFuelStations ||
+			cachedOutput.Summary.RouteOptions.IncludeRouteMap != frontInfo.RouteOptions.IncludeRouteMap ||
+			cachedOutput.Summary.RouteOptions.IncludeTollCosts != frontInfo.RouteOptions.IncludeTollCosts ||
+			cachedOutput.Summary.RouteOptions.IncludeWeighStations != frontInfo.RouteOptions.IncludeWeighStations ||
+			cachedOutput.Summary.RouteOptions.IncludeFreightCalc != frontInfo.RouteOptions.IncludeFreightCalc ||
+			cachedOutput.Summary.RouteOptions.IncludePolyline != frontInfo.RouteOptions.IncludePolyline
+
+		if !routeOptionsChanged {
 			waypointsStr := strings.ToLower(strings.Join(frontInfo.Waypoints, ","))
 			responseJSON, _ := json.Marshal(cachedOutput)
 			requestJSON, _ := json.Marshal(frontInfo)
@@ -72,6 +85,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 			if errSavedRoutes != nil {
 				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
 			}
+
 			cachedOutput.Summary.RouteHistID = routeHistID
 			return cachedOutput, nil
 		}
@@ -191,18 +205,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	dbCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	balancas, err := s.InterfaceService.GetBalanca(ctx)
-	if err != nil {
-		log.Printf("Erro ao obter balanças: %v", err)
-		balancas = nil
-	}
-
-	routeGasStations, err := s.findGasStations(dbCtx, osrmRespFast.Routes[0].Geometry)
-	if err != nil {
-		log.Printf("Erro ao consultar postos de gasolina: %v", err)
-		routeGasStations = nil
-	}
-
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 		neturl.QueryEscape(origin.FormattedAddress),
 		neturl.QueryEscape(destination.FormattedAddress))
@@ -225,6 +227,18 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	processRoutes := func(osrmResp OSRMResponse, routeCategory string) []RouteOutput {
 		var output []RouteOutput
 		for _, route := range osrmResp.Routes {
+			routeGasStations, err := s.findGasStations(dbCtx, route.Geometry)
+			if err != nil {
+				log.Printf("Erro ao consultar postos de gasolina: %v", err)
+				routeGasStations = nil
+			}
+
+			balancas, err := s.InterfaceService.GetBalanca(ctx)
+			if err != nil {
+				log.Printf("Erro ao obter balanças: %v", err)
+				balancas = nil
+			}
+
 			distText, distVal := formatDistance(route.Distance)
 			durText, durVal := formatDuration(route.Duration)
 
@@ -438,6 +452,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 				}(),
 				FuelPrice:      fuelPrice,
 				FuelEfficiency: fuelEfficiency,
+				RouteOptions:   frontInfo.RouteOptions,
 			},
 			Routes: []RouteOutput{minimalRoute},
 		}
@@ -552,23 +567,32 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		strings.ToLower(frontInfo.Type),
 	)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
-			responseJSON, _ := json.Marshal(cachedOutput)
-			requestJSON, _ := json.Marshal(frontInfo)
+			routeOptionsChanged := cachedOutput.Summary.RouteOptions.IncludeFuelStations != frontInfo.RouteOptions.IncludeFuelStations ||
+				cachedOutput.Summary.RouteOptions.IncludeRouteMap != frontInfo.RouteOptions.IncludeRouteMap ||
+				cachedOutput.Summary.RouteOptions.IncludeTollCosts != frontInfo.RouteOptions.IncludeTollCosts ||
+				cachedOutput.Summary.RouteOptions.IncludeWeighStations != frontInfo.RouteOptions.IncludeWeighStations ||
+				cachedOutput.Summary.RouteOptions.IncludeFreightCalc != frontInfo.RouteOptions.IncludeFreightCalc ||
+				cachedOutput.Summary.RouteOptions.IncludePolyline != frontInfo.RouteOptions.IncludePolyline
 
-			routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
-				cachedOutput.Summary.LocationOrigin.Address,
-				cachedOutput.Summary.LocationDestination.Address,
-				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
-			if errSavedRoutes != nil {
-				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+			if !routeOptionsChanged {
+				responseJSON, _ := json.Marshal(cachedOutput)
+				requestJSON, _ := json.Marshal(frontInfo)
+
+				routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+					cachedOutput.Summary.LocationOrigin.Address,
+					cachedOutput.Summary.LocationDestination.Address,
+					waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+
+				if errSavedRoutes != nil {
+					log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+				}
+
+				cachedOutput.Summary.RouteHistID = routeHistID
+				return cachedOutput, nil
 			}
-			cachedOutput.Summary.RouteHistID = routeHistID
-
-			return cachedOutput, nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
 		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
@@ -716,18 +740,6 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	dbCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	balancas, err := s.InterfaceService.GetBalanca(ctx)
-	if err != nil {
-		log.Printf("Erro ao obter balanças: %v", err)
-		balancas = nil
-	}
-
-	routeGasStations, err := s.findGasStations(dbCtx, osrmRespFast.Routes[0].Geometry)
-	if err != nil {
-		log.Printf("Erro ao consultar postos de gasolina: %v", err)
-		routeGasStations = nil
-	}
-
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
 		neturl.QueryEscape(origin.FormattedAddress),
 		neturl.QueryEscape(destination.FormattedAddress))
@@ -757,6 +769,18 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	processRoutes := func(osrmResp OSRMResponse, routeCategory string) []RouteOutput {
 		var output []RouteOutput
 		for _, route := range osrmResp.Routes {
+			balancas, err := s.InterfaceService.GetBalanca(ctx)
+			if err != nil {
+				log.Printf("Erro ao obter balanças: %v", err)
+				balancas = nil
+			}
+
+			routeGasStations, err := s.findGasStations(dbCtx, osrmRespFast.Routes[0].Geometry)
+			if err != nil {
+				log.Printf("Erro ao consultar postos de gasolina: %v", err)
+				routeGasStations = nil
+			}
+
 			distText, distVal := formatDistance(route.Distance)
 			durText, durVal := formatDuration(route.Duration)
 
@@ -1040,6 +1064,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 			}(),
 			FuelPrice:      fuelPrice,
 			FuelEfficiency: fuelEfficiency,
+			RouteOptions:   frontInfo.RouteOptions,
 		},
 		Routes: combinedRoutes,
 	}
@@ -1470,7 +1495,7 @@ func (s *Service) findGasStations(ctx context.Context, routeGeometry string) ([]
 		return nil, fmt.Errorf("erro ao consultar postos no banco: %w", err)
 	}
 
-	tolerance := 50.0
+	tolerance := 150.0
 	var stations []GasStation
 	for _, stationRow := range resultStations {
 		gs := convertGasStation(db.GetGasStationRow(stationRow))

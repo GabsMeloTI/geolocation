@@ -43,6 +43,7 @@ type Summary struct {
 	FuelPrice           FuelPrice      `json:"fuel_price"`
 	FuelEfficiency      FuelEfficiency `json:"fuel_efficiency"`
 	RouteHistID         int64          `json:"route_hist_id"`
+	RouteOptions        RouteOptions   `json:"route_options"`
 }
 
 type Toll struct {
