@@ -86,7 +86,7 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 		return strToken, nil
 	}
 
-	return strToken, err
+	return strToken, nil
 }
 
 func (s *Service) createToken(data Request) (string, error) {
