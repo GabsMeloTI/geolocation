@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"context"
-	"log"
-	"os"
-
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -161,16 +158,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 
-	certFile := "fullchain.pem"
-	keyFile := "privkey.pem"
-
-	if _, err := os.Stat(certFile); os.IsNotExist(err) {
-		log.Fatalf("Certificado não encontrado: %v", err)
-	}
-	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
-		log.Fatalf("Chave privada não encontrada: %v", err)
-	}
-
-	e.Logger.Fatal(e.StartTLS(container.Config.ServerPort, certFile, keyFile))
+	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 
 }
