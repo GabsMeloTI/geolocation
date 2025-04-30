@@ -1,4 +1,4 @@
-FROM golang:1.23.0-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,6 @@ RUN go mod tidy
 COPY . .
 
 RUN go build -o main
-
 
 RUN whoami
 RUN id
