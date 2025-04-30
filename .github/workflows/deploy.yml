@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - develop
+      - homolog
 
 jobs:
   deploy-to-ec2-main:
@@ -22,39 +24,123 @@ jobs:
         run: |
           echo "$SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
-
-          # Adiciona a chave privada ao ssh-agent
-          eval "$(ssh-agent -s)"
-          ssh-add private_key.pem
-
-          # Configura o Git para usar SSH
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-
-          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+    
+  
+            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
             set -e
-
             echo "Acessando diretório do projeto..."
-            cd /home/projects/osrm-teste/osrm_br
-
+            cd /home/ubuntu/projects/geolocation
+          
             echo "Atualizando código..."
             git fetch --all
             git checkout main
             git pull origin main
-
+          
             echo "Construindo imagem Docker..."
-            docker build -t go-fit .
-
+            docker build -t go-geolocation .
+          
             echo "Parando container antigo..."
-            docker ps -q -f name=go-fit-container && docker stop go-fit-container || true
-            docker ps -a -q -f name=go-fit-container && docker rm go-fit-container || true
-
+            docker ps -q -f name=go-geolocation-container && docker stop go-geolocation-container || true
+            docker ps -a -q -f name=go-geolocation-container && docker rm go-geolocation-container || true
+          
             echo "Executando novo container..."
-            docker run -d -p 7777:8080 --env-file .env --name go-fit-container go-fit
-
+            docker run -d -p 7777:8080 --env-file .env --name go-geolocation-container go-geolocation
+          
             echo "Limpando imagens antigas..."
             docker image prune -f
-
+          
             echo "Deploy concluído!"
           EOF
-
+          
           rm -f private_key.pem
+
+  deploy-to-ec2-develop:
+    name: Deploy to EC2 (develop)
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'develop'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Conectar ao EC2 e Atualizar o Container develop
+        env:
+          EC2_USER: ubuntu
+          EC2_HOST: ${{ secrets.EC2_PUBLIC_IP }}
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "$SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            echo "Acessando diretório do projeto..."
+            cd /home/ubuntu/projects/geolocation
+          
+            echo "Atualizando código..."
+            git fetch --all
+            git checkout develop
+            git pull origin develop
+          
+            echo "Construindo imagem Docker..."
+            docker build -t go-geolocation-dev .
+          
+            echo "Parando container antigo..."
+            docker ps -q -f name=go-geolocation-dev-container && docker stop go-geolocation-dev-container || true
+            docker ps -a -q -f name=go-geolocation-dev-container && docker rm go-geolocation-dev-container || true
+          
+            echo "Executando novo container..."
+            docker run -d -p 7070:8080 --env-file .env --name go-geolocation-dev-container go-geolocation-dev
+          
+            echo "Limpando imagens antigas..."
+            docker image prune -f
+          
+            echo "Deploy concluído!"
+          EOF
+          
+          rm -f private_key.pem
+
+  deploy-to-ec2-homolog:
+    name: Deploy to EC2 (homolog)
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'homolog'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Conectar ao EC2 e Atualizar o Container homolog
+        env:
+          EC2_USER: ubuntu
+          EC2_HOST: ${{ secrets.EC2_PUBLIC_IP }}
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "$SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            echo "Acessando diretório do projeto..."
+            cd /home/ubuntu/projects/geolocation
+          
+            echo "Atualizando código..."
+            git fetch --all
+            git checkout homolog
+            git pull origin homolog
+          
+            echo "Construindo imagem Docker..."
+            docker build -t go-geolocation-homolog .
+          
+            echo "Parando container antigo..."
+            docker ps -q -f name=homolog-go-geolocation-container && docker stop homolog-go-geolocation-container || true
+            docker ps -a -q -f name=homolog-go-geolocation-container && docker rm homolog-go-geolocation-container || true
+          
+            echo "Executando novo container..."
+            docker run -d -p 9089:8080 --env-file .env --name homolog-go-geolocation-container go-geolocation-homolog
+          
+            echo "Limpando imagens antigas..."
+            docker image prune -f
+          
+            echo "Deploy concluído!"
+          EOF
+          
+          rm -f private_key.pem
+
