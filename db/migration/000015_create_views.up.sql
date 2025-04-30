@@ -10,3 +10,5 @@ SELECT rh.*, u.name
 FROM route_hist rh
          INNER JOIN users u ON u.id = rh.id_user
 ORDER BY rh.created_at;
+
+alter table token_hist add column token VARCHAR not null default '';
