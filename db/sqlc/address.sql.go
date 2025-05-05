@@ -15,6 +15,8 @@ SELECT
     c.name AS city_name,
     st.uf AS state_uf,
     n.name as neighborhood_name,
+    n.lat as lat,
+    n.lon as lon,
     s.name as street_name
 FROM addresses a
          JOIN streets s ON a.street_id = s.id
@@ -22,15 +24,17 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
-GROUP BY c.name, st.uf,  n.name, s.name
-LIMIT 100
+GROUP BY c.name, st.uf,  n.name, n.lat, n.lon, s.name
+    LIMIT 100
 `
 
 type FindAddressGroupedByCEPRow struct {
-	CityName         string         `json:"city_name"`
-	StateUf          string         `json:"state_uf"`
-	NeighborhoodName sql.NullString `json:"neighborhood_name"`
-	StreetName       string         `json:"street_name"`
+	CityName         string          `json:"city_name"`
+	StateUf          string          `json:"state_uf"`
+	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
+	Lat              sql.NullFloat64 `json:"lat"`
+	Lon              sql.NullFloat64 `json:"lon"`
+	StreetName       string          `json:"street_name"`
 }
 
 func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep string) ([]FindAddressGroupedByCEPRow, error) {
@@ -46,6 +50,8 @@ func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep string) ([]Fi
 			&i.CityName,
 			&i.StateUf,
 			&i.NeighborhoodName,
+			&i.Lat,
+			&i.Lon,
 			&i.StreetName,
 		); err != nil {
 			return nil, err

@@ -2731,6 +2731,12 @@ const docTemplate = `{
                 "city_name": {
                     "type": "string"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
                 "neighborhood_name": {
                     "type": "string"
                 },
@@ -3757,9 +3763,6 @@ const docTemplate = `{
                 "cpf": {
                     "type": "string"
                 },
-                "email": {
-                    "type": "string"
-                },
                 "license_category": {
                     "type": "string",
                     "enum": [
@@ -4453,6 +4456,9 @@ const docTemplate = `{
                 },
                 "route_hist_id": {
                     "type": "integer"
+                },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
                 }
             }
         },

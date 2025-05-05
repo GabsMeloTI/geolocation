@@ -141,7 +141,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/create", container.LoginHandler.CreateUser)
 	e.POST("/create/client", container.LoginHandler.CreateUserClient, _midlleware.CheckUserAuthorization)
 
-	appointment := e.Group("/appointment")
+	appointment := e.Group("/appointment", _midlleware.CheckUserAuthorization)
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
@@ -149,7 +149,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
 	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
 
-	address := e.Group("/address")
+	address := e.Group("/address", _midlleware.CheckUserAuthorization)
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
 	address.GET("/find/:cep", container.HandlerAddress.FindAddressByCEPHandler)
 	address.GET("/state", container.HandlerAddress.FindStateAll)

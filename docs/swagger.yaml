@@ -5,6 +5,10 @@ definitions:
         type: string
       city_name:
         type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
       neighborhood_name:
         type: string
       state_uf:
@@ -682,8 +686,6 @@ definitions:
         type: string
       cpf:
         type: string
-      email:
-        type: string
       license_category:
         enum:
         - a
@@ -1151,6 +1153,8 @@ definitions:
         $ref: '#/definitions/new_routes.AddressInfo'
       route_hist_id:
         type: integer
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
     type: object
   new_routes.Toll:
     properties:
