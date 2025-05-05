@@ -43,6 +43,7 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	stateUf := ""
 	neighborhoodSet := make(map[string]bool)
 	streetSet := make(map[string]bool)
+	var latitude, longitude float64
 
 	for _, addr := range addresses {
 		if cityName == "" {
@@ -55,6 +56,9 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 		}
 
 		streetSet[addr.StreetName] = true
+
+		latitude = addr.Latitude.Float64
+		longitude = addr.Longitude.Float64
 	}
 
 	responseType := "city"
@@ -85,6 +89,8 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 		StateUf:          stateUf,
 		NeighborhoodName: neighborhoodName,
 		StreetName:       streetName,
+		Latitude:         latitude,
+		Longitude:        longitude,
 	}
 
 	return response, nil

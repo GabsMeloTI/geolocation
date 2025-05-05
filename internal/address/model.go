@@ -27,12 +27,14 @@ type AddressDetail struct {
 }
 
 type AddressCEPResponse struct {
-	CEP              string `json:"cep"`
-	Type             string `json:"type"`
-	CityName         string `json:"city_name"`
-	StateUf          string `json:"state_uf"`
-	NeighborhoodName string `json:"neighborhood_name"`
-	StreetName       string `json:"street_name"`
+	CEP              string  `json:"cep"`
+	Type             string  `json:"type"`
+	CityName         string  `json:"city_name"`
+	StateUf          string  `json:"state_uf"`
+	NeighborhoodName string  `json:"neighborhood_name"`
+	StreetName       string  `json:"street_name"`
+	Latitude         float64 `json:"latitude"`
+	Longitude        float64 `json:"longitude"`
 }
 
 func ParseFromLatLonRow(results []db.FindAddressesByLatLonRow) ([]AddressResponse, error) {
