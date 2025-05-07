@@ -42,7 +42,7 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 
 	var strToken string
 	if tokenHist.ID != 0 {
-		if tokenHist.ExpritedAt.After(now) {
+		if tokenHist.ExpritedAt.Before(now) {
 			return tokenHist.Token, nil
 		}
 		updatedRow, err := s.InterfaceService.UpdateTokenHist(ctx, db.UpdateTokenHistParams{
