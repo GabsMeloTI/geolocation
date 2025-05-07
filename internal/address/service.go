@@ -6,6 +6,7 @@ import (
 	"errors"
 	db "geolocation/db/sqlc"
 	"golang.org/x/text/unicode/norm"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,6 +45,8 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	neighborhoodSet := make(map[string]bool)
 	streetSet := make(map[string]bool)
 	var latitude, longitude float64
+
+	log.Println("searching by cep")
 
 	for _, addr := range addresses {
 		if cityName == "" {
@@ -112,6 +115,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
+		log.Println("searching by latitude and longitude")
 		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
@@ -133,6 +137,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	if isCEP {
+		log.Println("searching by cep")
 		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err
@@ -174,6 +179,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			continue
 		}
 
+		log.Println("searching neighborhoods by name")
 		neighborhoods, err := s.InterfaceService.FindNeighborhoodsByNameRepository(ctx, term)
 		if err == nil && len(neighborhoods) > 0 {
 			if !ruaDetected {
@@ -190,6 +196,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			bairro = term
 		}
 
+		log.Println("searching cities by name")
 		cities, err := s.InterfaceService.FindCitiesByNameRepository(ctx, term)
 		if err == nil && len(cities) > 0 {
 			if !ruaDetected {
@@ -210,6 +217,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			}
 		}
 
+		log.Println("searching states by name")
 		states, err := s.InterfaceService.FindStateByNameRepository(ctx, term)
 		if err == nil && len(states) > 0 {
 			if !ruaDetected {
@@ -235,6 +243,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		}
 	}
 
+	log.Println("searching addresses by query")
 	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
 		State:        estado,
 		City:         cidade,
@@ -249,6 +258,8 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("searching finished")
 
 	return addressResponses, nil
 }
