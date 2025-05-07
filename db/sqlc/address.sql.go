@@ -91,7 +91,7 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 WHERE a.cep = $1
-limit 100
+limit 5
 `
 
 type FindAddressesByCEPRow struct {
@@ -177,7 +177,7 @@ FROM addresses a
          JOIN cities c ON n.city_id = c.id
          JOIN states st ON c.state_id = st.id
 ORDER BY (a.lat - $1) * (a.lat - $1) + (a.lon - $2) * (a.lon - $2) ASC
-limit 100
+limit 5
 `
 
 type FindAddressesByLatLonParams struct {
