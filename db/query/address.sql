@@ -22,14 +22,43 @@ FROM streets s
          JOIN states st ON c.state_id = st.id
          LEFT JOIN addresses a ON a.street_id = s.id
 WHERE
-    (COALESCE(NULLIF(sqlc.arg(street), ''), NULLIF(sqlc.arg(city), ''), NULLIF(sqlc.arg(state), ''), NULLIF(sqlc.arg(neighborhood), '')) IS NOT NULL)
-  AND (s.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(street)) OR sqlc.arg(street) = '')
-  AND (c.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(city)) OR sqlc.arg(city) = '')
-  AND (st.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(state)) OR sqlc.arg(state) = '')
-  AND (n.search_vector @@ plainto_tsquery('portuguese', sqlc.arg(neighborhood)) OR sqlc.arg(neighborhood) = '')
-  AND (sqlc.arg(number) = '' OR a.number ILIKE sqlc.arg(number) || '%')
+    (
+        COALESCE(
+                NULLIF(sqlc.arg('street'), ''),
+                NULLIF(sqlc.arg('city'), ''),
+                NULLIF(sqlc.arg('state'), ''),
+                NULLIF(sqlc.arg('neighborhood'), '')
+        ) IS NOT NULL
+        )
+
+  AND (
+    sqlc.arg('street') = '' OR
+    regexp_replace(lower(unaccent(s.name)), '[z]', 's', 'gi')
+        LIKE '%' || regexp_replace(lower(unaccent(sqlc.arg('street'))), '[z]', 's', 'gi') || '%'
+    )
+
+  AND (
+    sqlc.arg('city') = '' OR
+    c.search_vector @@ plainto_tsquery('portuguese', sqlc.arg('city'))
+    )
+
+  AND (
+    sqlc.arg('state') = '' OR
+    st.search_vector @@ plainto_tsquery('portuguese', sqlc.arg('state'))
+    )
+
+  AND (
+    sqlc.arg('neighborhood') = '' OR
+    n.search_vector @@ plainto_tsquery('portuguese', sqlc.arg('neighborhood'))
+    )
+
+  AND (
+    sqlc.arg('number') = '' OR
+    a.number ILIKE sqlc.arg('number') || '%'
+    )
+
 ORDER BY random()
-limit 100;
+LIMIT 100;
 
 -- name: FindAddressesByLatLon :many
 SELECT
