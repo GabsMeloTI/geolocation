@@ -100,15 +100,18 @@ func (q *Queries) UpdateNumberOfRequest(ctx context.Context, arg UpdateNumberOfR
 const updateTokenHist = `-- name: UpdateTokenHist :one
 UPDATE public.token_hist
 SET number_request = $2,
-    exprited_at = $3
+    exprited_at = $3,
+    token = $4,
+    created_at = now()
 WHERE id = $1
-    RETURNING id, ip, number_request, valid, exprited_at
+    RETURNING id, ip, number_request, valid, exprited_at, token
 `
 
 type UpdateTokenHistParams struct {
 	ID            int64     `json:"id"`
 	NumberRequest int64     `json:"number_request"`
 	ExpritedAt    time.Time `json:"exprited_at"`
+	Token         string    `json:"token"`
 }
 
 type UpdateTokenHistRow struct {
@@ -117,10 +120,16 @@ type UpdateTokenHistRow struct {
 	NumberRequest int64        `json:"number_request"`
 	Valid         sql.NullBool `json:"valid"`
 	ExpritedAt    time.Time    `json:"exprited_at"`
+	Token         string       `json:"token"`
 }
 
 func (q *Queries) UpdateTokenHist(ctx context.Context, arg UpdateTokenHistParams) (UpdateTokenHistRow, error) {
-	row := q.db.QueryRowContext(ctx, updateTokenHist, arg.ID, arg.NumberRequest, arg.ExpritedAt)
+	row := q.db.QueryRowContext(ctx, updateTokenHist,
+		arg.ID,
+		arg.NumberRequest,
+		arg.ExpritedAt,
+		arg.Token,
+	)
 	var i UpdateTokenHistRow
 	err := row.Scan(
 		&i.ID,
@@ -128,6 +137,7 @@ func (q *Queries) UpdateTokenHist(ctx context.Context, arg UpdateTokenHistParams
 		&i.NumberRequest,
 		&i.Valid,
 		&i.ExpritedAt,
+		&i.Token,
 	)
 	return i, err
 }

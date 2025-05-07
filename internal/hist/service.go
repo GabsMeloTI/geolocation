@@ -40,19 +40,34 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 		return "", fmt.Errorf("falha ao verificar token no histórico: %w", err)
 	}
 
+	arg := Request{
+		IP:             ip,
+		NumberRequests: 0,
+		Valid:          true,
+		ExpiredAt:      now.Add(24 * time.Hour),
+	}
+
 	var strToken string
 	if tokenHist.ID != 0 {
-		if tokenHist.ExpritedAt.Before(now) {
+		if tokenHist.ExpritedAt.After(now) {
 			return tokenHist.Token, nil
 		}
+
+		strToken, err = s.createToken(arg)
+		if err != nil {
+			return "", fmt.Errorf("falha ao criar token: %w", err)
+		}
+
 		updatedRow, err := s.InterfaceService.UpdateTokenHist(ctx, db.UpdateTokenHistParams{
 			ID:            tokenHist.ID,
 			NumberRequest: 0,
 			ExpritedAt:    now.Add(24 * time.Hour),
+			Token:         strToken,
 		})
 		if err != nil {
 			return "", fmt.Errorf("falha ao atualizar token no histórico: %w", err)
 		}
+
 		tokenHist = db.TokenHist{
 			ID:            updatedRow.ID,
 			Ip:            updatedRow.Ip,
@@ -61,13 +76,6 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 			ExpritedAt:    updatedRow.ExpritedAt,
 		}
 	} else {
-		arg := Request{
-			IP:             ip,
-			NumberRequests: 0,
-			Valid:          true,
-			ExpiredAt:      now.Add(24 * time.Hour),
-		}
-
 		strToken, err = s.createToken(arg)
 		if err != nil {
 			return "", fmt.Errorf("falha ao criar token: %w", err)
@@ -82,8 +90,6 @@ func (s *Service) GetPublicToken(ctx context.Context, ip string) (string, error)
 		if err != nil {
 			return "", fmt.Errorf("falha ao criar token no histórico: %w", err)
 		}
-
-		return strToken, nil
 	}
 
 	return strToken, nil

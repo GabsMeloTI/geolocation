@@ -24,6 +24,8 @@ SELECT EXISTS (
 -- name: UpdateTokenHist :one
 UPDATE public.token_hist
 SET number_request = $2,
-    exprited_at = $3
+    exprited_at = $3,
+    token = $4,
+    created_at = now()
 WHERE id = $1
-    RETURNING id, ip, number_request, valid, exprited_at;
+    RETURNING id, ip, number_request, valid, exprited_at, token;
