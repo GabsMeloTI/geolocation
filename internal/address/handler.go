@@ -38,6 +38,30 @@ func (h *Handler) FindAddressByQueryHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindAddressByQueryV2Handler godoc
+// @Summary Buscar Endereço por Consulta
+// @Description Busca um endereço por pesquisa. Endereço completo (Rua, bairro, número).
+// @Tags Endereços
+// @Accept json
+// @Produce json
+// @Param q query string true "Consulta do Endereço"
+// @Success 200 {object} []AddressResponse "Informações do Endereço"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /address/find/v2 [get]
+// @Security ApiKeyAuth
+func (h *Handler) FindAddressByQueryV2Handler(c echo.Context) error {
+	q := c.QueryParam("q")
+	if q == "" {
+		return c.JSON(http.StatusBadRequest, "O parâmetro de consulta 'q' é obrigatório")
+	}
+	result, err := h.InterfaceService.FindAddressesByQueryV2Service(c.Request().Context(), q)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
 // FindAddressByCEPHandler godoc
 // @Summary Buscar Endereço por CEP
 // @Description Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições encontradas.
