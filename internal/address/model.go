@@ -3,6 +3,7 @@ package address
 import (
 	"fmt"
 	db "geolocation/db/sqlc"
+	meiliaddress "geolocation/internal/meili_address"
 	"sort"
 )
 
@@ -211,6 +212,99 @@ func calculateGroupedLatitudes(grouped map[int32]*AddressResponse) []AddressResp
 	})
 
 	return addressResponses
+}
+
+func calculateGroupedLatitudesMeili(grouped map[string]*AddressResponse) []AddressResponse {
+	var addressResponses []AddressResponse
+
+	for _, addressResponse := range grouped {
+		var lat, lon float64
+
+		if len(addressResponse.Addresses) == 0 {
+			lat, lon = 0, 0
+		} else if len(addressResponse.Addresses) == 1 {
+			lat, lon = addressResponse.Addresses[0].Latitude, addressResponse.Addresses[0].Longitude
+		} else {
+			latitudes := make([]float64, len(addressResponse.Addresses))
+			longitudes := make([]float64, len(addressResponse.Addresses))
+
+			for i, address := range addressResponse.Addresses {
+				latitudes[i] = address.Latitude
+				longitudes[i] = address.Longitude
+			}
+
+			sort.Float64s(latitudes)
+			sort.Float64s(longitudes)
+
+			if len(latitudes)%2 == 0 {
+				lat = latitudes[len(latitudes)/2-1]
+				lon = longitudes[len(longitudes)/2-1]
+			} else {
+				lat = latitudes[len(latitudes)/2]
+				lon = longitudes[len(longitudes)/2]
+			}
+		}
+
+		response := AddressResponse{
+			IDStreet:     addressResponse.IDStreet,
+			Street:       addressResponse.Street,
+			Neighborhood: addressResponse.Neighborhood,
+			City:         addressResponse.City,
+			State:        addressResponse.State,
+			Latitude:     lat,
+			Longitude:    lon,
+			Addresses:    addressResponse.Addresses,
+		}
+
+		addressResponses = append(addressResponses, response)
+	}
+	sort.Slice(addressResponses, func(i, j int) bool {
+		return addressResponses[i].Addresses[0].IsExactly && !addressResponses[j].Addresses[0].IsExactly
+	})
+
+	return addressResponses
+}
+
+func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, numero string) ([]AddressResponse, error) {
+	if len(results) == 0 {
+		return nil, fmt.Errorf("query returned nil result")
+	}
+
+	grouped := make(map[string]*AddressResponse)
+
+	for _, result := range results {
+		if _, exists := grouped[result.StreetName]; !exists {
+			grouped[result.StreetName] = &AddressResponse{
+				IDStreet:     result.AddressID,
+				Street:       result.StreetName,
+				Neighborhood: result.NeighborhoodName,
+				City:         result.CityName,
+				State:        result.StateUf,
+				Addresses:    []AddressDetail{},
+			}
+		}
+
+		addressDetail := AddressDetail{
+			IDAddress: result.AddressID,
+			Number:    result.Number,
+			CEP:       result.Cep,
+			IsExactly: result.Number == numero,
+			Latitude:  result.Lat.Float64,
+			Longitude: result.Lon.Float64,
+		}
+
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
+	}
+
+	addressResponses := calculateGroupedLatitudesMeili(grouped)
+
+	for _, response := range addressResponses {
+		sort.Slice(response.Addresses, func(i, j int) bool {
+			return response.Addresses[i].IsExactly && !response.Addresses[j].IsExactly
+		})
+	}
+
+	return addressResponses, nil
 }
 
 type StateResponse struct {

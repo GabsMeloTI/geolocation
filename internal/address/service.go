@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	db "geolocation/db/sqlc"
+	meiliaddress "geolocation/internal/meili_address"
 	"golang.org/x/text/unicode/norm"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ import (
 
 type InterfaceService interface {
 	FindAddressesByQueryService(context.Context, string) ([]AddressResponse, error)
+	FindAddressesByQueryV2Service(context.Context, string) ([]AddressResponse, error)
 	FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error)
 	FindStateAll(context.Context) ([]StateResponse, error)
 	FindCityAll(context.Context, int32) ([]CityResponse, error)
@@ -21,10 +24,11 @@ type InterfaceService interface {
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	MeiliRepository  meiliaddress.InterfaceRepository
 }
 
-func NewAddresssService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewAddressService(InterfaceService InterfaceRepository, MeiliRepository meiliaddress.InterfaceRepository) *Service {
+	return &Service{InterfaceService: InterfaceService, MeiliRepository: MeiliRepository}
 }
 
 func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error) {
@@ -44,6 +48,8 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	neighborhoodSet := make(map[string]bool)
 	streetSet := make(map[string]bool)
 	var latitude, longitude float64
+
+	log.Println("searching by cep")
 
 	for _, addr := range addresses {
 		if cityName == "" {
@@ -112,6 +118,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
+		log.Println("searching by latitude and longitude")
 		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
@@ -133,6 +140,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	if isCEP {
+		log.Println("searching by cep")
 		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err
@@ -174,6 +182,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			continue
 		}
 
+		log.Println("searching neighborhoods by name")
 		neighborhoods, err := s.InterfaceService.FindNeighborhoodsByNameRepository(ctx, term)
 		if err == nil && len(neighborhoods) > 0 {
 			if !ruaDetected {
@@ -190,6 +199,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			bairro = term
 		}
 
+		log.Println("searching cities by name")
 		cities, err := s.InterfaceService.FindCitiesByNameRepository(ctx, term)
 		if err == nil && len(cities) > 0 {
 			if !ruaDetected {
@@ -210,6 +220,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			}
 		}
 
+		log.Println("searching states by name")
 		states, err := s.InterfaceService.FindStateByNameRepository(ctx, term)
 		if err == nil && len(states) > 0 {
 			if !ruaDetected {
@@ -235,6 +246,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		}
 	}
 
+	log.Println("searching addresses by query")
 	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
 		State:        estado,
 		City:         cidade,
@@ -249,6 +261,33 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("searching finished")
+
+	return addressResponses, nil
+}
+
+func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query string) ([]AddressResponse, error) {
+	var addressResponses []AddressResponse
+	var number string
+
+	terms := strings.Split(query, ",")
+	for _, term := range terms {
+		if _, err := strconv.Atoi(term); err == nil {
+			number = term
+			continue
+		}
+	}
+
+	addressesQuery, err := s.MeiliRepository.FindAddresses(ctx, query, 100)
+	if err != nil {
+		return nil, err
+	}
+	addressResponses, err = ParseQueryMeiliRow(addressesQuery, number)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("searching finished")
 
 	return addressResponses, nil
 }

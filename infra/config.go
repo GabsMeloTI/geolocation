@@ -32,6 +32,8 @@ type Config struct {
 	EmailPassword      string
 	EmailHost          string
 	EmailPort          string
+	MeiliHttp          string
+	MeiliKey           string
 }
 
 func NewConfig() Config {
@@ -67,5 +69,7 @@ func NewConfig() Config {
 		AwsSecretAccessKey: os.Getenv("AWS_SECRET_KEY"),
 		AwsRegion:          os.Getenv("AWS_REGION"),
 		AwsBucketName:      os.Getenv("AWS_BUCKET_NAME"),
+		MeiliHttp:          os.Getenv("MEILI_HTTP_ADDR"),
+		MeiliKey:           os.Getenv("MEILI_MASTER_KEY"),
 	}
 }
