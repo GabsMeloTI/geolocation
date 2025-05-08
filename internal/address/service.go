@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	db "geolocation/db/sqlc"
+	meiliaddress "geolocation/internal/meili_address"
 	"golang.org/x/text/unicode/norm"
 	"log"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 
 type InterfaceService interface {
 	FindAddressesByQueryService(context.Context, string) ([]AddressResponse, error)
+	FindAddressesByQueryV2Service(context.Context, string) ([]AddressResponse, error)
 	FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error)
 	FindStateAll(context.Context) ([]StateResponse, error)
 	FindCityAll(context.Context, int32) ([]CityResponse, error)
@@ -22,10 +24,11 @@ type InterfaceService interface {
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	MeiliRepository  meiliaddress.InterfaceRepository
 }
 
-func NewAddresssService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewAddressService(InterfaceService InterfaceRepository, MeiliRepository meiliaddress.InterfaceRepository) *Service {
+	return &Service{InterfaceService: InterfaceService, MeiliRepository: MeiliRepository}
 }
 
 func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error) {
@@ -259,6 +262,31 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		return nil, err
 	}
 
+	log.Println("searching finished")
+
+	return addressResponses, nil
+}
+
+func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query string) ([]AddressResponse, error) {
+	var addressResponses []AddressResponse
+	var number string
+
+	terms := strings.Split(query, ",")
+	for _, term := range terms {
+		if _, err := strconv.Atoi(term); err == nil {
+			number = term
+			continue
+		}
+	}
+
+	addressesQuery, err := s.MeiliRepository.FindAddresses(ctx, query, 100)
+	if err != nil {
+		return nil, err
+	}
+	addressResponses, err = ParseQueryMeiliRow(addressesQuery, number)
+	if err != nil {
+		return nil, err
+	}
 	log.Println("searching finished")
 
 	return addressResponses, nil

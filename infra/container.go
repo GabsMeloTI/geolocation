@@ -2,6 +2,7 @@ package infra
 
 import (
 	"database/sql"
+	meiliaddress "geolocation/internal/meili_address"
 
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
@@ -81,6 +82,7 @@ type ContainerDI struct {
 	HandlerAddress          *address.Handler
 	ServiceAddress          *address.Service
 	RepositoryAddress       *address.Repository
+	RepositoryMeiliAddress  *meiliaddress.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -146,6 +148,7 @@ func (c *ContainerDI) buildRepository() {
 	c.WsRepository = ws.NewWsRepository(c.ConnDB)
 	c.RepositoryAppointment = appointments.NewAppointmentsRepository(c.ConnDB)
 	c.RepositoryAddress = address.NewAddressRepository(c.ConnDB)
+	c.RepositoryMeiliAddress = meiliaddress.NewMeiliAddressRepository(c.Config.MeiliHttp, c.Config.MeiliKey)
 }
 
 func (c *ContainerDI) buildService() {
@@ -172,7 +175,7 @@ func (c *ContainerDI) buildService() {
 	)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
-	c.ServiceAddress = address.NewAddresssService(c.RepositoryAddress)
+	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress)
 }
 
 func (c *ContainerDI) buildHandler() {
