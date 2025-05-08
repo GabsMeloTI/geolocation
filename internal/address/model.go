@@ -3,11 +3,11 @@ package address
 import (
 	"fmt"
 	db "geolocation/db/sqlc"
+	meiliaddress "geolocation/internal/meili_address"
 	"sort"
 )
 
 type AddressResponse struct {
-	IDStreet     int32           `json:"id_street"`
 	Street       string          `json:"street"`
 	Neighborhood string          `json:"neighborhood,omitempty"`
 	City         string          `json:"city"`
@@ -42,12 +42,11 @@ func ParseFromLatLonRow(results []db.FindAddressesByLatLonRow) ([]AddressRespons
 		return nil, fmt.Errorf("query returned nil result")
 	}
 
-	grouped := make(map[int32]*AddressResponse)
+	grouped := make(map[string]*AddressResponse)
 
 	for _, result := range results {
-		if _, exists := grouped[result.StreetID]; !exists {
-			grouped[result.StreetID] = &AddressResponse{
-				IDStreet:     result.StreetID,
+		if _, exists := grouped[result.StreetName]; !exists {
+			grouped[result.StreetName] = &AddressResponse{
 				Street:       result.StreetName,
 				Neighborhood: result.NeighborhoodName.String,
 				City:         result.CityName,
@@ -70,7 +69,7 @@ func ParseFromLatLonRow(results []db.FindAddressesByLatLonRow) ([]AddressRespons
 			addressDetail.Longitude = result.Lon.Float64
 		}
 
-		grouped[result.StreetID].Addresses = append(grouped[result.StreetID].Addresses, addressDetail)
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
 	}
 
 	return calculateGroupedLatitudes(grouped), nil
@@ -81,12 +80,11 @@ func ParseFromCEPRow(results []db.FindAddressesByCEPRow) ([]AddressResponse, err
 		return nil, fmt.Errorf("query returned nil result")
 	}
 
-	grouped := make(map[int32]*AddressResponse)
+	grouped := make(map[string]*AddressResponse)
 
 	for _, result := range results {
-		if _, exists := grouped[result.StreetID]; !exists {
-			grouped[result.StreetID] = &AddressResponse{
-				IDStreet:     result.StreetID,
+		if _, exists := grouped[result.StreetName]; !exists {
+			grouped[result.StreetName] = &AddressResponse{
 				Street:       result.StreetName,
 				Neighborhood: result.NeighborhoodName.String,
 				City:         result.CityName,
@@ -109,7 +107,7 @@ func ParseFromCEPRow(results []db.FindAddressesByCEPRow) ([]AddressResponse, err
 			addressDetail.Longitude = result.Lon.Float64
 		}
 
-		grouped[result.StreetID].Addresses = append(grouped[result.StreetID].Addresses, addressDetail)
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
 	}
 
 	return calculateGroupedLatitudes(grouped), nil
@@ -120,12 +118,11 @@ func ParseFromQueryRow(results []db.FindAddressesByQueryRow, numero string) ([]A
 		return nil, fmt.Errorf("query returned nil result")
 	}
 
-	grouped := make(map[int32]*AddressResponse)
+	grouped := make(map[string]*AddressResponse)
 
 	for _, result := range results {
-		if _, exists := grouped[result.StreetID]; !exists {
-			grouped[result.StreetID] = &AddressResponse{
-				IDStreet:     result.StreetID,
+		if _, exists := grouped[result.StreetName]; !exists {
+			grouped[result.StreetName] = &AddressResponse{
 				Street:       result.StreetName,
 				Neighborhood: result.NeighborhoodName.String,
 				City:         result.CityName,
@@ -148,7 +145,7 @@ func ParseFromQueryRow(results []db.FindAddressesByQueryRow, numero string) ([]A
 			addressDetail.Longitude = result.Lon.Float64
 		}
 
-		grouped[result.StreetID].Addresses = append(grouped[result.StreetID].Addresses, addressDetail)
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
 	}
 
 	addressResponses := calculateGroupedLatitudes(grouped)
@@ -162,7 +159,48 @@ func ParseFromQueryRow(results []db.FindAddressesByQueryRow, numero string) ([]A
 	return calculateGroupedLatitudes(grouped), nil
 }
 
-func calculateGroupedLatitudes(grouped map[int32]*AddressResponse) []AddressResponse {
+func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, numero string) ([]AddressResponse, error) {
+	if len(results) == 0 {
+		return nil, fmt.Errorf("query returned nil result")
+	}
+
+	grouped := make(map[string]*AddressResponse)
+
+	for _, result := range results {
+		if _, exists := grouped[result.StreetName]; !exists {
+			grouped[result.StreetName] = &AddressResponse{
+				Street:       result.StreetName,
+				Neighborhood: result.NeighborhoodName,
+				City:         result.CityName,
+				State:        result.StateUf,
+				Addresses:    []AddressDetail{},
+			}
+		}
+
+		addressDetail := AddressDetail{
+			IDAddress: result.AddressID,
+			Number:    result.Number,
+			CEP:       result.Cep,
+			IsExactly: result.Number == numero,
+			Latitude:  result.Lat.Float64,
+			Longitude: result.Lon.Float64,
+		}
+
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
+	}
+
+	addressResponses := calculateGroupedLatitudes(grouped)
+
+	for _, response := range addressResponses {
+		sort.Slice(response.Addresses, func(i, j int) bool {
+			return response.Addresses[i].IsExactly && !response.Addresses[j].IsExactly
+		})
+	}
+
+	return addressResponses, nil
+}
+
+func calculateGroupedLatitudes(grouped map[string]*AddressResponse) []AddressResponse {
 	var addressResponses []AddressResponse
 
 	for _, addressResponse := range grouped {
@@ -194,7 +232,6 @@ func calculateGroupedLatitudes(grouped map[int32]*AddressResponse) []AddressResp
 		}
 
 		response := AddressResponse{
-			IDStreet:     addressResponse.IDStreet,
 			Street:       addressResponse.Street,
 			Neighborhood: addressResponse.Neighborhood,
 			City:         addressResponse.City,
