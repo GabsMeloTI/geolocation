@@ -11,6 +11,7 @@ type InterfaceRepository interface {
 	FindAddressesByCEPRepository(context.Context, string) ([]db.FindAddressesByCEPRow, error)
 	FindAddressesByLatLonRepository(context.Context, db.FindAddressesByLatLonParams) ([]db.FindAddressesByLatLonRow, error)
 	FindAddressGroupedByCEPRepository(ctx context.Context, arg string) ([]db.FindAddressGroupedByCEPRow, error)
+	FindAddressByStreetIDRepository(ctx context.Context, arg int32) ([]db.Address, error)
 	FindStateByNameRepository(context.Context, string) ([]db.State, error)
 	FindCitiesByNameRepository(context.Context, string) ([]db.FindCitiesByNameRow, error)
 	FindNeighborhoodsByNameRepository(context.Context, string) ([]db.FindNeighborhoodsByNameRow, error)
@@ -67,4 +68,8 @@ func (r *Repository) FindStateAll(ctx context.Context) ([]db.State, error) {
 
 func (r *Repository) FindCityAll(ctx context.Context, arg int32) ([]db.City, error) {
 	return r.Queries.FindCityAll(ctx, arg)
+}
+
+func (r *Repository) FindAddressByStreetIDRepository(ctx context.Context, arg int32) ([]db.Address, error) {
+	return r.Queries.FindAddressByStreetID(ctx, arg)
 }

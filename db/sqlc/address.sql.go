@@ -10,6 +10,42 @@ import (
 	"database/sql"
 )
 
+const findAddressByStreetID = `-- name: FindAddressByStreetID :many
+SELECT id, street_id, number, complement, cep, lat, lon FROM addresses a
+WHERE a.street_id = $1
+`
+
+func (q *Queries) FindAddressByStreetID(ctx context.Context, streetID int32) ([]Address, error) {
+	rows, err := q.db.QueryContext(ctx, findAddressByStreetID, streetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Address
+	for rows.Next() {
+		var i Address
+		if err := rows.Scan(
+			&i.ID,
+			&i.StreetID,
+			&i.Number,
+			&i.Complement,
+			&i.Cep,
+			&i.Lat,
+			&i.Lon,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findAddressGroupedByCEP = `-- name: FindAddressGroupedByCEP :many
 SELECT
     c.name AS city_name,
@@ -303,8 +339,8 @@ WHERE
     a.number ILIKE $5 || '%'
     )
 
-ORDER BY random()
-LIMIT 100
+ORDER BY s.id
+LIMIT 5
 `
 
 type FindAddressesByQueryParams struct {

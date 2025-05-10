@@ -24,6 +24,7 @@ Serviço destinado ao gerenciamento de usuários e suas relações com organiza�
 - **[SQLC](https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html):** Gerador de queries que faz a conversão de SQL em código Go tipado.
 - **[Echo](https://echo.labstack.com/):** Framework de desenvolvimento web para a linguagem de programação GoLang.
 - **[AWS](https://aws.amazon.com/pt/free/?gclid=CjwKCAiArKW-BhAzEiwAZhWsIBv7tTDV_dj41cYBblkPVNVlXSQLdNwLY9WzMJJLEo4AUbJIXmbMrBoClNYQAvD_BwE&all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc&awsf.Free%20Tier%20Types=*all&awsf.Free%20Tier%20Categories=categories%23compute&trk=d0b462ed-a9ff-4714-8a75-634758c49d4c&sc_channel=ps&ef_id=CjwKCAiArKW-BhAzEiwAZhWsIBv7tTDV_dj41cYBblkPVNVlXSQLdNwLY9WzMJJLEo4AUbJIXmbMrBoClNYQAvD_BwE:G:s&s_kwcid=AL!4422!3!490489331981!e!!g!!aws%20cloud!12024810921!121376982652):** Serviço de cloud altamente confiável.
+- **[MeiliSearch](https://www.meilisearch.com/docs/home):** Serviço de documento para pesquisa de palavras.
 
 
 ## Endpoints
@@ -1644,6 +1645,122 @@ Lista as mensagens de um sala de bate-papo.
 - Gera os arquivos sqlc do projeto.
   ````bash
   make sqlc
+  ````
+---
+## Informações MeiliSearch
+
+Este documento fornece os comandos essenciais para gerenciar e entender o índice addresses no MeiliSearch, uma solução de busca rápida e leve, ideal para substituir consultas complexas em PostgreSQL.
+
+Casos de Uso:
+
+- Busca por endereços com correção de erros (ex.: "av. paulsta" → "Avenida Paulista")
+- Ordenação por relevância ou atributos específicos
+
+### 1. **Buscas simples**
+  ````bash
+    curl -X GET 'http://localhost:7700/indexes/streets/search?q=paulista'
+  ````
+### 2. **Buscas com filtros**
+Configure quais atributos são filtráveis e aplique a busca com filtros
+  ````bash
+    curl -X GET 'http://localhost:7700/indexes/streets/search' \
+    -H 'Content-Type: application/json' \
+    --data-binary '{
+      "q": "paulista",
+      "filter": "uf = SP AND city = 'SAO PAULO'"
+    }'
+  ````
+### 3. **Estatísticas do índice**
+  ````bash
+    curl -X GET 'http://localhost:7700/indexes/streets/stats'
+  ````
+  
+  Saída 
+````json
+{
+    "numberOfDocuments": 8964424,
+    "rawDocumentDbSize": 5971550208,
+    "avgDocumentSize": 658,
+    "isIndexing": true,
+    "numberOfEmbeddings": 0,
+    "numberOfEmbeddedDocuments": 0,
+    "fieldDistribution": {
+        "city": 8964424,
+        "city_lat": 8964424,
+        "city_lon": 8964424,
+        "neighborhood": 8964424,
+        "neighborhood_lat": 8964424,
+        "neighborhood_lon": 8964424,
+        "number": 8964424,
+        "state": 8964424,
+        "state_lat": 8964424,
+        "state_lon": 8964424,
+        "street": 8964424,
+        "street_id": 8964424,
+        "uf": 8964424
+    }
+}
+````
+
+### 4. **Configuração Avançada de Busca**
+As rankingRules definem a ordem de prioridade dos resultados.
+  ````bash
+    curl -X PATCH 'http://localhost:7700/indexes/streets/settings' \
+  -H 'Content-Type: application/json' \
+  --data-binary '{
+    "rankingRules": [
+      "words",           # Prioriza documentos com todas as palavras da query
+      "typo",            # Penaliza documentos com erros de digitação
+      "proximity",       # Prioriza palavras próximas no texto
+      "attribute",       # Considera a importância dos campos (searchableAttributes)
+      "sort",            # Respeita ordenação explícita (ex.: "sort": ["city_name:asc"])
+      "exactness"        # Prioriza correspondências exatas (ex.: "SP" vs "São Paulo")
+    ]
+  }'
+  ````
+### 5. **Configuração de Typo Tolerance**
+Controla como o MeiliSearch lida com erros de digitação.
+  ````bash
+   curl -X PATCH 'http://localhost:7700/indexes/streets/settings' \
+  -H 'Content-Type: application/json' \
+  --data-binary '{
+    "typoTolerance": {
+      "enabled": true,     # Ativa a correção de erros
+      "minWordSizeForTypos": {
+        "oneTypo": 5,      # Tamanho mínimo para permitir 1 erro (default: 4)
+        "twoTypos": 8      # Tamanho mínimo para permitir 2 erros (default: 8)
+      },
+      "disableOnWords": ["SP", "RJ"],  # Desativa correção para estas palavras
+      "disableOnAttributes": ["cep"]   # Desativa correção em campos específicos
+    }
+  }'
+  ````
+
+#### Explicação dos Parâmetros:
+
+- `oneTypo`: Palavras com 5+ letras podem ter 1 erro ("paulsta" → "paulista").
+- `twoTypos`: Palavras com 8+ letras podem ter 2 erros ("avenuda paulsta" → "avenida paulista").
+- `disableOnWords`: Ignora correção em siglas (ex.: "SP").
+
+## **Tasks do MeiliSearch**
+Tasks são operações assíncronas no MeiliSearch (ex.: criação de índice, atualização de documentos). Cada task tem um UID e status:
+
+- `enqueued`: Na fila para processamento.
+- `processing`: Em execução.
+- `succeeded`: Concluída com sucesso.
+- `failed`: Falhou (ver detalhes no erro).
+
+### 1. **Listar Todas Tasks**
+  ````bash
+    curl -X GET 'http://localhost:7700/tasks'
+  ````
+### 2. **Filtrar Tasks por Status**
+  ````bash
+    curl -X GET 'http://localhost:7700/tasks?statuses=succeeded,enqueued'
+  ````
+### 3. **Ver Detalhes de uma Task**
+  ````bash
+    curl -X GET 'http://localhost:7700/tasks/12345'  # Substitua 12345 pelo UID da task'
   ````
 
 ## Observações

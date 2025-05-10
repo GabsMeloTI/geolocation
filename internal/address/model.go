@@ -265,7 +265,7 @@ func calculateGroupedLatitudesMeili(grouped map[string]*AddressResponse) []Addre
 	return addressResponses
 }
 
-func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, numero string) ([]AddressResponse, error) {
+func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, number string) ([]AddressResponse, error) {
 	if len(results) == 0 {
 		return nil, fmt.Errorf("query returned nil result")
 	}
@@ -275,7 +275,7 @@ func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, numero string) ([]A
 	for _, result := range results {
 		if _, exists := grouped[result.StreetName]; !exists {
 			grouped[result.StreetName] = &AddressResponse{
-				IDStreet:     result.AddressID,
+				IDStreet:     result.StreetID,
 				Street:       result.StreetName,
 				Neighborhood: result.NeighborhoodName,
 				City:         result.CityName,
@@ -288,9 +288,9 @@ func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, numero string) ([]A
 			IDAddress: result.AddressID,
 			Number:    result.Number,
 			CEP:       result.Cep,
-			IsExactly: result.Number == numero,
-			Latitude:  result.Lat.Float64,
-			Longitude: result.Lon.Float64,
+			IsExactly: result.Number == number,
+			Latitude:  result.Lat,
+			Longitude: result.Lon,
 		}
 
 		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
