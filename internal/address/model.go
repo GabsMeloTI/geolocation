@@ -276,7 +276,7 @@ func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, number string) ([]A
 	var exactResponse *AddressResponse
 
 	for _, result := range results {
-		isExact := result.Number == number && number != "s/n"
+		isExact := result.Number == number && number != ""
 
 		if isExact && exactResponse == nil {
 			exactResponse = &AddressResponse{
