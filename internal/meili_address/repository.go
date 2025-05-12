@@ -23,7 +23,7 @@ func NewMeiliAddressRepository(meiliURL, apiKey string) *Repository {
 	}
 }
 
-func (r *Repository) FindMeiliStreetsRepository(query string, limit int) ([]MeiliStreets, error) {
+func (r *Repository) FindMeiliStreetsRepository(ctx context.Context, query string, limit int) ([]MeiliStreets, error) {
 	searchResp, err := r.meili.Search(query, &meilisearch.SearchRequest{
 		Limit: int64(limit),
 	})
