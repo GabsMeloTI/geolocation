@@ -152,3 +152,7 @@ FROM addresses a
 WHERE a.cep = $1
 GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
     LIMIT 100;
+
+-- name: FindAddressByStreetID :many
+SELECT * FROM addresses a
+WHERE a.street_id = $1;
