@@ -182,7 +182,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			continue
 		}
 
-		log.Println("searching neighborhoods by name")
 		neighborhoods, err := s.InterfaceService.FindNeighborhoodsByNameRepository(ctx, term)
 		if err == nil && len(neighborhoods) > 0 {
 			if !ruaDetected {
@@ -199,7 +198,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			bairro = term
 		}
 
-		log.Println("searching cities by name")
 		cities, err := s.InterfaceService.FindCitiesByNameRepository(ctx, term)
 		if err == nil && len(cities) > 0 {
 			if !ruaDetected {
@@ -220,7 +218,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 			}
 		}
 
-		log.Println("searching states by name")
 		states, err := s.InterfaceService.FindStateByNameRepository(ctx, term)
 		if err == nil && len(states) > 0 {
 			if !ruaDetected {
@@ -246,7 +243,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		}
 	}
 
-	log.Println("searching addresses by query")
 	addressesQuery, err := s.InterfaceService.FindAddressesByQueryRepository(ctx, db.FindAddressesByQueryParams{
 		State:        estado,
 		City:         cidade,
@@ -262,14 +258,58 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		return nil, err
 	}
 
-	log.Println("searching finished")
-
 	return addressResponses, nil
 }
 
 func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query string) ([]AddressResponse, error) {
 	var addressResponses []AddressResponse
 	var number string
+
+	cepRegex := regexp.MustCompile(`^\d{8}$`)
+	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(query, "-", ""), " ", "")
+	isCEP := cepRegex.MatchString(normalizedQuery)
+
+	latLonRegex := regexp.MustCompile(`^\s*-?\d{1,2}(\.\d+)?\s*[, ]\s*-?\d{1,3}(\.\d+)?\s*$`)
+	isLatLon := latLonRegex.MatchString(query)
+
+	if isLatLon {
+		coords := strings.SplitN(query, ",", 2)
+		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
+		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
+
+		log.Println("searching by latitude and longitude")
+		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
+			Lat: sql.NullFloat64{
+				Float64: lat,
+			},
+			Lon: sql.NullFloat64{
+				Float64: lng,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		addressResponses, err = ParseFromLatLonRow(addressLatLon)
+		if err != nil {
+			return nil, err
+		}
+
+		return addressResponses, nil
+	}
+
+	if isCEP {
+		log.Println("searching by cep")
+		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
+		if err != nil {
+			return nil, err
+		}
+		addressResponses, err = ParseFromCEPRow(addressCEP)
+		if err != nil {
+			return nil, err
+		}
+		return addressResponses, nil
+	}
 
 	terms := strings.Split(query, ",")
 	for _, term := range terms {
@@ -279,15 +319,46 @@ func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query strin
 		}
 	}
 
-	addressesQuery, err := s.MeiliRepository.FindAddresses(ctx, query, 100)
+	var meiliAddresses []meiliaddress.MeiliAddress
+	streetsMeili, err := s.MeiliRepository.FindMeiliStreetsRepository(ctx, query, 50)
 	if err != nil {
 		return nil, err
 	}
-	addressResponses, err = ParseQueryMeiliRow(addressesQuery, number)
+
+	for _, street := range streetsMeili {
+		addressesList, err := s.InterfaceService.FindAddressByStreetIDRepository(ctx, street.StreetID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, addr := range addressesList {
+			meiliAddr := meiliaddress.MeiliAddress{
+				StreetID:         street.StreetID,
+				StreetName:       street.StreetName,
+				NeighborhoodName: street.NeighborhoodName,
+				NeighborhoodLat:  street.NeighborhoodLat,
+				NeighborhoodLon:  street.NeighborhoodLon,
+				CityName:         street.CityName,
+				CityLat:          street.CityLat,
+				CityLon:          street.CityLon,
+				StateUf:          street.StateUf,
+				StateName:        street.StateName,
+				StateLat:         street.StateLat,
+				StateLon:         street.StateLon,
+				AddressID:        addr.ID,
+				Number:           addr.Number.String,
+				Cep:              addr.Cep,
+				Lat:              addr.Lat.Float64,
+				Lon:              addr.Lon.Float64,
+			}
+
+			meiliAddresses = append(meiliAddresses, meiliAddr)
+		}
+	}
+	addressResponses, err = ParseQueryMeiliRow(meiliAddresses, number)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("searching finished")
 
 	return addressResponses, nil
 }
