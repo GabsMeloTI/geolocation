@@ -271,8 +271,34 @@ func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, number string) ([]A
 	}
 
 	grouped := make(map[string]*AddressResponse)
+	streetOrder := []string{}
+
+	var exactResponse *AddressResponse
 
 	for _, result := range results {
+		isExact := result.Number == number && number != ""
+
+		if isExact && exactResponse == nil {
+			exactResponse = &AddressResponse{
+				IDStreet:     result.StreetID,
+				Street:       result.StreetName,
+				Neighborhood: result.NeighborhoodName,
+				City:         result.CityName,
+				State:        result.StateUf,
+				Addresses: []AddressDetail{
+					{
+						IDAddress: result.AddressID,
+						Number:    result.Number,
+						CEP:       result.Cep,
+						IsExactly: true,
+						Latitude:  result.Lat,
+						Longitude: result.Lon,
+					},
+				},
+			}
+			continue
+		}
+
 		if _, exists := grouped[result.StreetName]; !exists {
 			grouped[result.StreetName] = &AddressResponse{
 				IDStreet:     result.StreetID,
@@ -282,29 +308,37 @@ func ParseQueryMeiliRow(results []meiliaddress.MeiliAddress, number string) ([]A
 				State:        result.StateUf,
 				Addresses:    []AddressDetail{},
 			}
+			streetOrder = append(streetOrder, result.StreetName)
 		}
 
-		addressDetail := AddressDetail{
+		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, AddressDetail{
 			IDAddress: result.AddressID,
 			Number:    result.Number,
 			CEP:       result.Cep,
-			IsExactly: result.Number == number,
+			IsExactly: false,
 			Latitude:  result.Lat,
 			Longitude: result.Lon,
-		}
-
-		grouped[result.StreetName].Addresses = append(grouped[result.StreetName].Addresses, addressDetail)
-	}
-
-	addressResponses := calculateGroupedLatitudesMeili(grouped)
-
-	for _, response := range addressResponses {
-		sort.Slice(response.Addresses, func(i, j int) bool {
-			return response.Addresses[i].IsExactly && !response.Addresses[j].IsExactly
 		})
 	}
 
-	return addressResponses, nil
+	if exactResponse != nil {
+		return []AddressResponse{*exactResponse}, nil
+	}
+
+	processed := calculateGroupedLatitudesMeili(grouped)
+
+	ordered := make([]AddressResponse, 0, len(streetOrder))
+	lookup := make(map[string]AddressResponse)
+	for _, resp := range processed {
+		lookup[resp.Street] = resp
+	}
+	for _, street := range streetOrder {
+		if r, ok := lookup[street]; ok {
+			ordered = append(ordered, r)
+		}
+	}
+
+	return ordered, nil
 }
 
 type StateResponse struct {
