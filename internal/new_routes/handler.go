@@ -134,6 +134,65 @@ func (h *Handler) CalculateRoutesWithCoordinate(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateRoutesWithCEP godoc
+// @Summary Calcular rotas com base em CEP.
+// @Description Calcula as melhores opções de rota a partir dos CEPs de origem e destino.
+// @Description
+// @Description Campos esperados no body:
+// @Description   - origin_cep: \"01001000\" (CEP de origem)
+// @Description   - destination_cep: \"20040002\" (CEP de destino)
+// @Description   - consumptionCity: 20         (Consumo de combustível na cidade, em km/l)
+// @Description   - consumptionHwy: 22         (Consumo de combustível na estrada, em km/l)
+// @Description   - price: 6.20                (Preço do combustível em BRL)
+// @Description   - axles: 2                  (Quantidade de eixos: 2, 4, 6, 8, 9)
+// @Description   - waypoints: [\"01310940\",\"20050013\"] (Lista de CEPs para pontos de parada)
+// @Description   - public_or_private: \"public\" | \"private\" (Define se conta na cota pública ou privada)
+// @Description   - favorite: true             (Se deseja favoritar essa rota)
+// @Description   - type: \"Auto\"              (Tipo de veículo: Truck, Bus, Auto, Motorcycle)
+// @Description   - typeRoute: \"eficiente\"    (Rota específica: eficiente, rápida ou barata)
+// @Description   - route_options: {
+// @Description         include_fuel_stations: false,   (retorna postos de gasolina)
+// @Description         include_route_map: false,        (retorna rotograma da rota)
+// @Description         include_toll_costs: false,       (retorna pedágios e custos gerais)
+// @Description         include_weigh_stations: false,   (retorna balanças)
+// @Description         include_freight_calc: false,     (retorna cálculo de frete ANTT)
+// @Description         include_polyline: false          (retorna polyline para mapas)
+// @Description     } (Opções adicionais para a rota)
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEP true "Requisição para cálculo de rota por CEP"
+// @Success 200 {object} FinalOutput "Informações calculadas da rota"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /check-route-tolls-cep [post]
+// @Security ApiKeyAuth
+func (h *Handler) CalculateRoutesWithCEP(e echo.Context) error {
+	var frontInfo FrontInfoCEP
+	if err := e.Bind(&frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err := validation.Validate(frontInfo)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payloadPublic := get_token.GetPublicPayloadToken(e)
+	payload := get_token.GetUserPayloadToken(e)
+	result, err := h.InterfaceService.CalculateRoutesWithCEP(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // GetSimpleRoute godoc
 // @Summary Get simple route information.
 // @Description Retrieves a simple route with distance and duration.

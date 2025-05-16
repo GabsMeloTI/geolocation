@@ -195,6 +195,21 @@ type FrontInfo struct {
 	RouteOptions    RouteOptions `json:"route_options"`
 }
 
+type FrontInfoCEP struct {
+	OriginCEP       string       `json:"origin_cep" validate:"required"`
+	DestinationCEP  string       `json:"destination_cep" validate:"required"`
+	ConsumptionCity float64      `json:"consumptionCity"`
+	ConsumptionHwy  float64      `json:"consumptionHwy"`
+	Price           float64      `json:"price"`
+	Axles           int64        `json:"axles"`
+	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	WaypointsCEP    []string     `json:"waypoints"`
+	TypeRoute       string       `json:"typeRoute"`
+	PublicOrPrivate string       `json:"public_or_private"`
+	Favorite        bool         `json:"favorite"`
+	RouteOptions    RouteOptions `json:"route_options"`
+}
+
 type FrontInfoCoordinate struct {
 	OriginLng       string       `json:"origin_lng" validate:"required"`
 	OriginLat       string       `json:"origin_lat" validate:"required"`
