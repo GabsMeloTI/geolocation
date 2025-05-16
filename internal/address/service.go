@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	db "geolocation/db/sqlc"
+	meiliaddress "geolocation/internal/meili_address"
 	"golang.org/x/text/unicode/norm"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ import (
 
 type InterfaceService interface {
 	FindAddressesByQueryService(context.Context, string) ([]AddressResponse, error)
+	FindAddressesByQueryV2Service(context.Context, string) ([]AddressResponse, error)
 	FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error)
 	FindStateAll(context.Context) ([]StateResponse, error)
 	FindCityAll(context.Context, int32) ([]CityResponse, error)
@@ -21,10 +24,11 @@ type InterfaceService interface {
 
 type Service struct {
 	InterfaceService InterfaceRepository
+	MeiliRepository  meiliaddress.InterfaceRepository
 }
 
-func NewAddresssService(InterfaceService InterfaceRepository) *Service {
-	return &Service{InterfaceService}
+func NewAddressService(InterfaceService InterfaceRepository, MeiliRepository meiliaddress.InterfaceRepository) *Service {
+	return &Service{InterfaceService: InterfaceService, MeiliRepository: MeiliRepository}
 }
 
 func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error) {
@@ -44,6 +48,8 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	neighborhoodSet := make(map[string]bool)
 	streetSet := make(map[string]bool)
 	var latitude, longitude float64
+
+	log.Println("searching by cep")
 
 	for _, addr := range addresses {
 		if cityName == "" {
@@ -112,6 +118,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
+		log.Println("searching by latitude and longitude")
 		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
@@ -133,6 +140,7 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	if isCEP {
+		log.Println("searching by cep")
 		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err
@@ -246,6 +254,108 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		return nil, err
 	}
 	addressResponses, err = ParseFromQueryRow(addressesQuery, numero)
+	if err != nil {
+		return nil, err
+	}
+
+	return addressResponses, nil
+}
+
+func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query string) ([]AddressResponse, error) {
+	var addressResponses []AddressResponse
+	var number string
+
+	cepRegex := regexp.MustCompile(`^\d{8}$`)
+	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(query, "-", ""), " ", "")
+	isCEP := cepRegex.MatchString(normalizedQuery)
+
+	latLonRegex := regexp.MustCompile(`^\s*-?\d{1,2}(\.\d+)?\s*[, ]\s*-?\d{1,3}(\.\d+)?\s*$`)
+	isLatLon := latLonRegex.MatchString(query)
+
+	if isLatLon {
+		coords := strings.SplitN(query, ",", 2)
+		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
+		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
+
+		log.Println("searching by latitude and longitude")
+		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
+			Lat: sql.NullFloat64{
+				Float64: lat,
+			},
+			Lon: sql.NullFloat64{
+				Float64: lng,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		addressResponses, err = ParseFromLatLonRow(addressLatLon)
+		if err != nil {
+			return nil, err
+		}
+
+		return addressResponses, nil
+	}
+
+	if isCEP {
+		log.Println("searching by cep")
+		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
+		if err != nil {
+			return nil, err
+		}
+		addressResponses, err = ParseFromCEPRow(addressCEP)
+		if err != nil {
+			return nil, err
+		}
+		return addressResponses, nil
+	}
+
+	terms := strings.Split(query, ",")
+	for _, term := range terms {
+		if _, err := strconv.Atoi(term); err == nil {
+			number = term
+			continue
+		}
+	}
+
+	var meiliAddresses []meiliaddress.MeiliAddress
+	streetsMeili, err := s.MeiliRepository.FindMeiliStreetsRepository(ctx, query, 50)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, street := range streetsMeili {
+		addressesList, err := s.InterfaceService.FindAddressByStreetIDRepository(ctx, street.StreetID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, addr := range addressesList {
+			meiliAddr := meiliaddress.MeiliAddress{
+				StreetID:         street.StreetID,
+				StreetName:       street.StreetName,
+				NeighborhoodName: street.NeighborhoodName,
+				NeighborhoodLat:  street.NeighborhoodLat,
+				NeighborhoodLon:  street.NeighborhoodLon,
+				CityName:         street.CityName,
+				CityLat:          street.CityLat,
+				CityLon:          street.CityLon,
+				StateUf:          street.StateUf,
+				StateName:        street.StateName,
+				StateLat:         street.StateLat,
+				StateLon:         street.StateLon,
+				AddressID:        addr.ID,
+				Number:           addr.Number.String,
+				Cep:              addr.Cep,
+				Lat:              addr.Lat.Float64,
+				Lon:              addr.Lon.Float64,
+			}
+
+			meiliAddresses = append(meiliAddresses, meiliAddr)
+		}
+	}
+	addressResponses, err = ParseQueryMeiliRow(meiliAddresses, number)
 	if err != nil {
 		return nil, err
 	}
