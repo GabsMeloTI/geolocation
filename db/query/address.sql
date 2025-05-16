@@ -123,3 +123,20 @@ FROM addresses a
 WHERE a.cep = $1
 GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
     LIMIT 100;
+
+-- name: FindAddressByCEP :one
+SELECT
+    c.name AS city_name,
+    st.uf AS state_uf,
+    n.name as neighborhood_name,
+    s.name as street_name,
+    a.lat as latitude,
+    a.lat as longitude
+FROM addresses a
+         JOIN streets s ON a.street_id = s.id
+         LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
+         JOIN cities c ON n.city_id = c.id
+         JOIN states st ON c.state_id = st.id
+WHERE a.cep = $1
+GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
+    LIMIT 1;
