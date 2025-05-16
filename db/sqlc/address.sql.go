@@ -17,7 +17,7 @@ SELECT
     n.name as neighborhood_name,
     s.name as street_name,
     a.lat as latitude,
-    a.lat as longitude
+    a.lon as longitude
 FROM addresses a
          JOIN streets s ON a.street_id = s.id
          LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
@@ -94,7 +94,7 @@ SELECT
     n.name as neighborhood_name,
     s.name as street_name,
     a.lat as latitude,
-    a.lat as longitude
+    a.lon as longitude
 FROM addresses a
          JOIN streets s ON a.street_id = s.id
          LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
