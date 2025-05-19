@@ -329,7 +329,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Routes"
+                    "Rotas"
                 ],
                 "summary": "Calcular rotas com base em CEP.",
                 "parameters": [
