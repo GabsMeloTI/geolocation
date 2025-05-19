@@ -5,6 +5,10 @@ definitions:
         type: string
       city_name:
         type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
       neighborhood_name:
         type: string
       state_uf:
@@ -682,8 +686,6 @@ definitions:
         type: string
       cpf:
         type: string
-      email:
-        type: string
       license_category:
         enum:
         - a
@@ -948,6 +950,48 @@ definitions:
     - origin
     - type
     type: object
+  new_routes.FrontInfoCEP:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination_cep:
+        type: string
+      favorite:
+        type: boolean
+      origin_cep:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination_cep
+    - origin_cep
+    - type
+    type: object
   new_routes.FrontInfoCoordinate:
     properties:
       axles:
@@ -1151,6 +1195,8 @@ definitions:
         $ref: '#/definitions/new_routes.AddressInfo'
       route_hist_id:
         type: integer
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
     type: object
   new_routes.Toll:
     properties:
@@ -1759,6 +1805,40 @@ paths:
       summary: Buscar Endereço por CEP
       tags:
       - Endereços
+  /address/find/v2:
+    get:
+      consumes:
+      - application/json
+      description: Busca um endereço por pesquisa. Endereço completo (Rua, bairro,
+        número).
+      parameters:
+      - description: Consulta do Endereço
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Endereço
+          schema:
+            items:
+              $ref: '#/definitions/address.AddressResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Endereço por Consulta
+      tags:
+      - Endereços
   /address/state:
     get:
       consumes:
@@ -2213,6 +2293,64 @@ paths:
       summary: Retrieve messages from a chat room.
       tags:
       - WebSocket
+  /check-route-tolls-cep:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Calcula as melhores opções de rota a partir dos CEPs de origem e destino.
+
+        Campos esperados no body:
+        - origin_cep: \"01001000\" (CEP de origem)
+        - destination_cep: \"20040002\" (CEP de destino)
+        - consumptionCity: 20         (Consumo de combustível na cidade, em km/l)
+        - consumptionHwy: 22         (Consumo de combustível na estrada, em km/l)
+        - price: 6.20                (Preço do combustível em BRL)
+        - axles: 2                  (Quantidade de eixos: 2, 4, 6, 8, 9)
+        - waypoints: [\"01310940\",\"20050013\"] (Lista de CEPs para pontos de parada)
+        - public_or_private: \"public\" | \"private\" (Define se conta na cota pública ou privada)
+        - favorite: true             (Se deseja favoritar essa rota)
+        - type: \"Auto\"              (Tipo de veículo: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: \"eficiente\"    (Rota específica: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false,   (retorna postos de gasolina)
+        include_route_map: false,        (retorna rotograma da rota)
+        include_toll_costs: false,       (retorna pedágios e custos gerais)
+        include_weigh_stations: false,   (retorna balanças)
+        include_freight_calc: false,     (retorna cálculo de frete ANTT)
+        include_polyline: false          (retorna polyline para mapas)
+        } (Opções adicionais para a rota)
+      parameters:
+      - description: Requisição para cálculo de rota por CEP
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfoCEP'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações calculadas da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "404":
+          description: Não Encontrado
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcular rotas com base em CEP.
+      tags:
+      - Routes
   /check-route-tolls-coordinate:
     post:
       consumes:

@@ -314,6 +314,63 @@ const docTemplate = `{
                 }
             }
         },
+ 		"/check-route-tolls-cep": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Calcula as melhores opções de rota a partir dos CEPs de origem e destino.\n\nCampos esperados no body:\n- origin_cep: \\\"01001000\\\" (CEP de origem)\n- destination_cep: \\\"20040002\\\" (CEP de destino)\n- consumptionCity: 20         (Consumo de combustível na cidade, em km/l)\n- consumptionHwy: 22         (Consumo de combustível na estrada, em km/l)\n- price: 6.20                (Preço do combustível em BRL)\n- axles: 2                  (Quantidade de eixos: 2, 4, 6, 8, 9)\n- waypoints: [\\\"01310940\\\",\\\"20050013\\\"] (Lista de CEPs para pontos de parada)\n- public_or_private: \\\"public\\\" | \\\"private\\\" (Define se conta na cota pública ou privada)\n- favorite: true             (Se deseja favoritar essa rota)\n- type: \\\"Auto\\\"              (Tipo de veículo: Truck, Bus, Auto, Motorcycle)\n- typeRoute: \\\"eficiente\\\"    (Rota específica: eficiente, rápida ou barata)\n- route_options: {\ninclude_fuel_stations: false,   (retorna postos de gasolina)\ninclude_route_map: false,        (retorna rotograma da rota)\ninclude_toll_costs: false,       (retorna pedágios e custos gerais)\ninclude_weigh_stations: false,   (retorna balanças)\ninclude_freight_calc: false,     (retorna cálculo de frete ANTT)\ninclude_polyline: false          (retorna polyline para mapas)\n} (Opções adicionais para a rota)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcular rotas com base em CEP.",
+                "parameters": [
+                    {
+                        "description": "Requisição para cálculo de rota por CEP",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEP"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações calculadas da rota",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FinalOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/create": {
             "post": {
                 "description": "Cria um usuário gerando um token para acessar as funcionalidades do sistema.",
