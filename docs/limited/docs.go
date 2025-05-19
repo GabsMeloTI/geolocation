@@ -332,9 +332,9 @@ const docTemplate = `{
                     "Rotas"
                 ],
                 "summary": "Calcular rotas com base em CEP.",
-                "parameters": [
+                 "parameters": [
                     {
-                        "description": "Requisição para cálculo de rota por CEP",
+                        "description": "Campos necessários",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -907,6 +907,65 @@ const docTemplate = `{
                 },
                 "public_or_private": {
                     "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+		"new_routes.FrontInfoCEP": {
+            "type": "object",
+            "required": [
+                "destination_cep",
+                "origin_cep",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "destination_cep": {
+                    "type": "string"
+                },
+                "favorite": {
+                    "type": "boolean"
+                },
+                "origin_cep": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "public_or_private": {
+                    "type": "string"
+                },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
                 },
                 "type": {
                     "type": "string",

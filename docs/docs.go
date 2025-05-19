@@ -1000,6 +1000,7 @@ const docTemplate = `{
         },
         "/check-route-tolls-coordinate": {
             "post": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
