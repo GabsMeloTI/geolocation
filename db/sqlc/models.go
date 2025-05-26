@@ -8,6 +8,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ActiveFreight struct {
@@ -105,6 +107,16 @@ type Appointment struct {
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedWho          sql.NullString `json:"updated_who"`
 	UpdatedAt           sql.NullTime   `json:"updated_at"`
+}
+
+type Area struct {
+	ID          int64        `json:"id"`
+	LocationsID int64        `json:"locations_id"`
+	Latitude    string       `json:"latitude"`
+	Longitude   string       `json:"longitude"`
+	Description string       `json:"description"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type Attachment struct {
@@ -229,6 +241,16 @@ type HistoryRecoverPassword struct {
 	DateSolicitation   sql.NullTime `json:"date_solicitation"`
 	Token              string       `json:"token"`
 	DateUpdatePassword sql.NullTime `json:"date_update_password"`
+}
+
+type Location struct {
+	ID        int64          `json:"id"`
+	Type      string         `json:"type"`
+	Address   sql.NullString `json:"address"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
+	AccessID  int64          `json:"access_id"`
+	TenantID  uuid.UUID      `json:"tenant_id"`
 }
 
 type Neighborhood struct {

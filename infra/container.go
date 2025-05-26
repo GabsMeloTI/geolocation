@@ -14,6 +14,7 @@ import (
 	"geolocation/internal/dashboard"
 	"geolocation/internal/drivers"
 	"geolocation/internal/hist"
+	"geolocation/internal/location"
 	"geolocation/internal/login"
 	new_routes "geolocation/internal/new_routes"
 	"geolocation/internal/payment"
@@ -83,6 +84,9 @@ type ContainerDI struct {
 	ServiceAddress          *address.Service
 	RepositoryAddress       *address.Repository
 	RepositoryMeiliAddress  *meiliaddress.Repository
+	RepositoryLocation      *location.Repository
+	ServiceLocation         *location.Service
+	HandlerLocation         *location.Handler
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -149,6 +153,8 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryAppointment = appointments.NewAppointmentsRepository(c.ConnDB)
 	c.RepositoryAddress = address.NewAddressRepository(c.ConnDB)
 	c.RepositoryMeiliAddress = meiliaddress.NewMeiliAddressRepository(c.Config.MeiliHttp, c.Config.MeiliKey)
+	c.RepositoryLocation = location.NewLocationsRepository(c.ConnDB)
+
 }
 
 func (c *ContainerDI) buildService() {
@@ -176,6 +182,7 @@ func (c *ContainerDI) buildService() {
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress)
+	c.ServiceLocation = location.NewLocationsService(c.RepositoryLocation)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -197,4 +204,5 @@ func (c *ContainerDI) buildHandler() {
 	go hub.Run()
 	c.HandlerAppointment = appointments.NewAppointmentHandler(c.ServiceAppointment)
 	c.HandlerAddress = address.NewAddressHandler(c.ServiceAddress)
+	c.HandlerLocation = location.NewLocationHandler(c.ServiceLocation)
 }

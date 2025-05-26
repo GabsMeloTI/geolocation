@@ -126,7 +126,6 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	chat.POST("/update-offer", container.WsHandler.UpdateMessageOffer)
 	chat.GET("/messages/:room_id", container.WsHandler.GetMessagesByRoomId)
 	chat.POST("/update-freight", container.WsHandler.UpdateFreightLocation)
-	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
 
 	// simpplify
 	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
@@ -139,14 +138,17 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/login", container.LoginHandler.Login)
 	e.POST("/create", container.LoginHandler.CreateUser)
 	e.POST("/create/client", container.LoginHandler.CreateUserClient, _midlleware.CheckUserAuthorization)
+	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
+	e.GET("/ws", container.WsHandler.HandleWs, _midlleware.CheckUserWsAuthorization)
+	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
+	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
 
 	appointment := e.Group("/appointment")
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
 	appointment.PUT("/delete/:id", container.HandlerAppointment.DeleteAppointmentsHandler)
 	appointment.GET("/:id", container.HandlerAppointment.GetAppointmentByUserIDHandler)
-
-	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)
-	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
 
 	address := e.Group("/address")
 	address.GET("/find", container.HandlerAddress.FindAddressByQueryHandler)
@@ -155,10 +157,11 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	address.GET("/state", container.HandlerAddress.FindStateAll)
 	address.GET("/city/:idState", container.HandlerAddress.FindCityAll)
 
-	e.GET("/token", container.HandlerUserPlan.GetTokenUserHandler, _midlleware.CheckUserAuthorization)
-	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
-
-	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
+	locations := e.Group("/locations", _midlleware.CheckAuthorization)
+	locations.POST("/create", container.HandlerLocation.CreateLocationHandler)
+	locations.PUT("/update", container.HandlerLocation.UpdateLocationHandler)
+	locations.DELETE("/delete/:id", container.HandlerLocation.DeleteLocationHandler)
+	locations.GET("/list", container.HandlerLocation.GetLocationHandler)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 
