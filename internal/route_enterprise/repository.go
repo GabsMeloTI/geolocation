@@ -9,6 +9,7 @@ import (
 type InterfaceRepository interface {
 	CreateRouteEnterprise(ctx context.Context, arg db.CreateRouteEnterpriseParams) (db.RouteEnterprise, error)
 	DeleteRouteEnterprise(ctx context.Context, arg db.DeleteRouteEnterpriseParams) error
+	GetOrganizationByTenant(ctx context.Context, arg db.GetOrganizationByTenantParams) (sql.NullString, error)
 }
 
 type Repository struct {
@@ -34,4 +35,8 @@ func (r *Repository) CreateRouteEnterprise(ctx context.Context, arg db.CreateRou
 
 func (r *Repository) DeleteRouteEnterprise(ctx context.Context, arg db.DeleteRouteEnterpriseParams) error {
 	return r.Queries.DeleteRouteEnterprise(ctx, arg)
+}
+
+func (r *Repository) GetOrganizationByTenant(ctx context.Context, arg db.GetOrganizationByTenantParams) (sql.NullString, error) {
+	return r.Queries.GetOrganizationByTenant(ctx, arg)
 }

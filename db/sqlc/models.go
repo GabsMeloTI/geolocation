@@ -269,6 +269,35 @@ type Offer struct {
 	Status          sql.NullBool  `json:"status"`
 }
 
+type Organization struct {
+	ID                    int64          `json:"id"`
+	Email                 string         `json:"email"`
+	Phone                 string         `json:"phone"`
+	Cnpj                  string         `json:"cnpj"`
+	LogoUrl               sql.NullString `json:"logo_url"`
+	FantasyName           string         `json:"fantasy_name"`
+	CompanyName           sql.NullString `json:"company_name"`
+	State                 sql.NullString `json:"state"`
+	City                  sql.NullString `json:"city"`
+	Status                bool           `json:"status"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             sql.NullTime   `json:"updated_at"`
+	AccessID              sql.NullInt64  `json:"access_id"`
+	TenantID              uuid.NullUUID  `json:"tenant_id"`
+	CapaUrl               sql.NullString `json:"capa_url"`
+	Neighborhood          sql.NullString `json:"neighborhood"`
+	Number                sql.NullString `json:"number"`
+	Street                sql.NullString `json:"street"`
+	Postcode              sql.NullString `json:"postcode"`
+	StateRegistration     sql.NullString `json:"state_registration"`
+	MunicipalRegistration sql.NullString `json:"municipal_registration"`
+	Rntrc                 sql.NullString `json:"rntrc"`
+	Complement            sql.NullString `json:"complement"`
+	ControlPortal         sql.NullBool   `json:"control_portal"`
+	ContractTermSigned    sql.NullBool   `json:"contract_term_signed"`
+	AutomaticEmail        sql.NullString `json:"automatic_email"`
+}
+
 type PaymentHist struct {
 	ID               int64     `json:"id"`
 	UserID           int64     `json:"user_id"`

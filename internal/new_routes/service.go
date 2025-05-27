@@ -13,6 +13,7 @@ import (
 	cache "geolocation/pkg"
 	"geolocation/validation"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"googlemaps.github.io/maps"
 	"log"
 	"math"
@@ -596,7 +597,28 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
 	}
 
-	originCoord, err := s.InterfaceService.FindAddressByCEP(ctx, frontInfo.OriginCEP)
+	cepOrigin := frontInfo.OriginCEP
+	if frontInfo.Enterprise {
+		resultOrg, errOrg := s.InterfaceRouteEnterprise.GetOrganizationByTenant(ctx, db.GetOrganizationByTenantParams{
+			AccessID: sql.NullInt64{
+				Int64: payloadSimp.AccessID,
+				Valid: true,
+			},
+			TenantID: uuid.NullUUID{
+				UUID:  payloadSimp.TenantID,
+				Valid: true,
+			},
+			Cnpj: payloadSimp.Document,
+		})
+		if errOrg != nil {
+			return FinalOutput{}, errOrg
+		}
+
+		cepOrigin = resultOrg.String
+	}
+
+	fmt.Println(cepOrigin)
+	originCoord, err := s.InterfaceService.FindAddressByCEP(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
 	}
