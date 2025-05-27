@@ -8,6 +8,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ActiveFreight struct {
@@ -105,6 +107,16 @@ type Appointment struct {
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedWho          sql.NullString `json:"updated_who"`
 	UpdatedAt           sql.NullTime   `json:"updated_at"`
+}
+
+type Area struct {
+	ID          int64        `json:"id"`
+	LocationsID int64        `json:"locations_id"`
+	Latitude    string       `json:"latitude"`
+	Longitude   string       `json:"longitude"`
+	Description string       `json:"description"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type Attachment struct {
@@ -231,6 +243,16 @@ type HistoryRecoverPassword struct {
 	DateUpdatePassword sql.NullTime `json:"date_update_password"`
 }
 
+type Location struct {
+	ID        int64          `json:"id"`
+	Type      string         `json:"type"`
+	Address   sql.NullString `json:"address"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
+	AccessID  int64          `json:"access_id"`
+	TenantID  uuid.UUID      `json:"tenant_id"`
+}
+
 type Neighborhood struct {
 	ID     int32           `json:"id"`
 	Name   string          `json:"name"`
@@ -274,6 +296,19 @@ type Plan struct {
 type Profile struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
+}
+
+type RouteEnterprise struct {
+	ID          int64           `json:"id"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	Status      sql.NullBool    `json:"status"`
+	CreatedAt   time.Time       `json:"created_at"`
+	CreatedWho  string          `json:"created_who"`
+	TenantID    uuid.UUID       `json:"tenant_id"`
+	AccessID    int64           `json:"access_id"`
 }
 
 type RouteHist struct {
