@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"log"
+	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -129,6 +131,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 
 	// simpplify
 	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
+	e.POST("/check-route-tolls-simpplify-cep", container.HandlerNewRoutes.CalculateRoutesWithCEP, _midlleware.CheckAuthorization)
 	// easyfrete
 	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
 	e.POST("/check-route-tolls-coordinate", container.HandlerNewRoutes.CalculateRoutesWithCoordinate, _midlleware.CheckUserAuthorization)
@@ -163,6 +166,15 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	locations.DELETE("/delete/:id", container.HandlerLocation.DeleteLocationHandler)
 	locations.GET("/list", container.HandlerLocation.GetLocationHandler)
 
-	e.Logger.Fatal(e.Start(container.Config.ServerPort))
+	certFile := "fullchain.pem"
+	keyFile := "privkey.pem"
 
+	if _, err := os.Stat(certFile); os.IsNotExist(err) {
+		log.Fatalf("Certificado não encontrado: %v", err)
+	}
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		log.Fatalf("Chave privada não encontrada: %v", err)
+	}
+
+	e.Logger.Fatal(e.StartTLS(container.Config.ServerPort, certFile, keyFile))
 }

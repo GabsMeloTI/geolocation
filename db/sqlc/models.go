@@ -298,6 +298,19 @@ type Profile struct {
 	Name string `json:"name"`
 }
 
+type RouteEnterprise struct {
+	ID          int64           `json:"id"`
+	Origin      string          `json:"origin"`
+	Destination string          `json:"destination"`
+	Waypoints   sql.NullString  `json:"waypoints"`
+	Response    json.RawMessage `json:"response"`
+	Status      sql.NullBool    `json:"status"`
+	CreatedAt   time.Time       `json:"created_at"`
+	CreatedWho  string          `json:"created_who"`
+	TenantID    uuid.UUID       `json:"tenant_id"`
+	AccessID    int64           `json:"access_id"`
+}
+
 type RouteHist struct {
 	ID            int64           `json:"id"`
 	IDUser        int64           `json:"id_user"`

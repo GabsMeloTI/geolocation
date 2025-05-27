@@ -180,8 +180,9 @@ func (h *Handler) CalculateRoutesWithCEP(e echo.Context) error {
 	}
 
 	payloadPublic := get_token.GetPublicPayloadToken(e)
+	payloadSimp := get_token.GetPayloadToken(e)
 	payload := get_token.GetUserPayloadToken(e)
-	result, err := h.InterfaceService.CalculateRoutesWithCEP(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID)
+	result, err := h.InterfaceService.CalculateRoutesWithCEP(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID, payloadSimp)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, echo.ErrNotFound) {

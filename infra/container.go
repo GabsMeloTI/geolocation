@@ -3,6 +3,7 @@ package infra
 import (
 	"database/sql"
 	meiliaddress "geolocation/internal/meili_address"
+	"geolocation/internal/route_enterprise"
 
 	"geolocation/infra/database"
 	"geolocation/infra/database/db_postgresql"
@@ -29,64 +30,65 @@ import (
 )
 
 type ContainerDI struct {
-	Config                  Config
-	ConnDB                  *sql.DB
-	ConnDBSP                *sql.DB
-	HandlerRoutes           *routes.Handler
-	ServiceRoutes           *routes.Service
-	RepositoryRoutes        *routes.Repository
-	HandlerNewRoutes        *new_routes.Handler
-	ServiceNewRoutes        *new_routes.Service
-	HandlerHist             *hist.Handler
-	ServiceHist             *hist.Service
-	RepositoryHist          *hist.Repository
-	HandlerDriver           *drivers.Handler
-	ServiceDriver           *drivers.Service
-	RepositoryDriver        *drivers.Repository
-	HandlerTractorUnit      *tractor_unit.Handler
-	ServiceTractorUnit      *tractor_unit.Service
-	RepositoryTractorUnit   *tractor_unit.Repository
-	HandlerTrailer          *trailer.Handler
-	ServiceTrailer          *trailer.Service
-	RepositoryTrailer       *trailer.Repository
-	HandlerAdvertisement    *advertisement.Handler
-	ServiceAdvertisement    *advertisement.Service
-	RepositoryAdvertisement *advertisement.Repository
-	HandlerUserPlan         *plans.Handler
-	ServiceUserPlan         *plans.Service
-	RepositoryUserPlan      *plans.Repository
-	HandlerDashboard        *dashboard.Handler
-	ServiceDashboard        *dashboard.Service
-	RepositoryDashboard     *dashboard.Repository
-	HandlerAttachment       *attachment.Handler
-	ServiceAttachment       *attachment.Service
-	RepositoryAttachment    *attachment.Repository
-	HandlerPayment          *payment.Handler
-	ServicePayment          *payment.Service
-	RepositoryPayment       *payment.Repository
-	UserHandler             *user.Handler
-	UserService             *user.Service
-	UserRepository          *user.Repository
-	WsHandler               *ws.Handler
-	LoginHandler            *login.Handler
-	LoginService            *login.Service
-	LoginRepository         *login.Repository
-	GoogleToken             *sso.GoogleToken
-	SendEmail               *email.SendEmail
-	PasetoMaker             *token.Maker
-	PassetoMaker            *token.PasetoMaker
-	WsRepository            *ws.Repository
-	WsService               *ws.Service
-	HandlerAppointment      *appointments.Handler
-	ServiceAppointment      *appointments.Service
-	RepositoryAppointment   *appointments.Repository
-	HandlerAddress          *address.Handler
-	ServiceAddress          *address.Service
-	RepositoryAddress       *address.Repository
-	RepositoryMeiliAddress  *meiliaddress.Repository
-	RepositoryLocation      *location.Repository
-	ServiceLocation         *location.Service
-	HandlerLocation         *location.Handler
+	Config                    Config
+	ConnDB                    *sql.DB
+	ConnDBSP                  *sql.DB
+	HandlerRoutes             *routes.Handler
+	ServiceRoutes             *routes.Service
+	RepositoryRoutes          *routes.Repository
+	HandlerNewRoutes          *new_routes.Handler
+	ServiceNewRoutes          *new_routes.Service
+	HandlerHist               *hist.Handler
+	ServiceHist               *hist.Service
+	RepositoryHist            *hist.Repository
+	HandlerDriver             *drivers.Handler
+	ServiceDriver             *drivers.Service
+	RepositoryDriver          *drivers.Repository
+	HandlerTractorUnit        *tractor_unit.Handler
+	ServiceTractorUnit        *tractor_unit.Service
+	RepositoryTractorUnit     *tractor_unit.Repository
+	HandlerTrailer            *trailer.Handler
+	ServiceTrailer            *trailer.Service
+	RepositoryTrailer         *trailer.Repository
+	HandlerAdvertisement      *advertisement.Handler
+	ServiceAdvertisement      *advertisement.Service
+	RepositoryAdvertisement   *advertisement.Repository
+	HandlerUserPlan           *plans.Handler
+	ServiceUserPlan           *plans.Service
+	RepositoryUserPlan        *plans.Repository
+	HandlerDashboard          *dashboard.Handler
+	ServiceDashboard          *dashboard.Service
+	RepositoryDashboard       *dashboard.Repository
+	HandlerAttachment         *attachment.Handler
+	ServiceAttachment         *attachment.Service
+	RepositoryAttachment      *attachment.Repository
+	HandlerPayment            *payment.Handler
+	ServicePayment            *payment.Service
+	RepositoryPayment         *payment.Repository
+	UserHandler               *user.Handler
+	UserService               *user.Service
+	UserRepository            *user.Repository
+	WsHandler                 *ws.Handler
+	LoginHandler              *login.Handler
+	LoginService              *login.Service
+	LoginRepository           *login.Repository
+	GoogleToken               *sso.GoogleToken
+	SendEmail                 *email.SendEmail
+	PasetoMaker               *token.Maker
+	PassetoMaker              *token.PasetoMaker
+	WsRepository              *ws.Repository
+	WsService                 *ws.Service
+	HandlerAppointment        *appointments.Handler
+	ServiceAppointment        *appointments.Service
+	RepositoryAppointment     *appointments.Repository
+	HandlerAddress            *address.Handler
+	ServiceAddress            *address.Service
+	RepositoryAddress         *address.Repository
+	RepositoryMeiliAddress    *meiliaddress.Repository
+	RepositoryLocation        *location.Repository
+	ServiceLocation           *location.Service
+	HandlerLocation           *location.Handler
+	RepositoryRouteEnterprise *route_enterprise.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -154,12 +156,13 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryAddress = address.NewAddressRepository(c.ConnDB)
 	c.RepositoryMeiliAddress = meiliaddress.NewMeiliAddressRepository(c.Config.MeiliHttp, c.Config.MeiliKey)
 	c.RepositoryLocation = location.NewLocationsRepository(c.ConnDB)
+	c.RepositoryRouteEnterprise = route_enterprise.NewRouteEnterpriseRepository(c.ConnDBSP)
 
 }
 
 func (c *ContainerDI) buildService() {
 	c.ServiceRoutes = routes.NewRoutesService(c.RepositoryRoutes, c.Config.GoogleMapsKey)
-	c.ServiceNewRoutes = new_routes.NewRoutesNewService(c.RepositoryRoutes, c.Config.GoogleMapsKey)
+	c.ServiceNewRoutes = new_routes.NewRoutesNewService(c.RepositoryRoutes, c.RepositoryRouteEnterprise, c.Config.GoogleMapsKey)
 	c.ServiceHist = hist.NewHistService(c.RepositoryHist, c.Config.SignatureToken)
 	c.ServiceDriver = drivers.NewDriversService(c.RepositoryDriver)
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)

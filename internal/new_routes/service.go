@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	db "geolocation/db/sqlc"
+	"geolocation/internal/get_token"
+	"geolocation/internal/route_enterprise"
 	"geolocation/internal/routes"
 	cache "geolocation/pkg"
 	"geolocation/validation"
@@ -25,7 +27,7 @@ import (
 
 type InterfaceService interface {
 	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
-	CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64) (FinalOutput, error)
+	CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error)
 	CalculateRoutesWithCoordinate(ctx context.Context, frontInfo FrontInfoCoordinate, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
 	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
@@ -33,14 +35,16 @@ type InterfaceService interface {
 }
 
 type Service struct {
-	InterfaceService routes.InterfaceRepository
-	GoogleMapsAPIKey string
+	InterfaceService         routes.InterfaceRepository
+	InterfaceRouteEnterprise route_enterprise.InterfaceRepository
+	GoogleMapsAPIKey         string
 }
 
-func NewRoutesNewService(interfaceService routes.InterfaceRepository, googleMapsAPIKey string) *Service {
+func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string) *Service {
 	return &Service{
-		InterfaceService: interfaceService,
-		GoogleMapsAPIKey: googleMapsAPIKey,
+		InterfaceService:         interfaceService,
+		InterfaceRouteEnterprise: interfaceRouteEnterprise,
+		GoogleMapsAPIKey:         googleMapsAPIKey,
 	}
 }
 
@@ -545,7 +549,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	return finalOutput, nil
 }
 
-func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64) (FinalOutput, error) {
+func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error) {
 	if strings.ToLower(frontInfo.PublicOrPrivate) == "public" {
 		if err := s.updateNumberOfRequest(ctx, idPublicToken); err != nil {
 			return FinalOutput{}, err
@@ -1116,6 +1120,25 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		return FinalOutput{}, errSavedRoutes
 	}
 	finalOutput.Summary.RouteHistID = result
+
+	if frontInfo.Enterprise {
+		resultE, errE := s.InterfaceRouteEnterprise.CreateRouteEnterprise(ctx, db.CreateRouteEnterpriseParams{
+			Origin:      origin.FormattedAddress,
+			Destination: destination.FormattedAddress,
+			Waypoints: sql.NullString{
+				String: waypointsStrResponse,
+				Valid:  true,
+			},
+			Response:   responseJSON,
+			CreatedWho: payloadSimp.UserNickname,
+			TenantID:   payloadSimp.TenantID,
+			AccessID:   payloadSimp.AccessID,
+		})
+		if errE != nil {
+			return FinalOutput{}, errSavedRoutes
+		}
+		finalOutput.RouteEnterpriseId = resultE.ID
+	}
 
 	return finalOutput, nil
 }

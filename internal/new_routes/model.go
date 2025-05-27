@@ -127,8 +127,9 @@ type GasStation struct {
 }
 
 type FinalOutput struct {
-	Summary Summary       `json:"summary"`
-	Routes  []RouteOutput `json:"routes"`
+	Summary           Summary       `json:"summary"`
+	RouteEnterpriseId int64         `json:"route_enterprise_id,omitempty"`
+	Routes            []RouteOutput `json:"routes"`
 }
 
 type FinalOutputSimp struct {
@@ -208,6 +209,7 @@ type FrontInfoCEP struct {
 	PublicOrPrivate string       `json:"public_or_private"`
 	Favorite        bool         `json:"favorite"`
 	RouteOptions    RouteOptions `json:"route_options"`
+	Enterprise      bool         `json:"enterprise"`
 }
 
 type FrontInfoCoordinate struct {
