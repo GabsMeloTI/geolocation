@@ -557,9 +557,29 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		}
 	}
 
+	cepOrigin := frontInfo.OriginCEP
+	if frontInfo.Enterprise {
+		resultOrg, errOrg := s.InterfaceRouteEnterprise.GetOrganizationByTenant(ctx, db.GetOrganizationByTenantParams{
+			AccessID: sql.NullInt64{
+				Int64: payloadSimp.AccessID,
+				Valid: true,
+			},
+			TenantID: uuid.NullUUID{
+				UUID:  payloadSimp.TenantID,
+				Valid: true,
+			},
+			Cnpj: payloadSimp.Document,
+		})
+		if errOrg != nil {
+			return FinalOutput{}, errOrg
+		}
+
+		cepOrigin = resultOrg.String
+	}
+
 	waypointsStr := strings.ToLower(strings.Join(frontInfo.WaypointsCEP, ","))
 	cacheKey := fmt.Sprintf("route:%s:%s:%s:%s:waypoints:%s:axles:%d:type:%s",
-		strings.ToLower(frontInfo.OriginCEP),
+		strings.ToLower(cepOrigin),
 		strings.ToLower(frontInfo.DestinationCEP),
 		waypointsStr,
 		frontInfo.Axles,
@@ -597,27 +617,6 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
 	}
 
-	cepOrigin := frontInfo.OriginCEP
-	if frontInfo.Enterprise {
-		resultOrg, errOrg := s.InterfaceRouteEnterprise.GetOrganizationByTenant(ctx, db.GetOrganizationByTenantParams{
-			AccessID: sql.NullInt64{
-				Int64: payloadSimp.AccessID,
-				Valid: true,
-			},
-			TenantID: uuid.NullUUID{
-				UUID:  payloadSimp.TenantID,
-				Valid: true,
-			},
-			Cnpj: payloadSimp.Document,
-		})
-		if errOrg != nil {
-			return FinalOutput{}, errOrg
-		}
-
-		cepOrigin = resultOrg.String
-	}
-
-	fmt.Println(cepOrigin)
 	originCoord, err := s.InterfaceService.FindAddressByCEP(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
