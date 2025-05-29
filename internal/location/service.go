@@ -24,6 +24,19 @@ func NewLocationsService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) CreateLocationService(ctx context.Context, data CreateLocationDTO) (LocationResponse, error) {
+	_, err := s.InterfaceService.GetLocationByName(ctx, db.GetLocationByNameParams{
+		AccessID:       data.Payload.AccessID,
+		TenantID:       data.Payload.TenantID,
+		IDProviderInfo: data.CreateLocationRequest.ProviderInfoID,
+		Type:           data.CreateLocationRequest.Type,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return LocationResponse{}, err
+	}
+	if err == nil {
+		return LocationResponse{}, errors.New("já existe um local deste tipo")
+	}
+
 	locParams := data.ParseCreateToLocation()
 	locParams.AccessID = data.Payload.AccessID
 	locParams.TenantID = data.Payload.TenantID
@@ -58,6 +71,20 @@ func (s *Service) CreateLocationService(ctx context.Context, data CreateLocation
 }
 
 func (s *Service) UpdateLocationService(ctx context.Context, data UpdateLocationDTO) (LocationResponse, error) {
+	_, err := s.InterfaceService.GetLocationByNameExcludingID(ctx, db.GetLocationByNameExcludingIDParams{
+		AccessID:       data.Payload.AccessID,
+		TenantID:       data.Payload.TenantID,
+		Type:           data.UpdateLocationRequest.Type,
+		ID:             data.UpdateLocationRequest.ID,
+		IDProviderInfo: data.UpdateLocationRequest.ProviderInfoID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return LocationResponse{}, err
+	}
+	if err == nil {
+		return LocationResponse{}, errors.New("já existe um local deste tipo")
+	}
+
 	arg := data.ParseUpdateToLocation()
 	updatedLoc, err := s.InterfaceService.UpdateLocation(ctx, arg)
 	if err != nil {

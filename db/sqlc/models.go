@@ -248,6 +248,7 @@ type Location struct {
 	Type           string         `json:"type"`
 	Address        sql.NullString `json:"address"`
 	IDProviderInfo int64          `json:"id_provider_info"`
+	Color          string         `json:"color"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      sql.NullTime   `json:"updated_at"`
 	AccessID       int64          `json:"access_id"`

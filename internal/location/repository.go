@@ -15,6 +15,8 @@ type InterfaceRepository interface {
 	CreateArea(ctx context.Context, arg db.CreateAreaParams) (db.Area, error)
 	UpdateArea(ctx context.Context, arg db.UpdateAreaParams) (db.Area, error)
 	DeleteArea(ctx context.Context, arg int64) error
+	GetLocationByName(ctx context.Context, arg db.GetLocationByNameParams) ([]db.Location, error)
+	GetLocationByNameExcludingID(ctx context.Context, arg db.GetLocationByNameExcludingIDParams) (db.Location, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -63,4 +65,11 @@ func (r *Repository) UpdateArea(ctx context.Context, arg db.UpdateAreaParams) (d
 
 func (r *Repository) DeleteArea(ctx context.Context, arg int64) error {
 	return r.Queries.DeleteArea(ctx, arg)
+}
+
+func (r *Repository) GetLocationByName(ctx context.Context, arg db.GetLocationByNameParams) ([]db.Location, error) {
+	return r.Queries.GetLocationByName(ctx, arg)
+}
+func (r *Repository) GetLocationByNameExcludingID(ctx context.Context, arg db.GetLocationByNameExcludingIDParams) (db.Location, error) {
+	return r.Queries.GetLocationByNameExcludingID(ctx, arg)
 }

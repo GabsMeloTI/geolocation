@@ -11,6 +11,7 @@ import (
 type CreateLocationRequest struct {
 	Type           string              `json:"type"`
 	Address        string              `json:"address"`
+	Color          string              `json:"color"`
 	ProviderInfoID int64               `json:"provider_info_id"`
 	Area           []CreateAreaRequest `json:"area"`
 }
@@ -44,6 +45,7 @@ type LocationResponse struct {
 	ID             int64              `json:"id"`
 	Type           string             `json:"type"`
 	Address        string             `json:"address"`
+	Color          string             `json:"color"`
 	ProviderInfoID int64              `json:"provider_info_id"`
 	Area           []GetAreasResponse `json:"area"`
 	CreatedAt      time.Time          `json:"created_at"`
@@ -62,6 +64,7 @@ type UpdateLocationRequest struct {
 	ID             int64               `json:"id"`
 	Type           string              `json:"type"`
 	Address        string              `json:"address"`
+	Color          string              `json:"color"`
 	ProviderInfoID int64               `json:"provider_info_id"`
 	Areas          []UpdateAreaRequest `json:"area"`
 }
@@ -78,6 +81,7 @@ func (p *CreateLocationDTO) ParseCreateToLocation() db.CreateLocationParams {
 			String: p.CreateLocationRequest.Address,
 			Valid:  true,
 		},
+		Color:          p.CreateLocationRequest.Color,
 		IDProviderInfo: p.CreateLocationRequest.ProviderInfoID,
 		AccessID:       p.Payload.AccessID,
 		TenantID:       p.Payload.TenantID,
@@ -97,6 +101,7 @@ func (p *UpdateLocationDTO) ParseUpdateToLocation() db.UpdateLocationParams {
 	return db.UpdateLocationParams{
 		Type:           p.UpdateLocationRequest.Type,
 		Address:        sql.NullString{String: p.UpdateLocationRequest.Address, Valid: true},
+		Color:          p.UpdateLocationRequest.Color,
 		ID:             p.UpdateLocationRequest.ID,
 		AccessID:       p.Payload.AccessID,
 		TenantID:       p.Payload.TenantID,
@@ -107,6 +112,7 @@ func (p *UpdateLocationDTO) ParseUpdateToLocation() db.UpdateLocationParams {
 func (p *LocationResponse) ParseFromPlansObject(result db.Location, areas []GetAreasResponse) {
 	p.ID = result.ID
 	p.Type = result.Type
+	p.Color = result.Color
 	p.Address = result.Address.String
 	p.ProviderInfoID = result.IDProviderInfo
 	p.Area = areas

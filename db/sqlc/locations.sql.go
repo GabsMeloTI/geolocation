@@ -48,15 +48,16 @@ func (q *Queries) CreateArea(ctx context.Context, arg CreateAreaParams) (Area, e
 
 const createLocation = `-- name: CreateLocation :one
 INSERT INTO public.locations
-(id, "type", address, id_provider_info, created_at, access_id, tenant_id)
-VALUES(nextval('locations_id_seq'::regclass), $1, $2, $3, now(), $4, $5)
-    RETURNING id, type, address, id_provider_info, created_at, updated_at, access_id, tenant_id
+(id, "type", address, id_provider_info, color, created_at, access_id, tenant_id)
+VALUES(nextval('locations_id_seq'::regclass), $1, $2, $3, $4, now(), $5, $6)
+    RETURNING id, type, address, id_provider_info, color, created_at, updated_at, access_id, tenant_id
 `
 
 type CreateLocationParams struct {
 	Type           string         `json:"type"`
 	Address        sql.NullString `json:"address"`
 	IDProviderInfo int64          `json:"id_provider_info"`
+	Color          string         `json:"color"`
 	AccessID       int64          `json:"access_id"`
 	TenantID       uuid.UUID      `json:"tenant_id"`
 }
@@ -66,6 +67,7 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 		arg.Type,
 		arg.Address,
 		arg.IDProviderInfo,
+		arg.Color,
 		arg.AccessID,
 		arg.TenantID,
 	)
@@ -75,6 +77,7 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 		&i.Type,
 		&i.Address,
 		&i.IDProviderInfo,
+		&i.Color,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccessID,
@@ -154,8 +157,103 @@ func (q *Queries) GetAreasByOrg(ctx context.Context, locationsID int64) ([]GetAr
 	return items, nil
 }
 
+const getLocationByName = `-- name: GetLocationByName :many
+SELECT id, type, address, id_provider_info, color, created_at, updated_at, access_id, tenant_id
+FROM public.locations l
+WHERE id_provider_info=$3 AND
+      type=$4 AND
+      access_id=$1 AND
+      tenant_id=$2
+`
+
+type GetLocationByNameParams struct {
+	AccessID       int64     `json:"access_id"`
+	TenantID       uuid.UUID `json:"tenant_id"`
+	IDProviderInfo int64     `json:"id_provider_info"`
+	Type           string    `json:"type"`
+}
+
+func (q *Queries) GetLocationByName(ctx context.Context, arg GetLocationByNameParams) ([]Location, error) {
+	rows, err := q.db.QueryContext(ctx, getLocationByName,
+		arg.AccessID,
+		arg.TenantID,
+		arg.IDProviderInfo,
+		arg.Type,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Location
+	for rows.Next() {
+		var i Location
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Address,
+			&i.IDProviderInfo,
+			&i.Color,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.AccessID,
+			&i.TenantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLocationByNameExcludingID = `-- name: GetLocationByNameExcludingID :one
+SELECT id, type, address, id_provider_info, color, created_at, updated_at, access_id, tenant_id
+FROM public.locations
+WHERE access_id  = $1
+  AND tenant_id  = $2
+  AND type      = $3
+  AND id         <> $4
+  AND id_provider_info = $5
+`
+
+type GetLocationByNameExcludingIDParams struct {
+	AccessID       int64     `json:"access_id"`
+	TenantID       uuid.UUID `json:"tenant_id"`
+	Type           string    `json:"type"`
+	ID             int64     `json:"id"`
+	IDProviderInfo int64     `json:"id_provider_info"`
+}
+
+func (q *Queries) GetLocationByNameExcludingID(ctx context.Context, arg GetLocationByNameExcludingIDParams) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocationByNameExcludingID,
+		arg.AccessID,
+		arg.TenantID,
+		arg.Type,
+		arg.ID,
+		arg.IDProviderInfo,
+	)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.Address,
+		&i.IDProviderInfo,
+		&i.Color,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AccessID,
+		&i.TenantID,
+	)
+	return i, err
+}
+
 const getLocationByOrg = `-- name: GetLocationByOrg :many
-SELECT l.id, l.type, l.address, l.id_provider_info, l.created_at, l.updated_at, l.access_id, l.tenant_id
+SELECT l.id, l.type, l.address, l.id_provider_info, l.color, l.created_at, l.updated_at, l.access_id, l.tenant_id
 FROM public.locations l
 WHERE id_provider_info=$3 AND
       access_id=$1 AND
@@ -182,6 +280,7 @@ func (q *Queries) GetLocationByOrg(ctx context.Context, arg GetLocationByOrgPara
 			&i.Type,
 			&i.Address,
 			&i.IDProviderInfo,
+			&i.Color,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AccessID,
@@ -238,11 +337,11 @@ func (q *Queries) UpdateArea(ctx context.Context, arg UpdateAreaParams) (Area, e
 
 const updateLocation = `-- name: UpdateLocation :one
 UPDATE public.locations
-SET "type"=$1, address=$2, id_provider_info=$6, updated_at=now()
+SET "type"=$1, address=$2, id_provider_info=$6, color=$7, updated_at=now()
 WHERE id=$3 AND
     access_id=$4 AND
     tenant_id=$5
-    RETURNING id, type, address, id_provider_info, created_at, updated_at, access_id, tenant_id
+    RETURNING id, type, address, id_provider_info, color, created_at, updated_at, access_id, tenant_id
 `
 
 type UpdateLocationParams struct {
@@ -252,6 +351,7 @@ type UpdateLocationParams struct {
 	AccessID       int64          `json:"access_id"`
 	TenantID       uuid.UUID      `json:"tenant_id"`
 	IDProviderInfo int64          `json:"id_provider_info"`
+	Color          string         `json:"color"`
 }
 
 func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) (Location, error) {
@@ -262,6 +362,7 @@ func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) 
 		arg.AccessID,
 		arg.TenantID,
 		arg.IDProviderInfo,
+		arg.Color,
 	)
 	var i Location
 	err := row.Scan(
@@ -269,6 +370,7 @@ func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) 
 		&i.Type,
 		&i.Address,
 		&i.IDProviderInfo,
+		&i.Color,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccessID,
