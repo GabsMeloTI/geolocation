@@ -10,7 +10,7 @@ import (
 
 type InterfaceService interface {
 	CreateLocationService(ctx context.Context, data CreateLocationDTO) (LocationResponse, error)
-	GetLocationService(ctx context.Context, payload get_token.PayloadDTO) ([]LocationResponse, error)
+	GetLocationService(ctx context.Context, provider int64, payload get_token.PayloadDTO) ([]LocationResponse, error)
 	UpdateLocationService(ctx context.Context, data UpdateLocationDTO) (LocationResponse, error)
 	DeleteLocationService(ctx context.Context, id int64, payload get_token.PayloadDTO) error
 }
@@ -24,7 +24,7 @@ func NewLocationsService(InterfaceService InterfaceRepository) *Service {
 }
 
 func (s *Service) CreateLocationService(ctx context.Context, data CreateLocationDTO) (LocationResponse, error) {
-	locParams := data.CreateLocationRequest.ParseCreateToLocation()
+	locParams := data.ParseCreateToLocation()
 	locParams.AccessID = data.Payload.AccessID
 	locParams.TenantID = data.Payload.TenantID
 
@@ -115,13 +115,22 @@ func (s *Service) DeleteLocationService(ctx context.Context, id int64, payload g
 		return err
 	}
 
+	err = s.InterfaceService.DeleteArea(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("location does not exist")
+		}
+		return err
+	}
+
 	return nil
 }
 
-func (s *Service) GetLocationService(ctx context.Context, payload get_token.PayloadDTO) ([]LocationResponse, error) {
+func (s *Service) GetLocationService(ctx context.Context, provider int64, payload get_token.PayloadDTO) ([]LocationResponse, error) {
 	locs, err := s.InterfaceService.GetLocationByOrg(ctx, db.GetLocationByOrgParams{
-		AccessID: payload.AccessID,
-		TenantID: payload.TenantID,
+		IDProviderInfo: provider,
+		AccessID:       payload.AccessID,
+		TenantID:       payload.TenantID,
 	})
 	if err != nil {
 		return nil, err

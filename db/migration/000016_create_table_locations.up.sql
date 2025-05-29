@@ -1,7 +1,8 @@
 CREATE TABLE locations (
                            id               BIGSERIAL PRIMARY KEY,
-                           type             VARCHAR(50) NOT NULL, --- pátio, descarga, balança, ...
+                           type             VARCHAR(50) NOT NULL,
                            address          VARCHAR(50) NULL,
+                           id_provider_info BIGINT NOT NULL,
                            created_at       TIMESTAMP NOT NULL DEFAULT now(),
                            updated_at       TIMESTAMP  NULL,
                            access_id        BIGINT NOT NULL,
@@ -18,6 +19,3 @@ CREATE TABLE areas (
                       created_at       TIMESTAMP NOT NULL DEFAULT now(),
                       updated_at       TIMESTAMP  NULL
 );
-
-
-

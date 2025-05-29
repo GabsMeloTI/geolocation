@@ -1,12 +1,12 @@
 -- name: CreateLocation :one
 INSERT INTO public.locations
-(id, "type", address, created_at, access_id, tenant_id)
-VALUES(nextval('locations_id_seq'::regclass), $1, $2, now(), $3, $4)
+(id, "type", address, id_provider_info, created_at, access_id, tenant_id)
+VALUES(nextval('locations_id_seq'::regclass), $1, $2, $3, now(), $4, $5)
     RETURNING *;
 
 -- name: UpdateLocation :one
 UPDATE public.locations
-SET "type"=$1, address=$2, updated_at=now()
+SET "type"=$1, address=$2, id_provider_info=$6, updated_at=now()
 WHERE id=$3 AND
     access_id=$4 AND
     tenant_id=$5
@@ -36,9 +36,10 @@ DELETE FROM public.areas
 WHERE locations_id=$1;
 
 -- name: GetLocationByOrg :many
-SELECT l.id, l.type, l.address, l.created_at, l.updated_at, l.access_id, l.tenant_id
+SELECT l.id, l.type, l.address, l.id_provider_info, l.created_at, l.updated_at, l.access_id, l.tenant_id
 FROM public.locations l
-WHERE access_id=$1 AND
+WHERE id_provider_info=$3 AND
+      access_id=$1 AND
       tenant_id=$2;
 
 -- name: GetAreasByOrg :many

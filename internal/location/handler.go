@@ -71,8 +71,14 @@ func (h *Handler) DeleteLocationHandler(c echo.Context) error {
 }
 
 func (h *Handler) GetLocationHandler(c echo.Context) error {
+	idStr := c.Param("providerId")
+	id, err := validation.ParseStringToInt64(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
 	payload := get_token.GetPayloadToken(c)
-	result, err := h.InterfaceService.GetLocationService(c.Request().Context(), payload)
+	result, err := h.InterfaceService.GetLocationService(c.Request().Context(), id, payload)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

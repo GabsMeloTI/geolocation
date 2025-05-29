@@ -48,22 +48,24 @@ func (q *Queries) CreateArea(ctx context.Context, arg CreateAreaParams) (Area, e
 
 const createLocation = `-- name: CreateLocation :one
 INSERT INTO public.locations
-(id, "type", address, created_at, access_id, tenant_id)
-VALUES(nextval('locations_id_seq'::regclass), $1, $2, now(), $3, $4)
-    RETURNING id, type, address, created_at, updated_at, access_id, tenant_id
+(id, "type", address, id_provider_info, created_at, access_id, tenant_id)
+VALUES(nextval('locations_id_seq'::regclass), $1, $2, $3, now(), $4, $5)
+    RETURNING id, type, address, id_provider_info, created_at, updated_at, access_id, tenant_id
 `
 
 type CreateLocationParams struct {
-	Type     string         `json:"type"`
-	Address  sql.NullString `json:"address"`
-	AccessID int64          `json:"access_id"`
-	TenantID uuid.UUID      `json:"tenant_id"`
+	Type           string         `json:"type"`
+	Address        sql.NullString `json:"address"`
+	IDProviderInfo int64          `json:"id_provider_info"`
+	AccessID       int64          `json:"access_id"`
+	TenantID       uuid.UUID      `json:"tenant_id"`
 }
 
 func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error) {
 	row := q.db.QueryRowContext(ctx, createLocation,
 		arg.Type,
 		arg.Address,
+		arg.IDProviderInfo,
 		arg.AccessID,
 		arg.TenantID,
 	)
@@ -72,6 +74,7 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 		&i.ID,
 		&i.Type,
 		&i.Address,
+		&i.IDProviderInfo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccessID,
@@ -152,19 +155,21 @@ func (q *Queries) GetAreasByOrg(ctx context.Context, locationsID int64) ([]GetAr
 }
 
 const getLocationByOrg = `-- name: GetLocationByOrg :many
-SELECT l.id, l.type, l.address, l.created_at, l.updated_at, l.access_id, l.tenant_id
+SELECT l.id, l.type, l.address, l.id_provider_info, l.created_at, l.updated_at, l.access_id, l.tenant_id
 FROM public.locations l
-WHERE access_id=$1 AND
+WHERE id_provider_info=$3 AND
+      access_id=$1 AND
       tenant_id=$2
 `
 
 type GetLocationByOrgParams struct {
-	AccessID int64     `json:"access_id"`
-	TenantID uuid.UUID `json:"tenant_id"`
+	AccessID       int64     `json:"access_id"`
+	TenantID       uuid.UUID `json:"tenant_id"`
+	IDProviderInfo int64     `json:"id_provider_info"`
 }
 
 func (q *Queries) GetLocationByOrg(ctx context.Context, arg GetLocationByOrgParams) ([]Location, error) {
-	rows, err := q.db.QueryContext(ctx, getLocationByOrg, arg.AccessID, arg.TenantID)
+	rows, err := q.db.QueryContext(ctx, getLocationByOrg, arg.AccessID, arg.TenantID, arg.IDProviderInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +181,7 @@ func (q *Queries) GetLocationByOrg(ctx context.Context, arg GetLocationByOrgPara
 			&i.ID,
 			&i.Type,
 			&i.Address,
+			&i.IDProviderInfo,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AccessID,
@@ -232,19 +238,20 @@ func (q *Queries) UpdateArea(ctx context.Context, arg UpdateAreaParams) (Area, e
 
 const updateLocation = `-- name: UpdateLocation :one
 UPDATE public.locations
-SET "type"=$1, address=$2, updated_at=now()
+SET "type"=$1, address=$2, id_provider_info=$6, updated_at=now()
 WHERE id=$3 AND
     access_id=$4 AND
     tenant_id=$5
-    RETURNING id, type, address, created_at, updated_at, access_id, tenant_id
+    RETURNING id, type, address, id_provider_info, created_at, updated_at, access_id, tenant_id
 `
 
 type UpdateLocationParams struct {
-	Type     string         `json:"type"`
-	Address  sql.NullString `json:"address"`
-	ID       int64          `json:"id"`
-	AccessID int64          `json:"access_id"`
-	TenantID uuid.UUID      `json:"tenant_id"`
+	Type           string         `json:"type"`
+	Address        sql.NullString `json:"address"`
+	ID             int64          `json:"id"`
+	AccessID       int64          `json:"access_id"`
+	TenantID       uuid.UUID      `json:"tenant_id"`
+	IDProviderInfo int64          `json:"id_provider_info"`
 }
 
 func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) (Location, error) {
@@ -254,12 +261,14 @@ func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) 
 		arg.ID,
 		arg.AccessID,
 		arg.TenantID,
+		arg.IDProviderInfo,
 	)
 	var i Location
 	err := row.Scan(
 		&i.ID,
 		&i.Type,
 		&i.Address,
+		&i.IDProviderInfo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccessID,

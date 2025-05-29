@@ -244,13 +244,14 @@ type HistoryRecoverPassword struct {
 }
 
 type Location struct {
-	ID        int64          `json:"id"`
-	Type      string         `json:"type"`
-	Address   sql.NullString `json:"address"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt sql.NullTime   `json:"updated_at"`
-	AccessID  int64          `json:"access_id"`
-	TenantID  uuid.UUID      `json:"tenant_id"`
+	ID             int64          `json:"id"`
+	Type           string         `json:"type"`
+	Address        sql.NullString `json:"address"`
+	IDProviderInfo int64          `json:"id_provider_info"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      sql.NullTime   `json:"updated_at"`
+	AccessID       int64          `json:"access_id"`
+	TenantID       uuid.UUID      `json:"tenant_id"`
 }
 
 type Neighborhood struct {
