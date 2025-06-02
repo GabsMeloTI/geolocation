@@ -138,7 +138,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -694,7 +694,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -1287,7 +1287,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -2464,7 +2464,7 @@ func (s *Service) RemoveFavoriteRouteService(ctx context.Context, id, idUser int
 
 func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error) {
 	coords := fmt.Sprintf("%f,%f;%f,%f", data.OriginLng, data.OriginLat, data.DestLng, data.DestLat)
-	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURL := baseOSRMURL + "?" + url.Values{
