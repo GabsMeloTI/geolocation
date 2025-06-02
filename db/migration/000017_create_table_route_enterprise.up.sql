@@ -42,3 +42,10 @@ CREATE TABLE public."Organizations" (
                                         automatic_email varchar NULL,
                                         CONSTRAINT "Organizations_pkey" PRIMARY KEY (id)
 );
+
+CREATE TABLE addresses_coordinates (
+                                       id BIGINT,
+                                       cep VARCHAR(20),
+                                       lat DOUBLE PRECISION,
+                                       lon DOUBLE PRECISION
+);

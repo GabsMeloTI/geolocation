@@ -27,6 +27,7 @@ type InterfaceRepository interface {
 	GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.FavoriteRoute, error)
 	RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error
 	FindAddressByCEP(ctx context.Context, arg string) (db.FindAddressByCEPRow, error)
+	FindAddressByCEPNew(ctx context.Context, argStr string) (db.FindAddressByCEPNewRow, error)
 }
 
 type Repository struct {
@@ -100,7 +101,13 @@ func (r *Repository) GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.F
 func (r *Repository) RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error {
 	return r.Queries.RemoveFavorite(ctx, arg)
 }
-
 func (r *Repository) FindAddressByCEP(ctx context.Context, arg string) (db.FindAddressByCEPRow, error) {
 	return r.Queries.FindAddressByCEP(ctx, arg)
+}
+func (r *Repository) FindAddressByCEPNew(ctx context.Context, argStr string) (db.FindAddressByCEPNewRow, error) {
+	arg := sql.NullString{
+		String: argStr,
+		Valid:  true,
+	}
+	return r.Queries.FindAddressByCEPNew(ctx, arg)
 }
