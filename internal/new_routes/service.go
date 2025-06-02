@@ -617,22 +617,22 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
 	}
 
-	originCoord, err := s.InterfaceService.FindAddressByCEP(ctx, cepOrigin)
+	originCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	destinationCoord, err := s.InterfaceService.FindAddressByCEP(ctx, frontInfo.DestinationCEP)
+	destinationCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, frontInfo.DestinationCEP)
 	if err != nil {
 		return FinalOutput{}, err
 	}
 
-	originAddress, err := s.reverseGeocode(originCoord.Latitude.Float64, originCoord.Longitude.Float64)
+	originAddress, err := s.reverseGeocode(originCoord.Lat.Float64, originCoord.Lon.Float64)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
 	}
-	destinationAddress, err := s.reverseGeocode(destinationCoord.Latitude.Float64, destinationCoord.Longitude.Float64)
+	destinationAddress, err := s.reverseGeocode(destinationCoord.Lat.Float64, destinationCoord.Lon.Float64)
 	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso do destino: %w", err)
+		return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
 	}
 
 	originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
@@ -640,14 +640,14 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
 	}
 	origin := originGeocode
-	origin.Location = Location{Latitude: originCoord.Latitude.Float64, Longitude: originCoord.Longitude.Float64}
+	origin.Location = Location{Latitude: originCoord.Lat.Float64, Longitude: originCoord.Lon.Float64}
 
 	destinationGeocode, err := s.getGeocodeAddress(ctx, destinationAddress)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
 	}
 	destination := destinationGeocode
-	destination.Location = Location{Latitude: destinationCoord.Latitude.Float64, Longitude: destinationCoord.Longitude.Float64}
+	destination.Location = Location{Latitude: destinationCoord.Lat.Float64, Longitude: destinationCoord.Lon.Float64}
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.WaypointsCEP {

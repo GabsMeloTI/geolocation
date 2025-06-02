@@ -173,3 +173,6 @@ FROM addresses a
 WHERE a.cep = $1
 GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
     LIMIT 1;
+
+-- name: FindAddressByCEPNew :one
+select id, lat, lon from addresses_coordinates a where a.cep = $1 limit 1;
