@@ -62,6 +62,30 @@ func (h *Handler) FindAddressByQueryV2Handler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindUniqueAddressesByCEPHandler godoc
+// @Summary Buscar Endereço por Cep
+// @Description Buscar Endereço por Cep
+// @Tags Endereços
+// @Accept json
+// @Produce json
+// @Param q query string true "Consulta do Endereço"
+// @Success 200 {object} []AddressResponse "Informações do Endereço"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /address/find/cep/v2 [get]
+// @Security ApiKeyAuth
+func (h *Handler) FindUniqueAddressesByCEPHandler(c echo.Context) error {
+	q := c.QueryParam("q")
+	if q == "" {
+		return c.JSON(http.StatusBadRequest, "O parâmetro de consulta 'q' é obrigatório")
+	}
+	result, err := h.InterfaceService.FindUniqueAddressesByCEPService(c.Request().Context(), q)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
 // FindAddressByCEPHandler godoc
 // @Summary Buscar Endereço por CEP
 // @Description Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições encontradas.
