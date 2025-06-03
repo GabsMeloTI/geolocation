@@ -743,6 +743,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		}
 		resultsCh <- osrmResult{resp: osrmResp, category: category}
 	}
+	fmt.Println(osrmURLEfficient)
 
 	go makeOSRMRequest(osrmURLFast, "fatest", "erro na requisição OSRM (rota rápida)")
 	go makeOSRMRequest(osrmURLNoTolls, "cheapest", "erro na requisição OSRM (rota com menos pedágio)")
