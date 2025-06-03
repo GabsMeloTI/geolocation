@@ -740,7 +740,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 			resultsCh <- osrmResult{err: fmt.Errorf("erro ao decodificar resposta OSRM (%s): %w", category, err), category: category}
 			return
 		}
-		if osrmResp.Code != "Ok" || len(osrmResp.Routes) == 0 {
+		if osrmResp.Code != "Ok" {
 			resultsCh <- osrmResult{err: fmt.Errorf("OSRM (%s) retornou erro ou nenhuma rota encontrada", category), category: category}
 			return
 		}
