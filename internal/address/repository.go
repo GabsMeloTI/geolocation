@@ -17,6 +17,7 @@ type InterfaceRepository interface {
 	FindNeighborhoodsByNameRepository(context.Context, string) ([]db.FindNeighborhoodsByNameRow, error)
 	FindStateAll(context.Context) ([]db.State, error)
 	FindCityAll(context.Context, int32) ([]db.City, error)
+	FindUniqueAddressesByCEPRepository(ctx context.Context, arg string) ([]db.FindUniqueAddressByCEPRow, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -72,4 +73,8 @@ func (r *Repository) FindCityAll(ctx context.Context, arg int32) ([]db.City, err
 
 func (r *Repository) FindAddressByStreetIDRepository(ctx context.Context, arg int32) ([]db.Address, error) {
 	return r.Queries.FindAddressByStreetID(ctx, arg)
+}
+
+func (r *Repository) FindUniqueAddressesByCEPRepository(ctx context.Context, arg string) ([]db.FindUniqueAddressByCEPRow, error) {
+	return r.Queries.FindUniqueAddressByCEP(ctx, arg)
 }
