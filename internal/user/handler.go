@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"geolocation/pkg/gpt"
 	"net/http"
 	"strings"
 
@@ -275,4 +276,18 @@ func (h *Handler) UpdateUserPassword(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "Sucesso")
+}
+
+func (h *Handler) InfoCaminhao(c echo.Context) error {
+	modelo := c.Param("modelo")
+	if modelo == "" {
+		return errors.New("modelo invalido")
+	}
+
+	result, err := gpt.PerguntarAoGptEstruturado(modelo)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
 }
