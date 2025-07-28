@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"geolocation/pkg/gpt"
+	"geolocation/pkg/plate"
 	"net/http"
 	"strings"
 
@@ -285,6 +286,20 @@ func (h *Handler) InfoCaminhao(c echo.Context) error {
 	}
 
 	result, err := gpt.PerguntarAoGptEstruturado(modelo)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) ConsultarPlaca(c echo.Context) error {
+	placa := c.Param("placa")
+	if placa == "" {
+		return errors.New("placa invalido")
+	}
+
+	result, err := plate.ConsultarPlaca(placa)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
