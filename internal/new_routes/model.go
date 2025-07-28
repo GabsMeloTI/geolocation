@@ -46,6 +46,35 @@ type Summary struct {
 	RouteOptions        RouteOptions   `json:"route_options"`
 }
 
+type Response struct {
+	Routes     []DetailedRoute `json:"routes"`
+	TotalRoute TotalSummary    `json:"total_route"`
+}
+type DetailedRoute struct {
+	LocationOrigin      AddressInfo    `json:"location_origin"`
+	LocationDestination AddressInfo    `json:"location_destination"`
+	Summaries           []RouteSummary `json:"summaries"`
+}
+
+type TotalSummary struct {
+	LocationOrigin      AddressInfo `json:"location_origin"`
+	LocationDestination AddressInfo `json:"location_destination"`
+	TotalDistance       Distance    `json:"distance"`
+	TotalDuration       Duration    `json:"duration"`
+	URL                 string      `json:"url"`
+	URLWaze             string      `json:"url_waze"`
+	Tolls               []Toll      `json:"tolls,omitempty"`
+	TotalTolls          float64     `json:"total_tolls,omitempty"`
+	Polyline            string      `json:"polyline,omitempty"`
+}
+type SummaryResponse struct {
+	LocationOrigin      AddressInfo    `json:"location_origin"`
+	LocationDestination AddressInfo    `json:"location_destination"`
+	FuelPrice           FuelPrice      `json:"fuel_price"`
+	FuelEfficiency      FuelEfficiency `json:"fuel_efficiency"`
+	RouteOptions        RouteOptions   `json:"route_options"`
+}
+
 type Toll struct {
 	ID              int             `json:"id"`
 	Latitude        float64         `json:"lat"`
@@ -86,6 +115,9 @@ type RouteSummary struct {
 	URL           string   `json:"url"`
 	URLWaze       string   `json:"url_waze"`
 	TotalFuelCost float64  `json:"total_fuel_cost,omitempty"`
+	Tolls         []Toll   `json:"tolls,omitempty"`
+	TotalTolls    float64  `json:"total_tolls,omitempty"`
+	Polyline      string   `json:"polyline,omitempty"`
 }
 
 type Costs struct {
@@ -210,6 +242,17 @@ type FrontInfoCEP struct {
 	Favorite        bool         `json:"favorite"`
 	RouteOptions    RouteOptions `json:"route_options"`
 	Enterprise      bool         `json:"enterprise"`
+}
+
+type FrontInfoCEPRequest struct {
+	CEPs            []string     `json:"ceps"`
+	ConsumptionCity float64      `json:"consumptionCity"`
+	ConsumptionHwy  float64      `json:"consumptionHwy"`
+	Price           float64      `json:"price"`
+	Axles           int64        `json:"axles"`
+	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	TypeRoute       string       `json:"typeRoute"`
+	RouteOptions    RouteOptions `json:"route_options"`
 }
 
 type FrontInfoCoordinate struct {

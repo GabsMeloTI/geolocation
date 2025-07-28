@@ -194,6 +194,24 @@ func (h *Handler) CalculateRoutesWithCEP(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+func (h *Handler) CalculateRoutesCEP(e echo.Context) error {
+	var frontInfo FrontInfoCEPRequest
+	if err := e.Bind(&frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := h.InterfaceService.CalculateDistancesBetweenPoints(e.Request().Context(), frontInfo)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // GetSimpleRoute godoc
 // @Summary Get simple route information.
 // @Description Retrieves a simple route with distance and duration.
