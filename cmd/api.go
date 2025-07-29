@@ -133,6 +133,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/check-route-tolls-simpplify-cep", container.HandlerNewRoutes.CalculateRoutesWithCEP, _midlleware.CheckAuthorization)
 	e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
+	e.POST("/nearby-location", container.HandlerNewRoutes.CalculateDistancesFromOrigin)
+
 	// easyfrete
 	e.POST("/check-route-tolls-easy", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckUserAuthorization)
 	e.POST("/check-route-tolls-coordinate", container.HandlerNewRoutes.CalculateRoutesWithCoordinate, _midlleware.CheckUserAuthorization)
