@@ -63,9 +63,10 @@ type TotalSummary struct {
 	TotalDuration       Duration    `json:"duration"`
 	URL                 string      `json:"url"`
 	URLWaze             string      `json:"url_waze"`
-	Tolls               []Toll      `json:"tolls,omitempty"`
-	TotalTolls          float64     `json:"total_tolls,omitempty"`
-	Polyline            string      `json:"polyline,omitempty"`
+	TotalTolls          float64     `json:"total_tolls"`
+	TotalFuelCost       float64     `json:"total_fuel_cost"`
+	Tolls               []Toll      `json:"tolls"`
+	Polyline            string      `json:"polyline"`
 }
 type SummaryResponse struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`

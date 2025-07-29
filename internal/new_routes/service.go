@@ -1178,8 +1178,6 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 	var totalDistance float64
 	var totalDuration float64
 
-	var firstOrigin, lastDestination AddressInfo
-
 	for i := 0; i < len(data.CEPs)-1; i++ {
 		originCEP := data.CEPs[i]
 		destCEP := data.CEPs[i+1]
@@ -1198,19 +1196,6 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 
 		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
-
-		if i == 0 {
-			firstOrigin = AddressInfo{
-				Location: Location{Latitude: originCoord.Lat.Float64, Longitude: originCoord.Lon.Float64},
-				Address:  originGeocode.FormattedAddress,
-			}
-		}
-		if i == len(data.CEPs)-2 {
-			lastDestination = AddressInfo{
-				Location: Location{Latitude: destCoord.Lat.Float64, Longitude: destCoord.Lon.Float64},
-				Address:  destGeocode.FormattedAddress,
-			}
-		}
 
 		coords := fmt.Sprintf("%f,%f;%f,%f",
 			originCoord.Lon.Float64, originCoord.Lat.Float64,
@@ -1364,54 +1349,99 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		})
 	}
 
-	var waypointStrs []string
-	for _, cep := range data.CEPs[1 : len(data.CEPs)-1] {
-		coord, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
-		if err != nil {
-			continue
-		}
-		reverse, _ := s.reverseGeocode(coord.Lat.Float64, coord.Lon.Float64)
-		geocode, _ := s.getGeocodeAddress(ctx, reverse)
-		waypointStrs = append(waypointStrs, geocode.FormattedAddress)
-	}
-	var waypoints string
-	if len(waypointStrs) > 0 {
-		waypoints = "&waypoints=" + neturl.QueryEscape(strings.Join(waypointStrs, "|"))
-	}
+	var totalRoute TotalSummary
+	if len(data.CEPs) > 2 {
+		var allCoords []string
+		var waypoints []string
+		var originLocation, destinationLocation Location
+		for idx, cep := range data.CEPs {
+			coord, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
+			if err != nil {
+				return Response{}, fmt.Errorf("erro ao buscar coordenadas para total_route no CEP %s: %w", cep, err)
+			}
+			allCoords = append(allCoords, fmt.Sprintf("%f,%f", coord.Lon.Float64, coord.Lat.Float64))
 
-	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s",
-		neturl.QueryEscape(firstOrigin.Address),
-		neturl.QueryEscape(lastDestination.Address),
-		waypoints,
-	)
-	currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
-	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-		neturl.QueryEscape(lastDestination.Address),
-		neturl.QueryEscape(firstOrigin.Address),
-		currentTimeMillis,
-	)
+			reverse, _ := s.reverseGeocode(coord.Lat.Float64, coord.Lon.Float64)
+			geocode, _ := s.getGeocodeAddress(ctx, reverse)
+			waypoints = append(waypoints, geocode.FormattedAddress)
+
+			if idx == 0 {
+				originLocation = Location{Latitude: coord.Lat.Float64, Longitude: coord.Lon.Float64}
+			}
+			if idx == len(data.CEPs)-1 {
+				destinationLocation = Location{Latitude: coord.Lat.Float64, Longitude: coord.Lon.Float64}
+			}
+		}
+
+		coordsStr := strings.Join(allCoords, ";")
+		urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+
+		resp, err := client.Get(urlTotal)
+		if err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+
+				distText, distVal := formatDistance(route.Distance)
+				durText, durVal := formatDuration(route.Duration)
+
+				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+				totalKm := route.Distance / 1000
+				totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+				tolls, _ := s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				var totalTollCost float64
+				for _, toll := range tolls {
+					totalTollCost += toll.CashCost
+				}
+
+				originAddress := waypoints[0]
+				destAddress := waypoints[len(waypoints)-1]
+				waypointStr := ""
+				if len(waypoints) > 2 {
+					waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+				}
+
+				googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+					neturl.QueryEscape(originAddress),
+					neturl.QueryEscape(destAddress),
+					waypointStr,
+				)
+
+				currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+				wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+					neturl.QueryEscape(destAddress),
+					neturl.QueryEscape(originAddress),
+					currentTimeMillis,
+				)
+
+				totalRoute = TotalSummary{
+					LocationOrigin: AddressInfo{
+						Location: originLocation,
+						Address:  originAddress,
+					},
+					LocationDestination: AddressInfo{
+						Location: destinationLocation,
+						Address:  destAddress,
+					},
+					TotalDistance: Distance{Text: distText, Value: distVal},
+					TotalDuration: Duration{Text: durText, Value: durVal},
+					URL:           googleURL,
+					URLWaze:       wazeURL,
+					Tolls:         tolls,
+					TotalTolls:    math.Round(totalTollCost*100) / 100,
+					Polyline:      route.Geometry,
+					TotalFuelCost: totalFuelCost,
+				}
+			}
+		}
+	}
 
 	return Response{
-		Routes: resultRoutes,
-		TotalRoute: TotalSummary{
-			LocationOrigin:      firstOrigin,
-			LocationDestination: lastDestination,
-			TotalDistance:       Distance{Text: formatDistanceText(totalDistance), Value: totalDistance},
-			TotalDuration:       Duration{Text: formatDurationText(totalDuration), Value: totalDuration},
-			URL:                 googleURL,
-			URLWaze:             wazeURL,
-		},
+		Routes:     resultRoutes,
+		TotalRoute: totalRoute,
 	}, nil
-}
-
-func formatDistanceText(metros float64) string {
-	text, _ := formatDistance(metros)
-	return text
-}
-
-func formatDurationText(segundos float64) string {
-	text, _ := formatDuration(segundos)
-	return text
 }
 
 func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo FrontInfoCoordinate, idPublicToken int64, idSimp int64) (FinalOutput, error) {

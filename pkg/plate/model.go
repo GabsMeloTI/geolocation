@@ -1,5 +1,14 @@
 package plate
 
+type Multa struct {
+	Data      string `json:"data"`
+	Orgao     string `json:"orgao"`
+	Gravidade string `json:"gravidade"`
+	Descricao string `json:"descricao"`
+	Pontos    string `json:"pontos"`
+	Valor     string `json:"valor"`
+}
+
 type FullAPIResponse struct {
 	Data Response `json:"data"`
 }
@@ -57,4 +66,7 @@ type Response struct {
 	Cilindradas          string     `json:"cilindradas"`
 	SituacaoVeiculo      string     `json:"situacao_veiculo"`
 	Listamodelo          [][]string `json:"listamodelo"`
+	Multas               struct {
+		Dados []Multa `json:"dados"`
+	} `json:"multas,omitempty"`
 }

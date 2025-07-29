@@ -40,12 +40,13 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	bearer := os.Getenv("BEARER_TOKEN")
 	device := os.Getenv("DEVICE_TOKEN")
 
-	url := "https://gateway.apibrasil.io/api/v2/vehicles/base/000/dados"
+	// 1. Consulta dados do veículo
+	veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/000/dados"
 	body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
 
-	req, err := http.NewRequest("POST", url, strings.NewReader(body))
+	req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("erro ao criar requisição: %w", err)
+		return nil, fmt.Errorf("erro ao criar requisição do veículo: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("DeviceToken", device)
@@ -54,20 +55,52 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao enviar requisição: %w", err)
+		return nil, fmt.Errorf("erro ao enviar requisição do veículo: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao ler resposta: %w", err)
+		return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
 	}
 
 	var fullResp FullAPIResponse
 	if err := json.Unmarshal(respBody, &fullResp); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar JSON: %w", err)
+		return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
 	}
 
+	// 2. Consulta multas
+	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/multas"
+	multasBody := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
+
+	reqMultas, err := http.NewRequest("POST", multasURL, strings.NewReader(multasBody))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
+	}
+	reqMultas.Header.Set("Authorization", "Bearer "+bearer)
+	reqMultas.Header.Set("DeviceToken", device)
+	reqMultas.Header.Set("Content-Type", "application/json")
+
+	respMultas, err := client.Do(reqMultas)
+	if err != nil {
+		fmt.Println("⚠️ Não foi possível consultar multas:", err)
+	} else {
+		defer respMultas.Body.Close()
+		multasRespBody, _ := io.ReadAll(respMultas.Body)
+
+		var multas struct {
+			Multas struct {
+				Dados []Multa `json:"dados"`
+			} `json:"multas"`
+		}
+		if err := json.Unmarshal(multasRespBody, &multas); err == nil {
+			fullResp.Data.Multas = multas.Multas
+		} else {
+			fmt.Println("⚠️ Erro ao decodificar JSON de multas:", err)
+		}
+	}
+
+	// 3. Cache final com tudo
 	respBytes, _ := json.Marshal(fullResp)
 	if err := rdb.Set(ctx, cacheKey, respBytes, 30*time.Minute).Err(); err != nil {
 		fmt.Println("❌ Falha ao salvar no Redis:", err)
