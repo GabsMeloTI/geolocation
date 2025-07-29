@@ -41,7 +41,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	device := os.Getenv("DEVICE_TOKEN")
 
 	// 1. Consulta dados do veículo
-	veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/000/dados"
+	veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
 	body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
 
 	req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
@@ -64,16 +64,19 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
 	}
 
+	fmt.Println("📄 Resposta bruta da API de dados do veículo:")
+	fmt.Println(string(respBody)) // 🚨 Log do retorno bruto
+
 	var fullResp FullAPIResponse
 	if err := json.Unmarshal(respBody, &fullResp); err != nil {
 		return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
 	}
 
-	// 2. Consulta multas
-	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/multas"
-	multasBody := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
+	// 2. Consulta multas (nova API)
+	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
+	multaPayload := fmt.Sprintf(`{"placa":"%s", "tipo": "%s"}`, placa, "renainf")
 
-	reqMultas, err := http.NewRequest("POST", multasURL, strings.NewReader(multasBody))
+	reqMultas, err := http.NewRequest("POST", multasURL, strings.NewReader(multaPayload))
 	if err != nil {
 		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
 	}
@@ -83,20 +86,24 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 	respMultas, err := client.Do(reqMultas)
 	if err != nil {
-		fmt.Println("⚠️ Não foi possível consultar multas:", err)
+		fmt.Println("⚠️ Erro ao consultar multas:", err)
 	} else {
 		defer respMultas.Body.Close()
 		multasRespBody, _ := io.ReadAll(respMultas.Body)
 
-		var multas struct {
-			Multas struct {
-				Dados []Multa `json:"dados"`
-			} `json:"multas"`
+		fmt.Println("📄 Resposta bruta da nova API de multas:")
+		fmt.Println(string(multasRespBody))
+
+		var multaAPIResponse struct {
+			Data struct {
+				Registros []Multa `json:"registros"`
+			} `json:"data"`
 		}
-		if err := json.Unmarshal(multasRespBody, &multas); err == nil {
-			fullResp.Data.Multas = multas.Multas
+
+		if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
+			fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
 		} else {
-			fmt.Println("⚠️ Erro ao decodificar JSON de multas:", err)
+			fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
 		}
 	}
 

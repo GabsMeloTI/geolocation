@@ -1,16 +1,25 @@
 package plate
 
 type Multa struct {
-	Data      string `json:"data"`
-	Orgao     string `json:"orgao"`
-	Gravidade string `json:"gravidade"`
-	Descricao string `json:"descricao"`
-	Pontos    string `json:"pontos"`
-	Valor     string `json:"valor"`
+	NumeroAutoInfracao       string `json:"numeroautoinfracao"`
+	DataDaInfracao           string `json:"datadainfracao"`
+	Infracao                 string `json:"infracao"`
+	Orgao                    string `json:"orgao"`
+	Descricao                string `json:"detalhe_cod_infracao"`
+	Local                    string `json:"detalhe_local_infracao"`
+	Valor                    string `json:"detalhe_valor_infracao"`
+	DetalheDataCadastramento string `json:"detalhe_cadastramento_infracao"`
+	DetalheOrgaoAutuador     string `json:"detalhe_orgao_autuador"`
+	DetalheUF                string `json:"detalhe_uf_orgao_autuador"`
+	DetalhePlaca             string `json:"detalhe_placa"`
+	CNHInfrator              string `json:"dadosinfrator_cnh_infrator"`
+	ValorPago                string `json:"dadosdopagamento_valor_pago"`
 }
 
 type FullAPIResponse struct {
-	Data Response `json:"data"`
+	Error   bool     `json:"error"`
+	Message string   `json:"message"`
+	Data    Response `json:"response"` // <- era "data", agora é "response"
 }
 
 type Response struct {
