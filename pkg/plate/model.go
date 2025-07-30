@@ -1,25 +1,52 @@
 package plate
 
 type Multa struct {
-	NumeroAutoInfracao       string `json:"numeroautoinfracao"`
-	DataDaInfracao           string `json:"datadainfracao"`
-	Infracao                 string `json:"infracao"`
-	Orgao                    string `json:"orgao"`
-	Descricao                string `json:"detalhe_cod_infracao"`
-	Local                    string `json:"detalhe_local_infracao"`
-	Valor                    string `json:"detalhe_valor_infracao"`
-	DetalheDataCadastramento string `json:"detalhe_cadastramento_infracao"`
-	DetalheOrgaoAutuador     string `json:"detalhe_orgao_autuador"`
-	DetalheUF                string `json:"detalhe_uf_orgao_autuador"`
-	DetalhePlaca             string `json:"detalhe_placa"`
-	CNHInfrator              string `json:"dadosinfrator_cnh_infrator"`
-	ValorPago                string `json:"dadosdopagamento_valor_pago"`
+	NumeroAutoInfracao               string `json:"numeroautoinfracao"`
+	DataDaInfracao                   string `json:"datadainfracao"`
+	Exigibilidade                    string `json:"exigibilidade"`
+	Infracao                         string `json:"infracao"`
+	Orgao                            string `json:"orgao"`
+	ConsultaDetalheExisteErro        string `json:"consultadetalhe_existe_erro"`
+	ConsultaDetalheMensagem          string `json:"consultadetalhe_mensagem"`
+	DetalheDataCadastramento         string `json:"detalhe_cadastramento_infracao"`
+	DetalheCodInfracao               string `json:"detalhe_cod_infracao"`
+	DetalheCodMunEmplacamento        string `json:"detalhe_cod_mun_emplacamento"`
+	DetalheCodMunInfracao            string `json:"detalhe_cod_mun_infracao"`
+	DetalheDataEmissaoPenalidade     string `json:"detalhe_dt_emissao_penalidade"`
+	DetalheDataInfracao              string `json:"detalhe_dt_infracao"`
+	DetalheDataNotificacao           string `json:"detalhe_dt_notificacao_infracao"`
+	DetalheHoraInfracao              string `json:"detalhe_hr_infracao"`
+	DetalheLimitePermitido           string `json:"detalhe_limite_permitido"`
+	DetalheLocalInfracao             string `json:"detalhe_local_infracao"`
+	DetalheAMRCAModelo               string `json:"detalhe_amrcamodelo"`
+	DetalheMedicaoConsiderada        string `json:"detalhe_medicao_considerada"`
+	DetalheMedicaoReal               string `json:"detalhe_medicao_real"`
+	DetalheNumAutoInfracao           string `json:"detalhe_num_auto_infracao"`
+	DetalheOrgaoAutuador             string `json:"detalhe_orgao_autuador"`
+	DetalhePlaca                     string `json:"detalhe_placa"`
+	DetalheTipoAutoInfracao          string `json:"detalhe_tipo_auto_infracao"`
+	DetalheUFJurisdicaoVeiculo       string `json:"detalhe_uf_jurisdicao_veiculo"`
+	DetalheUFOrgaoAutuador           string `json:"detalhe_uf_orgao_autuador"`
+	DetalheUFPlaca                   string `json:"detalhe_uf_placa"`
+	DetalheUnidadeMedida             string `json:"detalhe_unidade_medida"`
+	DetalheValorInfracao             string `json:"detalhe_valor_infracao"`
+	DadosSuspensaoAceiteUFJurisdicao string `json:"dadosdasuspensao_aceite_uf_jurisdicao"`
+	DadosSuspensaoDataRegistro       string `json:"dadosdasuspensao_data_registro"`
+	DadosSuspensaoOrigem             string `json:"dadosdasuspensao_origem"`
+	DadosSuspensaoTipo               string `json:"dadosdasuspensao_tipo"`
+	CNHCondutor                      string `json:"dadosinfrator_cnh_condutor"`
+	CNHInfrator                      string `json:"dadosinfrator_cnh_infrator"`
+	DtPagamento                      string `json:"dadosdopagamento_dt_pagamento"`
+	DtRegistroPagamento              string `json:"dadosdopagamento_dt_do_registro_do_pgmto"`
+	UfPagamento                      string `json:"dadosdopagamento_uf_pagamento"`
+	ValorPago                        string `json:"dadosdopagamento_valor_pago"`
+	DadosPagamento                   string `json:"dadosdopagamento_dados_pgmto"`
 }
 
 type FullAPIResponse struct {
 	Error   bool     `json:"error"`
 	Message string   `json:"message"`
-	Data    Response `json:"response"` // <- era "data", agora é "response"
+	Data    Response `json:"response"`
 }
 
 type Response struct {

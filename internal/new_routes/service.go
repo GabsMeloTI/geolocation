@@ -1384,8 +1384,8 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
 				route := osrmResp.Routes[0]
 
-				distText, distVal := formatDistance(route.Distance)
-				durText, durVal := formatDuration(route.Duration)
+				distText, distVal := formatDistance(totalDistance)
+				durText, durVal := formatDuration(totalDuration)
 
 				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
 				totalKm := route.Distance / 1000
