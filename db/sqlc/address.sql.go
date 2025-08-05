@@ -104,61 +104,39 @@ func (q *Queries) FindAddressByStreetID(ctx context.Context, streetID int32) ([]
 	return items, nil
 }
 
-const findAddressGroupedByCEP = `-- name: FindAddressGroupedByCEP :many
+const findAddressGroupedByCEP = `-- name: FindAddressGroupedByCEP :one
 SELECT
-    c.name AS city_name,
-    st.uf AS state_uf,
-    n.name as neighborhood_name,
-    s.name as street_name,
-    a.lat as latitude,
-    a.lon as longitude
-FROM addresses a
-         JOIN streets s ON a.street_id = s.id
-         LEFT JOIN neighborhoods n ON s.neighborhood_id = n.id
-         JOIN cities c ON n.city_id = c.id
-         JOIN states st ON c.state_id = st.id
-WHERE a.cep = $1
-GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
-    LIMIT 100
+    city_name,
+    state_uf,
+    neighborhood_name,
+    street_name,
+    lat AS latitude,
+    lon AS longitude
+FROM public.unique_ceps
+WHERE cep = $1 LIMIT 1
 `
 
 type FindAddressGroupedByCEPRow struct {
-	CityName         string          `json:"city_name"`
-	StateUf          string          `json:"state_uf"`
+	CityName         sql.NullString  `json:"city_name"`
+	StateUf          sql.NullString  `json:"state_uf"`
 	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
-	StreetName       string          `json:"street_name"`
+	StreetName       sql.NullString  `json:"street_name"`
 	Latitude         sql.NullFloat64 `json:"latitude"`
 	Longitude        sql.NullFloat64 `json:"longitude"`
 }
 
-func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep string) ([]FindAddressGroupedByCEPRow, error) {
-	rows, err := q.db.QueryContext(ctx, findAddressGroupedByCEP, cep)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FindAddressGroupedByCEPRow
-	for rows.Next() {
-		var i FindAddressGroupedByCEPRow
-		if err := rows.Scan(
-			&i.CityName,
-			&i.StateUf,
-			&i.NeighborhoodName,
-			&i.StreetName,
-			&i.Latitude,
-			&i.Longitude,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep interface{}) (FindAddressGroupedByCEPRow, error) {
+	row := q.db.QueryRowContext(ctx, findAddressGroupedByCEP, cep)
+	var i FindAddressGroupedByCEPRow
+	err := row.Scan(
+		&i.CityName,
+		&i.StateUf,
+		&i.NeighborhoodName,
+		&i.StreetName,
+		&i.Latitude,
+		&i.Longitude,
+	)
+	return i, err
 }
 
 const findAddressesByCEP = `-- name: FindAddressesByCEP :many

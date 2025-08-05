@@ -1000,7 +1000,6 @@ const docTemplate = `{
         },
         "/check-route-tolls-coordinate": {
             "post": {
-            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -4196,6 +4195,9 @@ const docTemplate = `{
         "new_routes.FinalOutput": {
             "type": "object",
             "properties": {
+                "route_enterprise_id": {
+                    "type": "integer"
+                },
                 "routes": {
                     "type": "array",
                     "items": {
@@ -4285,6 +4287,9 @@ const docTemplate = `{
                 },
                 "destination_cep": {
                     "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "favorite": {
                     "type": "boolean"
@@ -4540,10 +4545,22 @@ const docTemplate = `{
                 "hasTolls": {
                     "type": "boolean"
                 },
+                "polyline": {
+                    "type": "string"
+                },
                 "route_type": {
                     "type": "string"
                 },
+                "tolls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Toll"
+                    }
+                },
                 "total_fuel_cost": {
+                    "type": "number"
+                },
+                "total_tolls": {
                     "type": "number"
                 },
                 "url": {

@@ -184,7 +184,7 @@ func (c *ContainerDI) buildService() {
 	)
 	c.WsService = ws.NewWsService(c.WsRepository, c.RepositoryAdvertisement, c.ServiceNewRoutes)
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
-	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress)
+	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress, c.Config.GoogleMapsKey)
 	c.ServiceLocation = location.NewLocationsService(c.RepositoryLocation)
 }
 

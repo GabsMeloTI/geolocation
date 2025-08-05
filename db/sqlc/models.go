@@ -474,6 +474,26 @@ type Truck struct {
 	DriverID      int64         `json:"driver_id"`
 }
 
+type UniqueCep struct {
+	ID               int32           `json:"id"`
+	StreetID         int32           `json:"street_id"`
+	Number           sql.NullString  `json:"number"`
+	Complement       sql.NullString  `json:"complement"`
+	Cep              interface{}     `json:"cep"`
+	Lat              sql.NullFloat64 `json:"lat"`
+	Lon              sql.NullFloat64 `json:"lon"`
+	StreetName       sql.NullString  `json:"street_name"`
+	NeighborhoodName sql.NullString  `json:"neighborhood_name"`
+	NeighborhoodLat  sql.NullFloat64 `json:"neighborhood_lat"`
+	NeighborhoodLon  sql.NullFloat64 `json:"neighborhood_lon"`
+	CityName         sql.NullString  `json:"city_name"`
+	CityLat          sql.NullFloat64 `json:"city_lat"`
+	CityLon          sql.NullFloat64 `json:"city_lon"`
+	StateUf          sql.NullString  `json:"state_uf"`
+	StateLat         sql.NullFloat64 `json:"state_lat"`
+	StateLon         sql.NullFloat64 `json:"state_lon"`
+}
+
 type User struct {
 	ID               int64          `json:"id"`
 	Name             string         `json:"name"`
