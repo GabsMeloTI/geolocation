@@ -49,7 +49,7 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	addr, err := s.InterfaceService.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
 		log.Println("buscando cep pelo API Brasil")
-		address, apiErr := s.buscarEnderecoPorAPIBrasil(ctx, normalizedQuery)
+		address, apiErr := findCEPByAPIBrasil(ctx, normalizedQuery)
 		if apiErr != nil {
 			log.Println("erro ao buscar CEP em ambas base de dados:", apiErr)
 			return AddressCEPResponse{}, nil
@@ -369,7 +369,7 @@ func (s *Service) FindCityAll(ctx context.Context, idState int32) ([]CityRespons
 	return cityResponse, nil
 }
 
-func (s *Service) buscarEnderecoPorAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, error) {
+func findCEPByAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, error) {
 	url := "https://gateway.apibrasil.io/api/v2/cep/cep"
 	bodyData := map[string]string{"cep": cep}
 	bodyJSON, _ := json.Marshal(bodyData)
