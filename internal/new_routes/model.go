@@ -328,6 +328,31 @@ type FreightLoad struct {
 	Description string `json:"description"`
 }
 
+type APIBrasilResponse struct {
+	Error    bool   `json:"error"`
+	Message  string `json:"message"`
+	Response struct {
+		CEP struct {
+			CEP        string `json:"cep"`
+			Tipo       string `json:"tipo"`
+			Logradouro string `json:"logradouro"`
+			Estado     string `json:"estado"`
+			Latitude   string `json:"latitude"`
+			Longitude  string `json:"longitude"`
+			Cidade     struct {
+				Cidade string `json:"cidade"`
+			} `json:"cidade"`
+			Bairro struct {
+				Bairro string `json:"bairro"`
+			} `json:"bairro"`
+		} `json:"cep"`
+	} `json:"response"`
+}
+type APIBrasilCoordenada struct {
+	Latitude  float64 `json:"laatitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 func (p *FreightLoad) ParseFromFreightObject(result db.FreightLoad) {
 	p.TypeOfLoad = result.TypeOfLoad.String
 	p.TwoAxes = result.TwoAxes.String

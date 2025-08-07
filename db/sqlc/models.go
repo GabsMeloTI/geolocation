@@ -479,7 +479,7 @@ type UniqueCep struct {
 	StreetID         int32           `json:"street_id"`
 	Number           sql.NullString  `json:"number"`
 	Complement       sql.NullString  `json:"complement"`
-	Cep              string          `json:"cep"`
+	Cep              interface{}     `json:"cep"`
 	Lat              sql.NullFloat64 `json:"lat"`
 	Lon              sql.NullFloat64 `json:"lon"`
 	StreetName       sql.NullString  `json:"street_name"`

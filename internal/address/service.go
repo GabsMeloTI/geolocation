@@ -1,13 +1,19 @@
 package address
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	db "geolocation/db/sqlc"
 	meiliaddress "geolocation/internal/meili_address"
 	"golang.org/x/text/unicode/norm"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,10 +32,11 @@ type InterfaceService interface {
 type Service struct {
 	InterfaceService InterfaceRepository
 	MeiliRepository  meiliaddress.InterfaceRepository
+	GoogleMapsAPIKey string
 }
 
-func NewAddressService(InterfaceService InterfaceRepository, MeiliRepository meiliaddress.InterfaceRepository) *Service {
-	return &Service{InterfaceService: InterfaceService, MeiliRepository: MeiliRepository}
+func NewAddressService(InterfaceService InterfaceRepository, MeiliRepository meiliaddress.InterfaceRepository, GoogleMapsAPIKey string) *Service {
+	return &Service{InterfaceService: InterfaceService, MeiliRepository: MeiliRepository, GoogleMapsAPIKey: GoogleMapsAPIKey}
 }
 
 func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error) {
@@ -40,64 +47,26 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 		return AddressCEPResponse{}, errors.New("CEP inválido")
 	}
 
-	addresses, err := s.InterfaceService.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
+	addr, err := s.InterfaceService.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
-		return AddressCEPResponse{}, err
-	}
-	cityName := ""
-	stateUf := ""
-	neighborhoodSet := make(map[string]bool)
-	streetSet := make(map[string]bool)
-	var latitude, longitude float64
-
-	log.Println("searching by cep")
-
-	for _, addr := range addresses {
-		if cityName == "" {
-			cityName = addr.CityName
-			stateUf = addr.StateUf
+		log.Println("buscando cep pelo API Brasil")
+		address, apiErr := findCEPByAPIBrasil(ctx, normalizedQuery)
+		if apiErr != nil {
+			log.Println("erro ao buscar CEP em ambas base de dados:", apiErr)
+			return AddressCEPResponse{}, nil
 		}
-
-		if addr.NeighborhoodName.Valid {
-			neighborhoodSet[addr.NeighborhoodName.String] = true
-		}
-
-		streetSet[addr.StreetName] = true
-
-		latitude = addr.Latitude.Float64
-		longitude = addr.Longitude.Float64
-	}
-
-	responseType := "city"
-	neighborhoodName := ""
-	streetName := ""
-
-	if len(streetSet) == 1 {
-		responseType = "street"
-		for s := range streetSet {
-			streetName = s
-		}
-		if len(neighborhoodSet) == 1 {
-			for n := range neighborhoodSet {
-				neighborhoodName = n
-			}
-		}
-	} else if len(neighborhoodSet) == 1 {
-		responseType = "neighborhood"
-		for n := range neighborhoodSet {
-			neighborhoodName = n
-		}
+		return address, nil
 	}
 
 	response := AddressCEPResponse{
 		CEP:              normalizedQuery,
-		Type:             responseType,
-		CityName:         cityName,
-		StateUf:          stateUf,
-		NeighborhoodName: neighborhoodName,
-		StreetName:       streetName,
-		Latitude:         latitude,
-		Longitude:        longitude,
+		Type:             "street",
+		CityName:         addr.CityName.String,
+		StateUf:          addr.StateUf.String,
+		NeighborhoodName: addr.NeighborhoodName.String,
+		StreetName:       addr.StreetName.String,
+		Latitude:         addr.Latitude.Float64,
+		Longitude:        addr.Longitude.Float64,
 	}
 
 	return response, nil
@@ -416,4 +385,60 @@ func (s *Service) FindCityAll(ctx context.Context, idState int32) ([]CityRespons
 	}
 
 	return cityResponse, nil
+}
+
+func findCEPByAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, error) {
+	url := "https://gateway.apibrasil.io/api/v2/cep/cep"
+	bodyData := map[string]string{"cep": cep}
+	bodyJSON, _ := json.Marshal(bodyData)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return AddressCEPResponse{}, err
+	}
+	bearer := os.Getenv("BEARER_TOKEN")
+	device := os.Getenv("DEVICE_TOKEN_CEP")
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("DeviceToken", device)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return AddressCEPResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return AddressCEPResponse{}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return AddressCEPResponse{}, fmt.Errorf("erro na APIBrasil: %s", string(body))
+	}
+
+	var apiResp APIBrasilResponse
+	err = json.Unmarshal(body, &apiResp)
+	if err != nil {
+		return AddressCEPResponse{}, err
+	}
+
+	if apiResp.Error {
+		return AddressCEPResponse{}, errors.New(apiResp.Message)
+	}
+
+	cepResp := apiResp.Response.CEP
+	lat, _ := strconv.ParseFloat(cepResp.Latitude, 64)
+	long, _ := strconv.ParseFloat(cepResp.Longitude, 64)
+
+	return AddressCEPResponse{
+		CEP:              apiResp.Response.CEP.CEP,
+		Type:             strings.ToUpper(apiResp.Response.CEP.Tipo),
+		CityName:         strings.ToUpper(apiResp.Response.CEP.Cidade.Cidade),
+		StateUf:          strings.ToUpper(apiResp.Response.CEP.Estado),
+		NeighborhoodName: strings.ToUpper(apiResp.Response.CEP.Bairro.Bairro),
+		StreetName:       strings.ToUpper(apiResp.Response.CEP.Logradouro),
+		Latitude:         lat,
+		Longitude:        long,
+	}, nil
 }

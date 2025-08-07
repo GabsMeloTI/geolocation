@@ -1,6 +1,7 @@
 package new_routes
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -15,11 +16,13 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"googlemaps.github.io/maps"
+	"io"
 	"log"
 	"math"
 	"net/http"
 	"net/url"
 	neturl "net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -619,20 +622,19 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
 	}
 
-	originCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, cepOrigin)
+	originLat, originLon, err := s.getCoordByCEP(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	destinationCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, frontInfo.DestinationCEP)
+	destLat, destLon, err := s.getCoordByCEP(ctx, frontInfo.DestinationCEP)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-
-	originAddress, err := s.reverseGeocode(originCoord.Lat.Float64, originCoord.Lon.Float64)
+	originAddress, err := s.reverseGeocode(originLat, originLon)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
 	}
-	destinationAddress, err := s.reverseGeocode(destinationCoord.Lat.Float64, destinationCoord.Lon.Float64)
+	destinationAddress, err := s.reverseGeocode(destLat, destLon)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
 	}
@@ -642,29 +644,26 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
 	}
 	origin := originGeocode
-	origin.Location = Location{Latitude: originCoord.Lat.Float64, Longitude: originCoord.Lon.Float64}
+	origin.Location = Location{Latitude: originLat, Longitude: originLon}
 
 	destinationGeocode, err := s.getGeocodeAddress(ctx, destinationAddress)
 	if err != nil {
 		return FinalOutput{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
 	}
 	destination := destinationGeocode
-	destination.Location = Location{Latitude: destinationCoord.Lat.Float64, Longitude: destinationCoord.Lon.Float64}
+	destination.Location = Location{Latitude: destLat, Longitude: destLon}
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCoord, err := s.InterfaceService.FindAddressByCEP(ctx, wp)
+		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
 
-		lat := wpCoord.Latitude.Float64
-		lng := wpCoord.Longitude.Float64
-
-		address, err := s.reverseGeocode(lat, lng)
+		address, err := s.reverseGeocode(wpCordLat, wpCordLon)
 		if err != nil {
-			log.Printf("Erro ao buscar endereço reverso do waypoint (%f, %f): %v", lat, lng, err)
-			address = fmt.Sprintf("%.6f, %.6f", lat, lng)
+			log.Printf("Erro ao buscar endereço reverso do waypoint (%f, %f): %v", wpCordLat, wpCordLon, err)
+			address = fmt.Sprintf("%.6f, %.6f", wpCordLat, wpCordLon)
 		}
 
 		placeId, err := s.getGeocodeAddress(ctx, address)
@@ -672,7 +671,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 			return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
 		}
 		waypointResults = append(waypointResults, GeocodeResult{
-			Location:         Location{Latitude: lat, Longitude: lng},
+			Location:         Location{Latitude: wpCordLat, Longitude: wpCordLon},
 			FormattedAddress: address,
 			PlaceID:          placeId.PlaceID,
 		})
@@ -779,13 +778,13 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	if len(frontInfo.WaypointsCEP) > 0 {
 		var googleWp []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCord, err := s.InterfaceService.FindAddressByCEP(ctx, wp)
+			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
 
-			latStr := strconv.FormatFloat(wpCord.Latitude.Float64, 'f', -1, 64)
-			lngStr := strconv.FormatFloat(wpCord.Longitude.Float64, 'f', -1, 64)
+			latStr := strconv.FormatFloat(wpCordLat, 'f', -1, 64)
+			lngStr := strconv.FormatFloat(wpCordLon, 'f', -1, 64)
 			googleWp = append(googleWp, latStr+","+lngStr)
 		}
 		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(googleWp, "|"))
@@ -1041,13 +1040,13 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		requestJSON, _ := json.Marshal(frontInfo)
 		var wpStrings []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCord, err := s.InterfaceService.FindAddressByCEP(ctx, wp)
+			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
 
-			latStr := strconv.FormatFloat(wpCord.Latitude.Float64, 'f', -1, 64)
-			lngStr := strconv.FormatFloat(wpCord.Longitude.Float64, 'f', -1, 64)
+			latStr := strconv.FormatFloat(wpCordLat, 'f', -1, 64)
+			lngStr := strconv.FormatFloat(wpCordLon, 'f', -1, 64)
 
 			wpStrings = append(wpStrings, fmt.Sprintf("%s,%s", latStr, lngStr))
 		}
@@ -1124,13 +1123,13 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	var wpStringsResponse []string
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCord, err := s.InterfaceService.FindAddressByCEP(ctx, wp)
+		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
 
-		latStr := strconv.FormatFloat(wpCord.Latitude.Float64, 'f', -1, 64)
-		lngStr := strconv.FormatFloat(wpCord.Longitude.Float64, 'f', -1, 64)
+		latStr := strconv.FormatFloat(wpCordLat, 'f', -1, 64)
+		lngStr := strconv.FormatFloat(wpCordLon, 'f', -1, 64)
 
 		wpStringsResponse = append(wpStringsResponse, fmt.Sprintf("%s,%s", latStr, lngStr))
 	}
@@ -1183,24 +1182,23 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		originCEP := data.CEPs[i]
 		destCEP := data.CEPs[i+1]
 
-		originCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, originCEP)
+		originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 		}
-		destCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, destCEP)
+		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
 		}
-
-		originAddress, _ := s.reverseGeocode(originCoord.Lat.Float64, originCoord.Lon.Float64)
-		destAddress, _ := s.reverseGeocode(destCoord.Lat.Float64, destCoord.Lon.Float64)
+		originAddress, _ := s.reverseGeocode(originLat, originLon)
+		destAddress, _ := s.reverseGeocode(destLat, destLon)
 
 		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
 
 		coords := fmt.Sprintf("%f,%f;%f,%f",
-			originCoord.Lon.Float64, originCoord.Lat.Float64,
-			destCoord.Lon.Float64, destCoord.Lat.Float64,
+			originLon, originLat,
+			destLon, destLat,
 		)
 		baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 
@@ -1339,11 +1337,11 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 
 		resultRoutes = append(resultRoutes, DetailedRoute{
 			LocationOrigin: AddressInfo{
-				Location: Location{Latitude: originCoord.Lat.Float64, Longitude: originCoord.Lon.Float64},
+				Location: Location{Latitude: originLat, Longitude: originLon},
 				Address:  originGeocode.FormattedAddress,
 			},
 			LocationDestination: AddressInfo{
-				Location: Location{Latitude: destCoord.Lat.Float64, Longitude: destCoord.Lon.Float64},
+				Location: Location{Latitude: destLat, Longitude: destLon},
 				Address:  destGeocode.FormattedAddress,
 			},
 			Summaries: summaries,
@@ -1355,21 +1353,21 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 	var waypoints []string
 	var originLocation, destinationLocation Location
 	for idx, cep := range data.CEPs {
-		coord, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
+		coordLat, coordLon, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas para total_route no CEP %s: %w", cep, err)
 		}
-		allCoords = append(allCoords, fmt.Sprintf("%f,%f", coord.Lon.Float64, coord.Lat.Float64))
+		allCoords = append(allCoords, fmt.Sprintf("%f,%f", coordLon, coordLat))
 
-		reverse, _ := s.reverseGeocode(coord.Lat.Float64, coord.Lon.Float64)
+		reverse, _ := s.reverseGeocode(coordLat, coordLon)
 		geocode, _ := s.getGeocodeAddress(ctx, reverse)
 		waypoints = append(waypoints, geocode.FormattedAddress)
 
 		if idx == 0 {
-			originLocation = Location{Latitude: coord.Lat.Float64, Longitude: coord.Lon.Float64}
+			originLocation = Location{Latitude: coordLat, Longitude: coordLon}
 		}
 		if idx == len(data.CEPs)-1 {
-			destinationLocation = Location{Latitude: coord.Lat.Float64, Longitude: coord.Lon.Float64}
+			destinationLocation = Location{Latitude: coordLat, Longitude: coordLon}
 		}
 	}
 
@@ -1436,7 +1434,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			}
 		}
 	}
-	
+
 	return Response{
 		Routes:     resultRoutes,
 		TotalRoute: totalRoute,
@@ -1451,24 +1449,24 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 	client := http.Client{Timeout: 60 * time.Second}
 	originCEP := data.CEPs[0]
 
-	originCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, originCEP)
+	originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 	}
-	originAddressRaw, _ := s.reverseGeocode(originCoord.Lat.Float64, originCoord.Lon.Float64)
+	originAddressRaw, _ := s.reverseGeocode(originLat, originLon)
 	originGeocode, _ := s.getGeocodeAddress(ctx, originAddressRaw)
 
 	var results []DetailedRoute
 
 	for _, destCEP := range data.CEPs[1:] {
-		destCoord, err := s.InterfaceService.FindAddressByCEPNew(ctx, destCEP)
+		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			continue
 		}
-		destAddressRaw, _ := s.reverseGeocode(destCoord.Lat.Float64, destCoord.Lon.Float64)
+		destAddressRaw, _ := s.reverseGeocode(destLat, destLon)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddressRaw)
 
-		coords := fmt.Sprintf("%f,%f;%f,%f", originCoord.Lon.Float64, originCoord.Lat.Float64, destCoord.Lon.Float64, destCoord.Lat.Float64)
+		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 		baseURL := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coords))
 
 		resp, err := client.Get(baseURL)
@@ -1507,11 +1505,11 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 
 		results = append(results, DetailedRoute{
 			LocationOrigin: AddressInfo{
-				Location: Location{Latitude: originCoord.Lat.Float64, Longitude: originCoord.Lon.Float64},
+				Location: Location{Latitude: originLat, Longitude: originLon},
 				Address:  originGeocode.FormattedAddress,
 			},
 			LocationDestination: AddressInfo{
-				Location: Location{Latitude: destCoord.Lat.Float64, Longitude: destCoord.Lon.Float64},
+				Location: Location{Latitude: destLat, Longitude: destLon},
 				Address:  destGeocode.FormattedAddress,
 			},
 			Summaries: []RouteSummary{
@@ -2754,6 +2752,63 @@ func convertGasStation(row db.GetGasStationRow) GasStation {
 			Longitude: longitude,
 		},
 	}
+}
+
+func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, error error) {
+	cepData, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
+	if err != nil {
+		return 0, 0, fmt.Errorf("erro na busca local: %w", err)
+	}
+
+	if cepData.ID.Valid && cepData.ID.Int64 > 0 {
+		return cepData.Lat.Float64, cepData.Lon.Float64, nil
+	}
+
+	log.Printf("cep nao encontrado na nossa base, buscando por api %w", cep)
+	url := "https://gateway.apibrasil.io/api/v2/cep/cep"
+	bodyData := map[string]string{"cep": cep}
+	bodyJSON, _ := json.Marshal(bodyData)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return 0, 0, err
+	}
+
+	bearer := os.Getenv("BEARER_TOKEN")
+	device := os.Getenv("DEVICE_TOKEN_CEP")
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("DeviceToken", device)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, 0, fmt.Errorf("erro na APIBrasil: %s", string(body))
+	}
+
+	var apiResp APIBrasilResponse
+	err = json.Unmarshal(body, &apiResp)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if apiResp.Error {
+		return 0, 0, errors.New(apiResp.Message)
+	}
+
+	lat, _ = strconv.ParseFloat(apiResp.Response.CEP.Latitude, 64)
+	long, _ := strconv.ParseFloat(apiResp.Response.CEP.Longitude, 64)
+
+	return lat, long, nil
 }
 
 func getConcessionImage(concession string) string {

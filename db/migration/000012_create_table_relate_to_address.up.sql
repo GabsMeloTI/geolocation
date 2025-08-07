@@ -62,3 +62,25 @@ CREATE INDEX idx_streets_search_vector ON streets USING gin(search_vector);
 CREATE INDEX idx_neighborhoods_search_vector ON neighborhoods USING gin(search_vector);
 CREATE INDEX idx_cities_search_vector ON cities USING gin(search_vector);
 CREATE INDEX idx_states_search_vector ON states USING gin(search_vector);
+
+CREATE TABLE public.unique_ceps (
+    id serial4 NOT NULL,
+    street_id int4 NOT NULL,
+    "number" varchar(50) NULL,
+    complement text NULL,
+    cep bpchar(8) NOT NULL,
+    lat float8 NULL,
+    lon float8 NULL,
+    street_name varchar NULL,
+    neighborhood_name varchar NULL,
+    neighborhood_lat float8 NULL,
+    neighborhood_lon float8 NULL,
+    city_name varchar NULL,
+    city_lat float8 NULL,
+    city_lon float8 NULL,
+    state_uf varchar(2) NULL,
+    state_lat float8 NULL,
+    state_lon float8 NULL,
+    CONSTRAINT unique_ceps_pkey PRIMARY KEY (id)
+);
+CREATE INDEX idx_unique_cep_cep ON public.unique_ceps USING btree (cep);
