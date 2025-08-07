@@ -170,3 +170,25 @@ GROUP BY c.name, st.uf,  n.name, s.name, a.lat, a.lon
 
 -- name: FindAddressByCEPNew :one
 select id, lat, lon from addresses_coordinates a where a.cep = $1 limit 1;
+
+-- name: FindUniqueAddressByCEP :many
+SELECT
+    u.street_id,
+    u.street_name,
+    u.neighborhood_name,
+    u.neighborhood_lat,
+    u.neighborhood_lon,
+    u.city_name,
+    u.city_lat,
+    u.city_lon,
+    u.state_uf,
+    u.state_lat,
+    u.state_lon,
+    u.id as address_id,
+    u.number,
+    u.cep,
+    u.lat,
+    u.lon
+FROM unique_ceps u
+WHERE u.cep = $1
+    limit 5;

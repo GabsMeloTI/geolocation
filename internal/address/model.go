@@ -136,6 +136,45 @@ func ParseFromCEPRow(results []db.FindAddressesByCEPRow) ([]AddressResponse, err
 	return calculateGroupedLatitudes(grouped), nil
 }
 
+func ParseFromUniqueCEPRow(results []db.FindUniqueAddressByCEPRow) ([]AddressResponse, error) {
+	if len(results) == 0 {
+		return nil, fmt.Errorf("query returned nil result")
+	}
+
+	grouped := make(map[int32]*AddressResponse)
+
+	for _, result := range results {
+		if _, exists := grouped[result.StreetID]; !exists {
+			grouped[result.StreetID] = &AddressResponse{
+				IDStreet:     result.StreetID,
+				Street:       result.StreetName.String,
+				Neighborhood: result.NeighborhoodName.String,
+				City:         result.CityName.String,
+				State:        result.StateUf.String,
+				Addresses:    []AddressDetail{},
+			}
+		}
+
+		addressDetail := AddressDetail{
+			IDAddress: result.AddressID,
+			Number:    result.Number.String,
+			CEP:       result.Cep,
+			IsExactly: false,
+		}
+
+		if result.Lat.Valid {
+			addressDetail.Latitude = result.Lat.Float64
+		}
+		if result.Lon.Valid {
+			addressDetail.Longitude = result.Lon.Float64
+		}
+
+		grouped[result.StreetID].Addresses = append(grouped[result.StreetID].Addresses, addressDetail)
+	}
+
+	return calculateGroupedLatitudes(grouped), nil
+}
+
 func ParseFromQueryRow(results []db.FindAddressesByQueryRow, numero string) ([]AddressResponse, error) {
 	if len(results) == 0 {
 		return nil, fmt.Errorf("query returned nil result")

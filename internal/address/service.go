@@ -23,6 +23,7 @@ import (
 type InterfaceService interface {
 	FindAddressesByQueryService(context.Context, string) ([]AddressResponse, error)
 	FindAddressesByQueryV2Service(context.Context, string) ([]AddressResponse, error)
+	FindUniqueAddressesByCEPService(context.Context, string) ([]AddressResponse, error)
 	FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error)
 	FindStateAll(context.Context) ([]StateResponse, error)
 	FindCityAll(context.Context, int32) ([]CityResponse, error)
@@ -69,6 +70,23 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	}
 
 	return response, nil
+}
+
+func (s *Service) FindUniqueAddressesByCEPService(ctx context.Context, query string) ([]AddressResponse, error) {
+	var addressResponses []AddressResponse
+	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(query, "-", ""), " ", "")
+
+	addressCEP, err := s.InterfaceService.FindUniqueAddressesByCEPRepository(ctx, normalizedQuery)
+	if err != nil {
+
+		return nil, err
+	}
+	addressResponses, err = ParseFromUniqueCEPRow(addressCEP)
+	if err != nil {
+
+		return nil, err
+	}
+	return addressResponses, nil
 }
 
 func (s *Service) FindAddressesByQueryService(ctx context.Context, query string) ([]AddressResponse, error) {
