@@ -3324,28 +3324,64 @@ func (s *Service) generateAvoidanceWaypoints(riskZones []RiskZone, originLat, or
 	log.Printf("🔄 Gerando waypoints de desvio...")
 	var waypoints []Location
 
-	for _, zone := range riskZones {
-		if !zone.Status {
-			log.Printf("⏭️  Zona %s está inativa, pulando", zone.Name)
-			continue
-		}
-
-		log.Printf("🔍 Verificando se rota cruza zona %s para gerar waypoint de desvio", zone.Name)
-
-		// Se a rota cruza a zona de risco, gerar waypoint de desvio
-		if s.doesRouteCrossRiskZone(originLat, originLon, destLat, destLon, zone) {
-			log.Printf("🚨 Rota cruza zona %s - gerando waypoint de desvio", zone.Name)
-			// Calcular ponto de desvio perpendicular à rota
+	// 1) Verificação baseada na geometria real da rota (OSRM)
+	hasRisk, locationHisk := s.CheckRouteForRiskZones(riskZones, originLat, originLon, destLat, destLon)
+	if hasRisk {
+		// Encontrar a zona correspondente pelo CEP ou por proximidade
+		if zone, ok := s.findRiskZoneByHint(riskZones, locationHisk); ok {
+			log.Printf("🚨 Rota passa pela zona %s - gerando waypoint de desvio", zone.Name)
 			avoidancePoint := s.calculateAvoidancePoint(originLat, originLon, destLat, destLon, zone)
 			waypoints = append(waypoints, avoidancePoint)
-			log.Printf("📍 Waypoint de desvio gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
-		} else {
-			log.Printf("✅ Rota não cruza zona %s - não é necessário waypoint de desvio", zone.Name)
+			log.Printf("📍 Waypoint de desvio (geom) gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
+		}
+	}
+
+	// 2) Fallback: verificação pela linha direta entre origem e destino (menos preciso)
+	if len(waypoints) == 0 {
+		for _, zone := range riskZones {
+			if !zone.Status {
+				log.Printf("⏭️  Zona %s está inativa, pulando", zone.Name)
+				continue
+			}
+
+			log.Printf("🔍 (fallback) Verificando se reta cruza zona %s", zone.Name)
+			if s.doesRouteCrossRiskZone(originLat, originLon, destLat, destLon, zone) {
+				log.Printf("🚨 (fallback) Reta cruza zona %s - gerando waypoint", zone.Name)
+				avoidancePoint := s.calculateAvoidancePoint(originLat, originLon, destLat, destLon, zone)
+				waypoints = append(waypoints, avoidancePoint)
+				log.Printf("📍 Waypoint de desvio (reta) gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
+			}
 		}
 	}
 
 	log.Printf("📊 Total de waypoints de desvio gerados: %d", len(waypoints))
 	return waypoints
+}
+
+// findRiskZoneByHint localiza a RiskZone com base no CEP ou pela proximidade com o centro da zona
+func (s *Service) findRiskZoneByHint(riskZones []RiskZone, hint LocationHisk) (RiskZone, bool) {
+	// 1) Tentar casar por CEP
+	if hint.CEP != "" {
+		for _, z := range riskZones {
+			if strings.EqualFold(strings.TrimSpace(z.Cep), strings.TrimSpace(hint.CEP)) {
+				return z, true
+			}
+		}
+	}
+	// 2) Escolher a mais próxima do hint
+	var best RiskZone
+	bestDist := math.MaxFloat64
+	for _, z := range riskZones {
+		d := s.haversineDistance(hint.Latitude, hint.Longitude, z.Lat, z.Lng)
+		if d < bestDist {
+			bestDist = d
+			best = z
+		}
+	}
+	if best.ID != 0 {
+		return best, true
+	}
+	return RiskZone{}, false
 }
 
 // calculateAvoidancePoint calcula um ponto de desvio para evitar zona de risco
@@ -3687,7 +3723,22 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 		}
 	}
 
-	// Se não conseguiu rota com desvio, usar dados calculados
+	// Se não conseguiu rota com desvio, tentar obter a rota completa padrão (sem desvios) para obter polyline
+	if totalRoute.TotalDistance.Value == 0 {
+		// Tentar calcular a rota total via OSRM sem desvios
+		baseCoords := strings.Join(allCoords, ";")
+		urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
+		if resp, err := client.Get(urlTotal); err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypoints, data)
+			}
+		}
+	}
+
+	// Se ainda não conseguiu rota com polyline, usar dados agregados (fallback)
 	if totalRoute.TotalDistance.Value == 0 {
 		distText, distVal := formatDistance(totalDistance)
 		durText, durVal := formatDuration(totalDuration)
