@@ -3327,10 +3327,12 @@ func (s *Service) generateAvoidanceWaypoints(riskZones []RiskZone, originLat, or
 	if hasRisk {
 		// Encontrar a zona correspondente pelo CEP ou por proximidade
 		if zone, ok := s.findRiskZoneByHint(riskZones, locationHisk); ok {
-			log.Printf("🚨 Rota passa pela zona %s - gerando waypoint de desvio", zone.Name)
-			avoidancePoint := s.calculateAvoidancePoint(originLat, originLon, destLat, destLon, zone)
-			waypoints = append(waypoints, avoidancePoint)
-			log.Printf("📍 Waypoint de desvio (geom) gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
+			log.Printf("🚨 Rota passa pela zona %s - gerando waypoints de desvio", zone.Name)
+			// Gerar DOIS waypoints tangenciais (entrada e saída) para forçar o contorno
+			wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, zone)
+			waypoints = append(waypoints, wpA, wpB)
+			log.Printf("📍 Waypoint A: (%.6f, %.6f)", wpA.Latitude, wpA.Longitude)
+			log.Printf("📍 Waypoint B: (%.6f, %.6f)", wpB.Latitude, wpB.Longitude)
 		}
 	}
 
@@ -3344,10 +3346,11 @@ func (s *Service) generateAvoidanceWaypoints(riskZones []RiskZone, originLat, or
 
 			log.Printf("🔍 (fallback) Verificando se reta cruza zona %s", zone.Name)
 			if s.doesRouteCrossRiskZone(originLat, originLon, destLat, destLon, zone) {
-				log.Printf("🚨 (fallback) Reta cruza zona %s - gerando waypoint", zone.Name)
-				avoidancePoint := s.calculateAvoidancePoint(originLat, originLon, destLat, destLon, zone)
-				waypoints = append(waypoints, avoidancePoint)
-				log.Printf("📍 Waypoint de desvio (reta) gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
+				log.Printf("🚨 (fallback) Reta cruza zona %s - gerando waypoints", zone.Name)
+				wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, zone)
+				waypoints = append(waypoints, wpA, wpB)
+				log.Printf("📍 Waypoint A (reta): (%.6f, %.6f)", wpA.Latitude, wpA.Longitude)
+				log.Printf("📍 Waypoint B (reta): (%.6f, %.6f)", wpB.Latitude, wpB.Longitude)
 			}
 		}
 	}
@@ -3380,6 +3383,55 @@ func (s *Service) findRiskZoneByHint(riskZones []RiskZone, hint LocationHisk) (R
 		return best, true
 	}
 	return RiskZone{}, false
+}
+
+// computeBypassWaypoints retorna dois waypoints tangenciais para contornar a zona
+func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon float64, zone RiskZone) (Location, Location) {
+	// Baseado no perpendicular calculado em metros, cria dois pontos a uma distância segura
+	// e ordena-os pelo avanço ao longo da rota (proximidade da origem)
+
+	// Reutiliza a lógica de cálculo do perpendicular para obter vetores em metros
+	midLat := (originLat + destLat) / 2.0
+	metersPerDegLat := 111320.0
+	metersPerDegLon := 111320.0 * math.Cos(midLat*math.Pi/180.0)
+
+	dNorth := (destLat - originLat) * metersPerDegLat
+	dEast := (destLon - originLon) * metersPerDegLon
+	pNorth, pEast := -dEast, dNorth
+	mag := math.Hypot(pNorth, pEast)
+	if mag == 0 {
+		pNorth, pEast, mag = 0, 1, 1
+	}
+	pNorth /= mag
+	pEast /= mag
+
+	safe := float64(zone.Radius) + 1200.0 // 1.2km para maior margem
+
+	// Ponto no eixo do centro da zona alinhado à rota (projeção aproximada)
+	baseNorth := (zone.Lat - midLat) * metersPerDegLat
+	baseEast := (zone.Lng - ((originLon + destLon) / 2.0)) * metersPerDegLon
+
+	// Dois pontos tangenciais ao redor do centro
+	aNorth := baseNorth + pNorth*safe
+	aEast := baseEast + pEast*safe
+	bNorth := baseNorth - pNorth*safe
+	bEast := baseEast - pEast*safe
+
+	aLat := midLat + aNorth/metersPerDegLat
+	aLon := ((originLon + destLon) / 2.0) + aEast/metersPerDegLon
+	bLat := midLat + bNorth/metersPerDegLat
+	bLon := ((originLon + destLon) / 2.0) + bEast/metersPerDegLon
+
+	wpA := Location{Latitude: aLat, Longitude: aLon}
+	wpB := Location{Latitude: bLat, Longitude: bLon}
+
+	// Ordenar pelo avanço ao longo da rota (distância até a origem)
+	dA := s.haversineDistance(originLat, originLon, wpA.Latitude, wpA.Longitude)
+	dB := s.haversineDistance(originLat, originLon, wpB.Latitude, wpB.Longitude)
+	if dA <= dB {
+		return wpA, wpB
+	}
+	return wpB, wpA
 }
 
 // calculateAvoidancePoint calcula um ponto de desvio para evitar zona de risco
@@ -3869,5 +3921,3 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 		TotalFuelCost: totalFuelCost,
 	}
 }
-
-//---------------------------------
