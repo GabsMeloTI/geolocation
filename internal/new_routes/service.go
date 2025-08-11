@@ -11,11 +11,9 @@ import (
 	"geolocation/internal/get_token"
 	"geolocation/internal/route_enterprise"
 	"geolocation/internal/routes"
+	"geolocation/internal/zonas_risco"
 	cache "geolocation/pkg"
 	"geolocation/validation"
-	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
-	"googlemaps.github.io/maps"
 	"io"
 	"log"
 	"math"
@@ -27,12 +25,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
+	"googlemaps.github.io/maps"
 )
 
 type InterfaceService interface {
 	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error)
 	CalculateDistancesBetweenPoints(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
+	CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
 	CalculateDistancesFromOrigin(ctx context.Context, data FrontInfoCEPRequest) ([]DetailedRoute, error)
 	CalculateRoutesWithCoordinate(ctx context.Context, frontInfo FrontInfoCoordinate, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
@@ -44,13 +47,15 @@ type Service struct {
 	InterfaceService         routes.InterfaceRepository
 	InterfaceRouteEnterprise route_enterprise.InterfaceRepository
 	GoogleMapsAPIKey         string
+	RiskZonesRepository      zonas_risco.InterfaceService
 }
 
-func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string) *Service {
+func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string, RiskZonesRepository zonas_risco.InterfaceService) *Service {
 	return &Service{
 		InterfaceService:         interfaceService,
 		InterfaceRouteEnterprise: interfaceRouteEnterprise,
 		GoogleMapsAPIKey:         googleMapsAPIKey,
+		RiskZonesRepository:      RiskZonesRepository,
 	}
 }
 
@@ -2977,5 +2982,814 @@ func getConcessionImage(concession string) string {
 		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.png"
 	default:
 		return ""
+	}
+}
+
+// CalculateDistancesBetweenPointsWithRiskAvoidance calcula rotas evitando zonas de risco
+func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error) {
+	log.Printf("🚀 INICIANDO CÁLCULO DE ROTA COM EVITAMENTO DE ZONAS DE RISCO")
+	log.Printf("📍 CEPs: %v", data.CEPs)
+
+	if len(data.CEPs) < 2 {
+		return Response{}, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
+	}
+
+	riskZones, err := s.getActiveRiskZones(ctx)
+	if err != nil {
+		log.Printf("❌ Erro ao buscar zonas de risco: %v", err)
+		log.Printf("🔄 Fallback para função original sem desvios")
+		return s.CalculateDistancesBetweenPoints(ctx, data)
+	}
+
+	log.Printf("📊 Total de zonas de risco encontradas: %d", len(riskZones))
+
+	client := http.Client{Timeout: 60 * time.Second}
+	var resultRoutes []DetailedRoute
+	var totalDistance float64
+	var totalDuration float64
+
+	for i := 0; i < len(data.CEPs)-1; i++ {
+		originCEP := data.CEPs[i]
+		destCEP := data.CEPs[i+1]
+
+		log.Printf("\n🔄 Processando segmento %d: %s → %s", i+1, originCEP, destCEP)
+
+		originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
+		}
+		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
+		}
+
+		log.Printf("📍 Coordenadas: origem(%.6f, %.6f) → destino(%.6f, %.6f)",
+			originLat, originLon, destLat, destLon)
+
+		originAddress, _ := s.reverseGeocode(originLat, originLon)
+		destAddress, _ := s.reverseGeocode(destLat, destLon)
+
+		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
+		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
+
+		// Verificar se há zonas de risco no caminho direto
+		log.Printf("🔍 Verificando zonas de risco para este segmento...")
+		directRouteHasRisk, locationHisk := s.CheckRouteForRiskZones(riskZones, originLat, originLon, destLat, destLon)
+
+		var summaries []RouteSummary
+
+		log.Printf("🎯 Resultado da verificação: directRouteHasRisk = %v", directRouteHasRisk)
+		if directRouteHasRisk {
+			log.Printf("🚨 ROTA TEM RISCO - Calculando desvio...")
+			// Se há risco, calcular rota alternativa com desvio
+			summaries = s.calculateAlternativeRouteWithAvoidance(ctx, client, riskZones, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
+		} else {
+			log.Printf("✅ ROTA SEGURA - Usando rota direta...")
+			// Se não há risco, usar rota direta
+			summaries = s.calculateDirectRoute(ctx, client, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
+		}
+
+		if len(summaries) == 0 {
+			return Response{}, fmt.Errorf("não foi possível calcular rota entre %s e %s", originCEP, destCEP)
+		}
+
+		// Usar a primeira rota para cálculos totais
+		route := summaries[0]
+		totalDistance += route.Distance.Value
+		totalDuration += route.Duration.Value
+
+		log.Printf("📏 Segmento %d: %s, %s", i+1, route.Distance.Text, route.Duration.Text)
+
+		resultRoutes = append(resultRoutes, DetailedRoute{
+			LocationOrigin: AddressInfo{
+				Location: Location{Latitude: originLat, Longitude: originLon},
+				Address:  originGeocode.FormattedAddress,
+			},
+			LocationDestination: AddressInfo{
+				Location: Location{Latitude: destLat, Longitude: destLon},
+				Address:  destGeocode.FormattedAddress,
+			},
+			HasRisk:      directRouteHasRisk,
+			LocationHisk: locationHisk,
+			Summaries:    summaries,
+		})
+	}
+
+	log.Printf("\n🔄 Calculando rota total com desvios...")
+	// Calcular rota total com desvios
+	totalRoute := s.calculateTotalRouteWithAvoidance(ctx, client, riskZones, data.CEPs, totalDistance, totalDuration, data)
+
+	distText, _ := formatDistance(totalDistance)
+	durText, _ := formatDuration(totalDuration)
+	log.Printf("✅ CÁLCULO CONCLUÍDO - Total: %s, %s", distText, durText)
+
+	return Response{
+		Routes:     resultRoutes,
+		TotalRoute: totalRoute,
+	}, nil
+}
+
+// getActiveRiskZones busca todas as zonas de risco ativas do banco
+func (s *Service) getActiveRiskZones(ctx context.Context) ([]RiskZone, error) {
+	if s.RiskZonesRepository == nil {
+		log.Printf("⚠️  RiskZonesRepository é nil - retornando lista vazia")
+		return []RiskZone{}, nil
+	}
+
+	dbZones, err := s.RiskZonesRepository.GetAllZonasRiscoService(ctx)
+	if err != nil {
+		log.Printf("❌ Erro ao buscar zonas de risco: %v", err)
+		return nil, fmt.Errorf("erro ao buscar zonas de risco: %w", err)
+	}
+
+	var riskZones []RiskZone
+	for _, dbZone := range dbZones {
+		riskZones = append(riskZones, RiskZone{
+			ID:     dbZone.ID,
+			Name:   dbZone.Name,
+			Cep:    dbZone.Cep,
+			Lat:    dbZone.Lat,
+			Lng:    dbZone.Lng,
+			Radius: dbZone.Radius,
+			Status: dbZone.Status,
+		})
+	}
+
+	log.Printf("✅ Buscou %d zonas de risco ativas", len(riskZones))
+	for _, zone := range riskZones {
+		log.Printf("   - %s: lat=%.6f, lng=%.6f, raio=%dm", zone.Name, zone.Lat, zone.Lng, zone.Radius)
+	}
+
+	return riskZones, nil
+}
+
+// RiskZone representa uma zona de risco
+type RiskZone struct {
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Cep    string  `json:"cep"`
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+	Radius int64   `json:"radius"`
+	Status bool    `json:"status"`
+}
+
+// CheckRouteForRiskZones verifica se uma rota passa por zonas de risco
+func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) (bool, LocationHisk) {
+	log.Printf("🔍 Verificando rota: origem(%.6f, %.6f) → destino(%.6f, %.6f)", originLat, originLon, destLat, destLon)
+
+	if len(riskZones) == 0 {
+		log.Printf("ℹ️  Nenhuma zona de risco para verificar")
+		return false, LocationHisk{}
+	}
+
+	// Primeiro, calcular a rota real com OSRM para verificar todos os pontos
+	client := http.Client{Timeout: 30 * time.Second}
+	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
+	url := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
+
+	log.Printf("🌐 Calculando rota real com OSRM: %s", url)
+
+	resp, err := client.Get(url)
+	if err != nil {
+		log.Printf("❌ Erro ao calcular rota OSRM: %v", err)
+		// Fallback para verificação de linha reta
+		return s.checkRouteForRiskZonesFallback(riskZones, originLat, originLon, destLat, destLon), LocationHisk{}
+	}
+	defer resp.Body.Close()
+
+	var osrmResp OSRMResponse
+	if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+		log.Printf("❌ Erro ao decodificar resposta OSRM: %v", err)
+		// Fallback para verificação de linha reta
+		return s.checkRouteForRiskZonesFallback(riskZones, originLat, originLon, destLat, destLon), LocationHisk{}
+	}
+
+	if len(osrmResp.Routes) == 0 {
+		log.Printf("❌ Nenhuma rota retornada pelo OSRM")
+		// Fallback para verificação de linha reta
+		return s.checkRouteForRiskZonesFallback(riskZones, originLat, originLon, destLat, destLon), LocationHisk{}
+	}
+
+	route := osrmResp.Routes[0]
+	distText, _ := formatDistance(route.Distance)
+	durText, _ := formatDuration(route.Duration)
+	log.Printf("✅ Rota OSRM calculada: %s, %s", distText, durText)
+
+	// Verificar se a rota real passa por zonas de risco
+	return s.checkRouteGeometryForRiskZones(riskZones, route.Geometry, originLat, originLon, destLat, destLon)
+}
+
+// isPointInRiskZone verifica se um ponto está dentro de uma zona de risco
+func (s *Service) isPointInRiskZone(lat, lng float64, zone RiskZone) bool {
+	distance := s.haversineDistance(lat, lng, zone.Lat, zone.Lng)
+	isInside := distance <= float64(zone.Radius)
+
+	if isInside {
+		log.Printf("   🎯 Ponto (%.6f, %.6f) está dentro da zona %s: distância=%.1fm, raio=%dm",
+			lat, lng, zone.Name, distance, zone.Radius)
+	} else {
+		log.Printf("   ✅ Ponto (%.6f, %.6f) está fora da zona %s: distância=%.1fm, raio=%dm",
+			lat, lng, zone.Name, distance, zone.Radius)
+	}
+
+	return isInside
+}
+
+// doesRouteCrossRiskZone verifica se uma rota cruza uma zona de risco
+func (s *Service) doesRouteCrossRiskZone(originLat, originLon, destLat, destLon float64, zone RiskZone) bool {
+	// Distância do centro da zona até a linha da rota
+	distanceToRoute := s.distancePointToLine(zone.Lat, zone.Lng, originLat, originLon, destLat, destLon)
+
+	// Se a distância for menor que o raio, a rota cruza a zona
+	crossesZone := distanceToRoute <= float64(zone.Radius)
+
+	if crossesZone {
+		log.Printf("   🚨 Rota cruza zona %s: distância até rota=%.1fm, raio=%dm",
+			zone.Name, distanceToRoute, zone.Radius)
+	} else {
+		log.Printf("   ✅ Rota não cruza zona %s: distância até rota=%.1fm, raio=%dm",
+			zone.Name, distanceToRoute, zone.Radius)
+	}
+
+	return crossesZone
+}
+
+// distancePointToLine calcula a distância de um ponto até uma linha
+func (s *Service) distancePointToLine(pointLat, pointLng, lineLat1, lineLng1, lineLat2, lineLng2 float64) float64 {
+	// Fórmula para distância de ponto até linha
+	A := pointLat - lineLat1
+	B := pointLng - lineLng1
+	C := lineLat2 - lineLat1
+	D := lineLng2 - lineLng1
+
+	dot := A*C + B*D
+	lenSq := C*C + D*D
+
+	if lenSq == 0 {
+		return s.haversineDistance(pointLat, pointLng, lineLat1, lineLng1)
+	}
+
+	param := dot / lenSq
+
+	var xx, yy float64
+	if param < 0 {
+		xx = lineLat1
+		yy = lineLng1
+	} else if param > 1 {
+		xx = lineLat2
+		yy = lineLng2
+	} else {
+		xx = lineLat1 + param*C
+		yy = lineLng1 + param*D
+	}
+
+	return s.haversineDistance(pointLat, pointLng, xx, yy)
+}
+
+// haversineDistance calcula a distância entre dois pontos usando fórmula de Haversine
+func (s *Service) haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
+	const R = 6371000 // Raio da Terra em metros
+
+	lat1Rad := lat1 * math.Pi / 180
+	lat2Rad := lat2 * math.Pi / 180
+	deltaLat := (lat2 - lat1) * math.Pi / 180
+	deltaLng := (lng2 - lng1) * math.Pi / 180
+
+	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
+		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
+			math.Sin(deltaLng/2)*math.Sin(deltaLng/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c
+}
+
+// calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
+func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
+	log.Printf("🔄 Calculando rota alternativa com desvio...")
+	var summaries []RouteSummary
+
+	// Estratégia 1: Tentar rota com waypoints intermediários para desviar
+	waypoints := s.generateAvoidanceWaypoints(riskZones, originLat, originLon, destLat, destLon)
+
+	log.Printf("📍 Waypoints de desvio gerados: %d", len(waypoints))
+	for i, wp := range waypoints {
+		log.Printf("   %d. (%.6f, %.6f)", i+1, wp.Latitude, wp.Longitude)
+	}
+
+	if len(waypoints) > 0 {
+		// Construir URL com waypoints de desvio
+		coords := fmt.Sprintf("%f,%f", originLon, originLat)
+		for _, wp := range waypoints {
+			coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
+		}
+		coords += fmt.Sprintf(";%f,%f", destLon, destLat)
+
+		baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+		log.Printf("🌐 URL OSRM com desvio: %s", baseURL)
+
+		// Fazer requisição para rota com desvio
+		resp, err := client.Get(baseURL + "?alternatives=1&steps=true&overview=full&continue_straight=false")
+		if err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				distText, _ := formatDistance(route.Distance)
+				durText, _ := formatDuration(route.Duration)
+				log.Printf("✅ Rota alternativa calculada: %s, %s", distText, durText)
+				summary := s.createRouteSummary(route, "desvio_seguro", originGeocode, destGeocode, data, nil)
+				summaries = append(summaries, summary)
+			} else {
+				log.Printf("❌ Erro ao decodificar resposta OSRM: %v", err)
+			}
+		} else {
+			log.Printf("❌ Erro na requisição OSRM: %v", err)
+		}
+	}
+
+	// Se não conseguiu rota alternativa, tentar rota direta com aviso
+	if len(summaries) == 0 {
+		log.Printf("⚠️  Não foi possível calcular rota alternativa, criando aviso de risco...")
+		summary := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, riskZones)
+		summaries = append(summaries, summary)
+	}
+
+	log.Printf("📊 Total de rotas alternativas: %d", len(summaries))
+	return summaries
+}
+
+// generateAvoidanceWaypoints gera waypoints para desviar de zonas de risco
+func (s *Service) generateAvoidanceWaypoints(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) []Location {
+	log.Printf("🔄 Gerando waypoints de desvio...")
+	var waypoints []Location
+
+	for _, zone := range riskZones {
+		if !zone.Status {
+			log.Printf("⏭️  Zona %s está inativa, pulando", zone.Name)
+			continue
+		}
+
+		log.Printf("🔍 Verificando se rota cruza zona %s para gerar waypoint de desvio", zone.Name)
+
+		// Se a rota cruza a zona de risco, gerar waypoint de desvio
+		if s.doesRouteCrossRiskZone(originLat, originLon, destLat, destLon, zone) {
+			log.Printf("🚨 Rota cruza zona %s - gerando waypoint de desvio", zone.Name)
+			// Calcular ponto de desvio perpendicular à rota
+			avoidancePoint := s.calculateAvoidancePoint(originLat, originLon, destLat, destLon, zone)
+			waypoints = append(waypoints, avoidancePoint)
+			log.Printf("📍 Waypoint de desvio gerado: (%.6f, %.6f)", avoidancePoint.Latitude, avoidancePoint.Longitude)
+		} else {
+			log.Printf("✅ Rota não cruza zona %s - não é necessário waypoint de desvio", zone.Name)
+		}
+	}
+
+	log.Printf("📊 Total de waypoints de desvio gerados: %d", len(waypoints))
+	return waypoints
+}
+
+// calculateAvoidancePoint calcula um ponto de desvio para evitar zona de risco
+func (s *Service) calculateAvoidancePoint(originLat, originLon, destLat, destLon float64, zone RiskZone) Location {
+	log.Printf("🔄 Calculando ponto de desvio para zona %s", zone.Name)
+
+	// Calcular vetor da rota
+	routeVectorLat := destLat - originLat
+	routeVectorLng := destLon - originLon
+
+	// Calcular vetor perpendicular (90 graus)
+	perpendicularLat := -routeVectorLng
+	perpendicularLng := routeVectorLat
+
+	// Normalizar vetor perpendicular
+	magnitude := math.Sqrt(perpendicularLat*perpendicularLat + perpendicularLng*perpendicularLng)
+	if magnitude > 0 {
+		perpendicularLat /= magnitude
+		perpendicularLng /= magnitude
+	}
+
+	// Calcular ponto de desvio a uma distância segura do raio da zona
+	safeDistance := float64(zone.Radius) + 1000 // 1km extra de segurança
+	log.Printf("   📏 Distância de segurança: %dm (raio: %dm + 1000m extra)", safeDistance, zone.Radius)
+
+	// Ponto médio da rota
+	midLat := (originLat + destLat) / 2
+	midLng := (originLon + destLon) / 2
+	log.Printf("   📍 Ponto médio da rota: (%.6f, %.6f)", midLat, midLng)
+
+	// Aplicar desvio perpendicular
+	avoidanceLat := midLat + perpendicularLat*safeDistance
+	avoidanceLng := midLng + perpendicularLng*safeDistance
+
+	log.Printf("   🎯 Ponto de desvio calculado: (%.6f, %.6f)", avoidanceLat, avoidanceLng)
+
+	return Location{
+		Latitude:  avoidanceLat,
+		Longitude: avoidanceLng,
+	}
+}
+
+// checkRouteForRiskZonesFallback verificação de fallback usando linha reta
+func (s *Service) checkRouteForRiskZonesFallback(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) bool {
+	log.Printf("🔄 Usando verificação de fallback (linha reta)")
+
+	for _, zone := range riskZones {
+		if !zone.Status {
+			continue
+		}
+
+		log.Printf("🔍 Verificando zona: %s (lat=%.6f, lng=%.6f, raio=%dm)", zone.Name, zone.Lat, zone.Lng, zone.Radius)
+
+		// Verificar se a origem ou destino estão dentro da zona de risco
+		originInZone := s.isPointInRiskZone(originLat, originLon, zone)
+		destInZone := s.isPointInRiskZone(destLat, destLon, zone)
+
+		if originInZone || destInZone {
+			log.Printf("🚨 PONTO DENTRO DA ZONA DE RISCO: %s", zone.Name)
+			return true
+		}
+
+		// Verificar se a linha reta entre origem e destino cruza a zona de risco
+		routeCrossesZone := s.doesRouteCrossRiskZone(originLat, originLon, destLat, destLon, zone)
+		if routeCrossesZone {
+			log.Printf("🚨 ROTA CRUZA ZONA DE RISCO: %s", zone.Name)
+			return true
+		}
+
+		log.Printf("✅ Zona %s não representa risco para esta rota", zone.Name)
+	}
+
+	log.Printf("✅ Nenhuma zona de risco encontrada para esta rota")
+	return false
+}
+
+// checkRouteGeometryForRiskZones verifica se a geometria da rota OSRM passa por zonas de risco
+func (s *Service) checkRouteGeometryForRiskZones(riskZones []RiskZone, geometry string, originLat, originLon, destLat, destLon float64) (bool, LocationHisk) {
+	log.Printf("🔍 Verificando geometria da rota OSRM para zonas de risco")
+
+	// Decodificar a geometria Polyline do OSRM
+	coordinates, err := s.decodePolylineOSRM(geometry)
+	if err != nil {
+		log.Printf("❌ Erro ao decodificar geometria: %v", err)
+		return s.checkRouteForRiskZonesFallback(riskZones, originLat, originLon, destLat, destLon), LocationHisk{}
+	}
+
+	log.Printf("📍 Rota OSRM tem %d pontos para verificar", len(coordinates))
+
+	// Verificar cada segmento da rota
+	for i := 0; i < len(coordinates)-1; i++ {
+		point1 := coordinates[i]
+		point2 := coordinates[i+1]
+
+		// Verificar se este segmento passa por alguma zona de risco
+		for _, zone := range riskZones {
+			if !zone.Status {
+				continue
+			}
+
+			// Verificar se algum dos pontos do segmento está dentro da zona
+			point1InZone := s.isPointInRiskZone(point1.Latitude, point1.Longitude, zone)
+			point2InZone := s.isPointInRiskZone(point2.Latitude, point2.Longitude, zone)
+
+			if point1InZone || point2InZone {
+				log.Printf("🚨 PONTO DA ROTA DENTRO DA ZONA DE RISCO: %s", zone.Name)
+				if point1InZone {
+					log.Printf("   - Ponto %d (%.6f, %.6f) está dentro da zona", i+1, point1.Latitude, point1.Longitude)
+				}
+				if point2InZone {
+					log.Printf("   - Ponto %d (%.6f, %.6f) está dentro da zona", i+1, point2.Latitude, point2.Longitude)
+				}
+				return true, LocationHisk{
+					CEP:       zone.Cep,
+					Latitude:  zone.Lat,
+					Longitude: zone.Lng,
+				}
+			}
+
+			// Verificar se o segmento cruza a zona de risco
+			segmentCrossesZone := s.doesRouteCrossRiskZone(point1.Latitude, point1.Longitude, point2.Latitude, point2.Longitude, zone)
+			if segmentCrossesZone {
+				log.Printf("🚨 SEGMENTO DA ROTA CRUZA ZONA DE RISCO: %s", zone.Name)
+				log.Printf("   - Segmento %d: (%.6f, %.6f) → (%.6f, %.6f)",
+					i+1, point1.Latitude, point1.Longitude, point2.Latitude, point2.Longitude)
+				return true, LocationHisk{
+					CEP:       zone.Cep,
+					Latitude:  zone.Lat,
+					Longitude: zone.Lng,
+				}
+			}
+		}
+	}
+
+	log.Printf("✅ Nenhuma zona de risco encontrada na rota OSRM")
+	return false, LocationHisk{}
+}
+
+// decodePolylineOSRM decodifica a geometria Polyline do OSRM
+func (s *Service) decodePolylineOSRM(encoded string) ([]Location, error) {
+	// Usar a função existente do helper.go
+	latLngPoints, err := decodePolyline(encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	var coordinates []Location
+	for _, point := range latLngPoints {
+		coordinates = append(coordinates, Location{
+			Latitude:  point.Lat,
+			Longitude: point.Lng,
+		})
+	}
+
+	return coordinates, nil
+}
+
+// createRouteSummary cria um resumo de rota
+func (s *Service) createRouteSummary(route OSRMRoute, routeType string, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest, tolls []Toll) RouteSummary {
+	distText, distVal := formatDistance(route.Distance)
+	durText, durVal := formatDuration(route.Duration)
+
+	avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+	totalKm := route.Distance / 1000
+	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+		neturl.QueryEscape(originGeocode.FormattedAddress),
+		neturl.QueryEscape(destGeocode.FormattedAddress),
+	)
+
+	currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
+		neturl.QueryEscape(destGeocode.PlaceID),
+		neturl.QueryEscape(originGeocode.PlaceID),
+		currentTimeMillis,
+	)
+
+	var totalTollCost float64
+	if tolls != nil {
+		for _, toll := range tolls {
+			totalTollCost += toll.CashCost
+		}
+	}
+
+	return RouteSummary{
+		RouteType:     routeType,
+		HasTolls:      tolls != nil && len(tolls) > 0,
+		Distance:      Distance{Text: distText, Value: distVal},
+		Duration:      Duration{Text: durText, Value: durVal},
+		URL:           googleURL,
+		URLWaze:       wazeURL,
+		TotalFuelCost: totalFuelCost,
+		Tolls:         tolls,
+		TotalTolls:    math.Round(totalTollCost*100) / 100,
+		Polyline:      route.Geometry,
+	}
+}
+
+// createRouteSummaryWithRiskWarning cria resumo de rota com aviso de risco
+func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest, riskZones []RiskZone) RouteSummary {
+	// Calcular distância direta
+	distance := s.haversineDistance(originLat, originLon, destLat, destLon)
+	// Estimativa de tempo baseada na velocidade média (60 km/h)
+	duration := distance / 16.67 // 60 km/h = 16.67 m/s
+
+	distText, distVal := formatDistance(distance)
+	durText, durVal := formatDuration(duration)
+
+	avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+	totalKm := distance / 1000
+	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+		neturl.QueryEscape(originGeocode.FormattedAddress),
+		neturl.QueryEscape(destGeocode.FormattedAddress),
+	)
+
+	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&reverse=yes",
+		neturl.QueryEscape(destGeocode.PlaceID),
+		neturl.QueryEscape(originGeocode.PlaceID),
+	)
+
+	return RouteSummary{
+		RouteType:     "rota_direta_com_aviso",
+		HasTolls:      false,
+		Distance:      Distance{Text: distText, Value: distVal},
+		Duration:      Duration{Text: durText, Value: durVal},
+		URL:           googleURL,
+		URLWaze:       wazeURL,
+		TotalFuelCost: totalFuelCost,
+		Tolls:         nil,
+		TotalTolls:    0,
+		Polyline:      "", // Sem polyline para rota direta
+	}
+}
+
+// calculateDirectRoute calcula rota direta sem desvios
+func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
+	coords := fmt.Sprintf("%f,%f;%f,%f",
+		originLon, originLat,
+		destLon, destLat,
+	)
+	baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+
+	var summaries []RouteSummary
+
+	// Fazer requisição para rota direta
+	resp, err := client.Get(baseURL + "?alternatives=1&steps=true&overview=full&continue_straight=false")
+	if err == nil {
+		defer resp.Body.Close()
+		var osrmResp OSRMResponse
+		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+			route := osrmResp.Routes[0]
+
+			// Buscar pedágios na rota
+			tolls, _ := s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+
+			summary := s.createRouteSummary(route, "rota_direta", originGeocode, destGeocode, data, tolls)
+			summaries = append(summaries, summary)
+		}
+	}
+
+	return summaries
+}
+
+// calculateTotalRouteWithAvoidance calcula rota total com desvios
+func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, ceps []string, totalDistance, totalDuration float64, data FrontInfoCEPRequest) TotalSummary {
+	var allCoords []string
+	var waypoints []string
+	var originLocation, destinationLocation Location
+
+	for idx, cep := range ceps {
+		coordLat, coordLon, err := s.getCoordByCEP(ctx, cep)
+		if err != nil {
+			continue
+		}
+
+		allCoords = append(allCoords, fmt.Sprintf("%f,%f", coordLon, coordLat))
+
+		reverse, _ := s.reverseGeocode(coordLat, coordLon)
+		geocode, _ := s.getGeocodeAddress(ctx, reverse)
+		waypoints = append(waypoints, geocode.FormattedAddress)
+
+		if idx == 0 {
+			originLocation = Location{Latitude: coordLat, Longitude: coordLon}
+		}
+		if idx == len(ceps)-1 {
+			destinationLocation = Location{Latitude: coordLat, Longitude: coordLon}
+		}
+	}
+
+	// Verificar se há zonas de risco no caminho total
+	hasRisk, _ := s.CheckRouteForRiskZones(riskZones, originLocation.Latitude, originLocation.Longitude, destinationLocation.Latitude, destinationLocation.Longitude)
+
+	var totalRoute TotalSummary
+
+	if hasRisk {
+		// Gerar waypoints de desvio para rota total
+		avoidanceWaypoints := s.generateAvoidanceWaypoints(riskZones, originLocation.Latitude, originLocation.Longitude, destinationLocation.Latitude, destinationLocation.Longitude)
+
+		if len(avoidanceWaypoints) > 0 {
+			// Construir URL com waypoints de desvio
+			coordsStr := allCoords[0]
+			for _, wp := range avoidanceWaypoints {
+				coordsStr += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
+			}
+			coordsStr += ";" + allCoords[len(allCoords)-1]
+
+			urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+
+			resp, err := client.Get(urlTotal)
+			if err == nil {
+				defer resp.Body.Close()
+				var osrmResp OSRMResponse
+				if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+					route := osrmResp.Routes[0]
+
+					// Montar lista de waypoints para URL do Google Maps incluindo desvios (via:lat,lng)
+					waypointsForURL := make([]string, 0, len(waypoints)+len(avoidanceWaypoints))
+					if len(waypoints) > 0 {
+						waypointsForURL = append(waypointsForURL, waypoints[0])
+					}
+					// Inserir os waypoints de desvio como "via:lat,lng"
+					for _, wp := range avoidanceWaypoints {
+						waypointsForURL = append(waypointsForURL, fmt.Sprintf("via:%f,%f", wp.Latitude, wp.Longitude))
+					}
+					// Inserir eventuais pontos intermediários originais (se houver)
+					if len(waypoints) > 2 {
+						waypointsForURL = append(waypointsForURL, waypoints[1:len(waypoints)-1]...)
+					}
+					if len(waypoints) > 1 {
+						waypointsForURL = append(waypointsForURL, waypoints[len(waypoints)-1])
+					}
+
+					totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
+				}
+			}
+		}
+	}
+
+	// Se não conseguiu rota com desvio, usar dados calculados
+	if totalRoute.TotalDistance.Value == 0 {
+		distText, distVal := formatDistance(totalDistance)
+		durText, durVal := formatDuration(totalDuration)
+
+		avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+		totalKm := totalDistance / 1000
+		totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+		originAddress := waypoints[0]
+		destAddress := waypoints[len(waypoints)-1]
+		waypointStr := ""
+		if len(waypoints) > 2 {
+			waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+		}
+
+		googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+			neturl.QueryEscape(originAddress),
+			neturl.QueryEscape(destAddress),
+			waypointStr,
+		)
+
+		currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
+		wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+			neturl.QueryEscape(destAddress),
+			neturl.QueryEscape(originAddress),
+			currentTimeMillis,
+		)
+
+		totalRoute = TotalSummary{
+			LocationOrigin: AddressInfo{
+				Location: originLocation,
+				Address:  originAddress,
+			},
+			LocationDestination: AddressInfo{
+				Location: destinationLocation,
+				Address:  destAddress,
+			},
+			TotalDistance: Distance{Text: distText, Value: distVal},
+			TotalDuration: Duration{Text: durText, Value: durVal},
+			URL:           googleURL,
+			URLWaze:       wazeURL,
+			Tolls:         nil,
+			TotalTolls:    0,
+			Polyline:      "",
+			TotalFuelCost: totalFuelCost,
+		}
+	}
+
+	return totalRoute
+}
+
+// createTotalSummary cria um resumo total da rota
+func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinationLocation Location, waypoints []string, data FrontInfoCEPRequest) TotalSummary {
+	distText, distVal := formatDistance(route.Distance)
+	durText, durVal := formatDuration(route.Duration)
+
+	avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+	totalKm := route.Distance / 1000
+	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+	tolls, _ := s.findTollsOnRoute(context.Background(), route.Geometry, data.Type, float64(data.Axles))
+	var totalTollCost float64
+	for _, toll := range tolls {
+		totalTollCost += toll.CashCost
+	}
+
+	originAddress := waypoints[0]
+	destAddress := waypoints[len(waypoints)-1]
+	waypointStr := ""
+	if len(waypoints) > 2 {
+		waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+	}
+
+	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+		neturl.QueryEscape(originAddress),
+		neturl.QueryEscape(destAddress),
+		waypointStr,
+	)
+
+	currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+		neturl.QueryEscape(destAddress),
+		neturl.QueryEscape(originAddress),
+		currentTimeMillis,
+	)
+
+	return TotalSummary{
+		LocationOrigin: AddressInfo{
+			Location: originLocation,
+			Address:  originAddress,
+		},
+		LocationDestination: AddressInfo{
+			Location: destinationLocation,
+			Address:  destAddress,
+		},
+		TotalDistance: Distance{Text: distText, Value: distVal},
+		TotalDuration: Duration{Text: durText, Value: durVal},
+		URL:           googleURL,
+		URLWaze:       wazeURL,
+		Tolls:         tolls,
+		TotalTolls:    math.Round(totalTollCost*100) / 100,
+		Polyline:      route.Geometry,
+		TotalFuelCost: totalFuelCost,
 	}
 }

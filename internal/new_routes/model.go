@@ -53,7 +53,15 @@ type Response struct {
 type DetailedRoute struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
 	LocationDestination AddressInfo    `json:"location_destination"`
+	HasRisk             bool           `json:"has_risk"`
+	LocationHisk        LocationHisk    `json:"location_hisk"`
 	Summaries           []RouteSummary `json:"summaries"`
+}
+
+type LocationHisk struct {
+	CEP       string  `json:"cep"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type TotalSummary struct {

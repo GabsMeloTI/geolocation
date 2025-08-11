@@ -4,8 +4,9 @@ import (
 	"errors"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
-	"github.com/labstack/echo/v4"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -311,3 +312,42 @@ func (h *Handler) RemoveFavoriteRouteHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, "success")
 }
+
+// CalculateDistancesBetweenPointsWithRiskAvoidanceHandler godoc
+// @Summary Calcular Rotas Evitando Zonas de Risco
+// @Description Calcula rotas entre múltiplos pontos evitando zonas de risco cadastradas
+// @Tags NewRoutes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEPRequest true "Dados para cálculo de rota"
+// @Success 200 {object} Response "Rotas calculadas com desvios"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /new-routes/calculate-with-risk-avoidance [post]
+func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceHandler(c echo.Context) error {
+	var req FrontInfoCEPRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Dados de entrada inválidos: " + err.Error(),
+		})
+	}
+
+	if len(req.CEPs) < 2 {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "É necessário pelo menos dois CEPs para calcular rotas",
+		})
+	}
+
+
+	// Calcular rotas com desvio de zonas de risco
+	result, err := h.InterfaceService.CalculateDistancesBetweenPointsWithRiskAvoidance(c.Request().Context(), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Erro ao calcular rotas: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+
