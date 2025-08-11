@@ -111,8 +111,8 @@ func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, e
 
 const updateZonaRisco = `-- name: UpdateZonaRisco :one
 UPDATE zonas_risco
-SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6, status = $7
-WHERE id = $1
+SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6
+WHERE id = $1 and status = true
 RETURNING id, name, cep, lat, lng, radius, status
 `
 
@@ -123,7 +123,6 @@ type UpdateZonaRiscoParams struct {
 	Lat    float64 `json:"lat"`
 	Lng    float64 `json:"lng"`
 	Radius int64   `json:"radius"`
-	Status bool    `json:"status"`
 }
 
 func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams) (ZonasRisco, error) {
@@ -134,7 +133,6 @@ func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams
 		arg.Lat,
 		arg.Lng,
 		arg.Radius,
-		arg.Status,
 	)
 	var i ZonasRisco
 	err := row.Scan(

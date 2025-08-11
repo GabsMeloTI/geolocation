@@ -5,8 +5,8 @@ RETURNING *;
 
 -- name: UpdateZonaRisco :one
 UPDATE zonas_risco
-SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6, status = $7
-WHERE id = $1
+SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6
+WHERE id = $1 and status = true
 RETURNING *;
 
 -- name: DeleteZonaRisco :exec

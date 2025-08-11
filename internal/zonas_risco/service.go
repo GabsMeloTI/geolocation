@@ -3,6 +3,8 @@ package zonas_risco
 import (
 	"context"
 	db "geolocation/db/sqlc"
+	"database/sql"
+	"errors"
 )
 
 type InterfaceService interface {
@@ -29,6 +31,7 @@ func (s *Service) CreateZonaRiscoService(ctx context.Context, data CreateZonaRis
 		Lng:    data.Lng,
 		Radius: data.Radius,
 	}
+
 	result, err := s.InterfaceService.CreateZonaRisco(ctx, arg)
 	if err != nil {
 		return ZonaRiscoResponse{}, err
@@ -46,7 +49,6 @@ func (s *Service) UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRis
 		Lat:    data.Lat,
 		Lng:    data.Lng,
 		Radius: data.Radius,
-		Status: data.Status,
 	}
 	result, err := s.InterfaceService.UpdateZonaRisco(ctx, arg)
 	if err != nil {
@@ -58,7 +60,15 @@ func (s *Service) UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRis
 }
 
 func (s *Service) DeleteZonaRiscoService(ctx context.Context, id int64) error {
-	return s.InterfaceService.DeleteZonaRisco(ctx, id)
+	err := s.InterfaceService.DeleteZonaRisco(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("zona de risco não encontrada")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRiscoResponse, error) {
@@ -66,8 +76,10 @@ func (s *Service) GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRi
 	if err != nil {
 		return ZonaRiscoResponse{}, err
 	}
+
 	resp := ZonaRiscoResponse{}
 	resp.ParseFromDb(result)
+	
 	return resp, nil
 }
 
