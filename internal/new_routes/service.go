@@ -2985,7 +2985,6 @@ func getConcessionImage(concession string) string {
 	}
 }
 
-// CalculateDistancesBetweenPointsWithRiskAvoidance calcula rotas evitando zonas de risco
 func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error) {
 	log.Printf("🚀 INICIANDO CÁLCULO DE ROTA COM EVITAMENTO DE ZONAS DE RISCO")
 	log.Printf("📍 CEPs: %v", data.CEPs)
@@ -3089,7 +3088,6 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	}, nil
 }
 
-// getActiveRiskZones busca todas as zonas de risco ativas do banco
 func (s *Service) getActiveRiskZones(ctx context.Context) ([]RiskZone, error) {
 	if s.RiskZonesRepository == nil {
 		log.Printf("⚠️  RiskZonesRepository é nil - retornando lista vazia")
@@ -3388,40 +3386,67 @@ func (s *Service) findRiskZoneByHint(riskZones []RiskZone, hint LocationHisk) (R
 func (s *Service) calculateAvoidancePoint(originLat, originLon, destLat, destLon float64, zone RiskZone) Location {
 	log.Printf("🔄 Calculando ponto de desvio para zona %s", zone.Name)
 
-	// Calcular vetor da rota
-	routeVectorLat := destLat - originLat
-	routeVectorLng := destLon - originLon
+	// Vetor da rota em graus
+	dLatDeg := destLat - originLat
+	dLonDeg := destLon - originLon
 
-	// Calcular vetor perpendicular (90 graus)
-	perpendicularLat := -routeVectorLng
-	perpendicularLng := routeVectorLat
+	// Converter graus -> metros (aproximação local)
+	midLat := (originLat + destLat) / 2.0
+	metersPerDegLat := 111320.0
+	metersPerDegLon := 111320.0 * math.Cos(midLat*math.Pi/180.0)
 
-	// Normalizar vetor perpendicular
-	magnitude := math.Sqrt(perpendicularLat*perpendicularLat + perpendicularLng*perpendicularLng)
-	if magnitude > 0 {
-		perpendicularLat /= magnitude
-		perpendicularLng /= magnitude
+	dNorth := dLatDeg * metersPerDegLat // metros para norte
+	dEast := dLonDeg * metersPerDegLon  // metros para leste
+
+	// Vetor perpendicular em metros (90 graus)
+	// perpendicular para a direita: (-dNorth, dEast)
+	pNorth := -dEast
+	pEast := dNorth
+
+	// Normalizar
+	mag := math.Hypot(pNorth, pEast)
+	if mag == 0 {
+		// rota degenerada, empurra para leste 1km
+		pNorth, pEast = 0, 1
+		mag = 1
+	}
+	pNorth /= mag
+	pEast /= mag
+
+	// Distância segura: raio + 1km
+	safeDistanceMeters := float64(zone.Radius) + 1000.0
+	log.Printf("   📏 Distância de segurança: %.0fm (raio: %dm + 1000m)", safeDistanceMeters, zone.Radius)
+
+	// Candidato A (lado +) e B (lado -)
+	candANorth := pNorth * safeDistanceMeters
+	candAEast := pEast * safeDistanceMeters
+	candBNorth := -candANorth
+	candBEast := -candAEast
+
+	// Aplicar ao ponto médio em metros e converter de volta para graus
+	midLon := (originLon + destLon) / 2.0
+	candALat := midLat + (candANorth / metersPerDegLat)
+	candALon := midLon + (candAEast / metersPerDegLon)
+	candBLat := midLat + (candBNorth / metersPerDegLat)
+	candBLon := midLon + (candBEast / metersPerDegLon)
+
+	// Escolher o candidato mais distante do centro da zona
+	distA := s.haversineDistance(candALat, candALon, zone.Lat, zone.Lng)
+	distB := s.haversineDistance(candBLat, candBLon, zone.Lat, zone.Lng)
+
+	var chosen Location
+	if distA >= distB {
+		chosen = Location{Latitude: candALat, Longitude: candALon}
+	} else {
+		chosen = Location{Latitude: candBLat, Longitude: candBLon}
 	}
 
-	// Calcular ponto de desvio a uma distância segura do raio da zona
-	safeDistance := float64(zone.Radius) + 1000 // 1km extra de segurança
-	log.Printf("   📏 Distância de segurança: %dm (raio: %dm + 1000m extra)", safeDistance, zone.Radius)
+	log.Printf("   📍 Ponto médio da rota: (%.6f, %.6f)", midLat, midLon)
+	log.Printf("   🎯 Ponto de desvio escolhido: (%.6f, %.6f) — dist %.1fm do centro",
+		chosen.Latitude, chosen.Longitude,
+		s.haversineDistance(chosen.Latitude, chosen.Longitude, zone.Lat, zone.Lng))
 
-	// Ponto médio da rota
-	midLat := (originLat + destLat) / 2
-	midLng := (originLon + destLon) / 2
-	log.Printf("   📍 Ponto médio da rota: (%.6f, %.6f)", midLat, midLng)
-
-	// Aplicar desvio perpendicular
-	avoidanceLat := midLat + perpendicularLat*safeDistance
-	avoidanceLng := midLng + perpendicularLng*safeDistance
-
-	log.Printf("   🎯 Ponto de desvio calculado: (%.6f, %.6f)", avoidanceLat, avoidanceLng)
-
-	return Location{
-		Latitude:  avoidanceLat,
-		Longitude: avoidanceLng,
-	}
+	return chosen
 }
 
 // checkRouteForRiskZonesFallback verificação de fallback usando linha reta
@@ -3844,3 +3869,5 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 		TotalFuelCost: totalFuelCost,
 	}
 }
+
+//---------------------------------
