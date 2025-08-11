@@ -479,7 +479,7 @@ type UniqueCep struct {
 	StreetID         int32           `json:"street_id"`
 	Number           sql.NullString  `json:"number"`
 	Complement       sql.NullString  `json:"complement"`
-	Cep              interface{}     `json:"cep"`
+	Cep              string          `json:"cep"`
 	Lat              sql.NullFloat64 `json:"lat"`
 	Lon              sql.NullFloat64 `json:"lon"`
 	StreetName       sql.NullString  `json:"street_name"`
@@ -547,4 +547,14 @@ type ViewRouteRequest struct {
 	IDUser       int64  `json:"id_user"`
 	Name         string `json:"name"`
 	TotalRequest int64  `json:"total_request"`
+}
+
+type ZonasRisco struct {
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Cep    string  `json:"cep"`
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+	Radius int64   `json:"radius"`
+	Status bool    `json:"status"`
 }

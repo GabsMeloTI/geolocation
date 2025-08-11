@@ -83,4 +83,4 @@ CREATE TABLE public.unique_ceps (
     state_lon float8 NULL,
     CONSTRAINT unique_ceps_pkey PRIMARY KEY (id)
 );
-CREATE INDEX idx_unique_cep_cep ON public.unique_ceps USING btree (cep);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_ceps ON ceps (cep);
