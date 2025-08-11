@@ -167,7 +167,8 @@ func (c *ContainerDI) buildRepository() {
 
 func (c *ContainerDI) buildService() {
 	c.ServiceRoutes = routes.NewRoutesService(c.RepositoryRoutes, c.Config.GoogleMapsKey)
-	c.ServiceNewRoutes = new_routes.NewRoutesNewService(c.RepositoryRoutes, c.RepositoryRouteEnterprise, c.Config.GoogleMapsKey)
+	c.ServiceZonasRisco = zonas_risco.NewZonasRiscoService(c.RepositoryZonasRisco)
+	c.ServiceNewRoutes = new_routes.NewRoutesNewService(c.RepositoryRoutes, c.RepositoryRouteEnterprise, c.Config.GoogleMapsKey, c.ServiceZonasRisco)
 	c.ServiceHist = hist.NewHistService(c.RepositoryHist, c.Config.SignatureToken)
 	c.ServiceDriver = drivers.NewDriversService(c.RepositoryDriver)
 	c.ServiceTractorUnit = tractor_unit.NewTractorUnitsService(c.RepositoryTractorUnit)
@@ -191,7 +192,6 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress, c.Config.GoogleMapsKey)
 	c.ServiceLocation = location.NewLocationsService(c.RepositoryLocation)
-	c.ServiceZonasRisco = zonas_risco.NewZonasRiscoService(c.RepositoryZonasRisco)
 }
 
 func (c *ContainerDI) buildHandler() {
