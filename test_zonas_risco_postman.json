@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "Zonas de Risco API Tests",
+    "description": "Coleção de testes para a API de Zonas de Risco",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "1. Criar Zona de Risco",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Zona de Risco Centro\",\n  \"cep\": \"01234567\",\n  \"lat\": -23.5505,\n  \"lng\": -46.6333,\n  \"radius\": 500\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/zonas-risco/create",
+          "host": ["{{base_url}}"],
+          "path": ["zonas-risco", "create"]
+        }
+      }
+    },
+    {
+      "name": "2. Atualizar Zona de Risco",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 1,\n  \"name\": \"Zona de Risco Centro Atualizada\",\n  \"cep\": \"01234567\",\n  \"lat\": -23.5505,\n  \"lng\": -46.6333,\n  \"radius\": 750,\n  \"status\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/zonas-risco/update",
+          "host": ["{{base_url}}"],
+          "path": ["zonas-risco", "update"]
+        }
+      }
+    },
+    {
+      "name": "3. Deletar Zona de Risco",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/zonas-risco/delete/1",
+          "host": ["{{base_url}}"],
+          "path": ["zonas-risco", "delete", "1"]
+        }
+      }
+    },
+    {
+      "name": "4. Obter Zona de Risco por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/zonas-risco/list/1",
+          "host": ["{{base_url}}"],
+          "path": ["zonas-risco", "list", "1"]
+        }
+      }
+    },
+    {
+      "name": "5. Listar Todas as Zonas de Risco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/zonas-risco/list",
+          "host": ["{{base_url}}"],
+          "path": ["zonas-risco", "list"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "seu_token_aqui",
+      "type": "string"
+    }
+  ]
+}

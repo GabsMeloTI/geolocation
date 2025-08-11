@@ -1,0 +1,141 @@
+{
+  "zonas_risco": {
+    "create": {
+      "description": "POST /zonas-risco/create",
+      "request": {
+        "name": "Zona de Risco Centro",
+        "cep": "01234567",
+        "lat": -23.5505,
+        "lng": -46.6333,
+        "radius": 500
+      },
+      "response_example": {
+        "id": 1,
+        "name": "Zona de Risco Centro",
+        "cep": "01234567",
+        "lat": -23.5505,
+        "lng": -46.6333,
+        "radius": 500,
+        "status": true
+      }
+    },
+    
+    "update": {
+      "description": "PUT /zonas-risco/update",
+      "request": {
+        "id": 1,
+        "name": "Zona de Risco Centro Atualizada",
+        "cep": "01234567",
+        "lat": -23.5505,
+        "lng": -46.6333,
+        "radius": 750,
+        "status": true
+      },
+      "response_example": {
+        "id": 1,
+        "name": "Zona de Risco Centro Atualizada",
+        "cep": "01234567",
+        "lat": -23.5505,
+        "lng": -46.6333,
+        "radius": 750,
+        "status": true
+      }
+    },
+    
+    "delete": {
+      "description": "PUT /zonas-risco/delete/{id}",
+      "url_example": "/zonas-risco/delete/1",
+      "response_example": "Sucesso"
+    },
+    
+    "get_by_id": {
+      "description": "GET /zonas-risco/list/{id}",
+      "url_example": "/zonas-risco/list/1",
+      "response_example": {
+        "id": 1,
+        "name": "Zona de Risco Centro",
+        "cep": "01234567",
+        "lat": -23.5505,
+        "lng": -46.6333,
+        "radius": 500,
+        "status": true
+      }
+    },
+    
+    "get_all": {
+      "description": "GET /zonas-risco/list",
+      "response_example": [
+        {
+          "id": 1,
+          "name": "Zona de Risco Centro",
+          "cep": "01234567",
+          "lat": -23.5505,
+          "lng": -46.6333,
+          "radius": 500,
+          "status": true
+        },
+        {
+          "id": 2,
+          "name": "Zona de Risco Norte",
+          "cep": "01234568",
+          "lat": -23.5400,
+          "lng": -46.6200,
+          "radius": 300,
+          "status": true
+        },
+        {
+          "id": 3,
+          "name": "Zona de Risco Sul",
+          "cep": "01234569",
+          "lat": -23.5600,
+          "lng": -46.6400,
+          "radius": 400,
+          "status": true
+        }
+      ]
+    }
+  },
+  
+  "exemplos_adicionais": {
+    "zona_risco_sao_paulo": {
+      "name": "Zona de Risco São Paulo",
+      "cep": "01310100",
+      "lat": -23.5505,
+      "lng": -46.6333,
+      "radius": 1000
+    },
+    
+    "zona_risco_rio": {
+      "name": "Zona de Risco Rio de Janeiro",
+      "cep": "20040020",
+      "lat": -22.9068,
+      "lng": -43.1729,
+      "radius": 800
+    },
+    
+    "zona_risco_belo_horizonte": {
+      "name": "Zona de Risco Belo Horizonte",
+      "cep": "30112000",
+      "lat": -19.9167,
+      "lng": -43.9345,
+      "radius": 600
+    }
+  },
+  
+  "notas_importantes": {
+    "headers": "Authorization: Bearer {token}",
+    "content_type": "application/json",
+    "status_codes": {
+      "200": "Sucesso",
+      "400": "Requisição Inválida",
+      "500": "Erro Interno do Servidor"
+    },
+    "campos_obrigatorios": ["name", "cep", "lat", "lng", "radius"],
+    "validacoes": {
+      "cep": "8 dígitos numéricos",
+      "lat": "Latitude válida (-90 a 90)",
+      "lng": "Longitude válida (-180 a 180)",
+      "radius": "Número positivo em metros"
+    }
+  }
+}
