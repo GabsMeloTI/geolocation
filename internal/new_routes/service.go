@@ -1205,7 +1205,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			originLon, originLat,
 			destLon, destLat,
 		)
-		baseURL := "http://34.207.174.233:5002/route/v1/driving/" + url.PathEscape(coords)
+		baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 
 		type osrmResult struct {
 			resp     OSRMResponse
@@ -1385,7 +1385,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 
 	coordsStr := strings.Join(allCoords, ";")
 	urlTotal := fmt.Sprintf(
-		"http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false&geometries=polyline",
+		"http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false&geometries=polyline",
 		url.PathEscape(coordsStr),
 	)
 
@@ -3154,7 +3154,7 @@ func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, origin
 	// Primeiro, calcular a rota real com OSRM para verificar todos os pontos
 	client := http.Client{Timeout: 30 * time.Second}
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
-	url := fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
+	url := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
 
 	log.Printf("🌐 Calculando rota real com OSRM: %s", url)
 
@@ -3300,7 +3300,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		coords += fmt.Sprintf(";%f,%f", destLon, destLat)
 		radiuses = append(radiuses, "50")
 
-		u := "http://34.207.174.233:5002/route/v1/driving/" + coords +
+		u := "http://34.207.174.233:5001/route/v1/driving/" + coords +
 			"?alternatives=0&steps=true&overview=full&continue_straight=false&geometries=polyline&radiuses=" +
 			url.QueryEscape(strings.Join(radiuses, ";"))
 
@@ -3622,7 +3622,7 @@ func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon 
 func (s *Service) computeBypassFromRouteGeometry(originLat, originLon, destLat, destLon float64, zone RiskZone) (Location, Location, bool) {
 	// Consulta uma rota OSRM simples entre origem e destino
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
-	osrmURL := fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full", url.PathEscape(coords))
+	osrmURL := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full", url.PathEscape(coords))
 	client := http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(osrmURL)
 	if err != nil {
@@ -4020,7 +4020,7 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 		originLon, originLat,
 		destLon, destLat,
 	)
-	baseURL := "http://34.207.174.233:5002/route/v1/driving/" + url.PathEscape(coords)
+	baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
 
 	var summaries []RouteSummary
 
@@ -4130,7 +4130,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	var totalRoute TotalSummary
 	// Recalcula rota com a sequência ajustada (com desvios injetados, se houver)
 	coordsStr := strings.Join(newCoords, ";")
-	urlTotal := fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+	urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
 	if resp, err := client.Get(urlTotal); err == nil {
 		defer resp.Body.Close()
 		var osrmResp OSRMResponse
@@ -4182,7 +4182,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 
 					// recalcula OSRM
 					coordsStr2 := strings.Join(adjCoords, ";")
-					url2 := fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr2))
+					url2 := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr2))
 					if r2, err2 := client.Get(url2); err2 == nil {
 						var resp2 OSRMResponse
 						defer r2.Body.Close()
@@ -4217,7 +4217,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	if totalRoute.TotalDistance.Value == 0 {
 		// Tentar calcular a rota total via OSRM sem desvios
 		baseCoords := strings.Join(allCoords, ";")
-		urlTotal := fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
+		urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
 		if resp, err := client.Get(urlTotal); err == nil {
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
@@ -4287,7 +4287,7 @@ type osrmNearestResp struct {
 }
 
 func (s *Service) snapToRoad(lat, lon float64) (float64, float64, bool) {
-	urlStr := fmt.Sprintf("http://34.207.174.233:5002/nearest/v1/driving/%f,%f?number=1", lon, lat)
+	urlStr := fmt.Sprintf("http://34.207.174.233:5001/nearest/v1/driving/%f,%f?number=1", lon, lat)
 	client := http.Client{Timeout: 10 * time.Second}
 
 	resp, err := client.Get(urlStr)
@@ -4360,7 +4360,7 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 }
 
 func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64, float64, bool) {
-	u := fmt.Sprintf("http://34.207.174.233:5002/nearest/v1/driving/%.6f,%.6f?number=1", lon, lat)
+	u := fmt.Sprintf("http://34.207.174.233:5001/nearest/v1/driving/%.6f,%.6f?number=1", lon, lat)
 	resp, err := client.Get(u)
 	if err != nil {
 		return lat, lon, false
