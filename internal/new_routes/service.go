@@ -2985,6 +2985,7 @@ func getConcessionImage(concession string) string {
 	}
 }
 
+//---- new function
 func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error) {
 	log.Printf("🚀 INICIANDO CÁLCULO DE ROTA COM EVITAMENTO DE ZONAS DE RISCO")
 	log.Printf("📍 CEPs: %v", data.CEPs)
@@ -3085,6 +3086,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	return Response{
 		Routes:     resultRoutes,
 		TotalRoute: totalRoute,
+		Front: "bate na rota certa",
 	}, nil
 }
 
