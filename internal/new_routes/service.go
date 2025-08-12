@@ -3423,6 +3423,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	return Response{
 		Routes:     resultRoutes,
 		TotalRoute: totalRoute,
+		TesteFront: "tá batento na rota certa",
 	}, nil
 }
 
