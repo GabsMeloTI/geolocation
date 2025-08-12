@@ -7,20 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createZonaRisco = `-- name: CreateZonaRisco :one
-INSERT INTO zonas_risco (name, cep, lat, lng, radius, status)
-VALUES ($1, $2, $3, $4, $5, true)
-RETURNING id, name, cep, lat, lng, radius, status
+INSERT INTO zonas_risco (name, cep, lat, lng, radius, type, status)
+VALUES ($1, $2, $3, $4, $5, $6, true)
+RETURNING id, name, cep, lat, lng, radius, type, status
 `
 
 type CreateZonaRiscoParams struct {
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
+	Name   string        `json:"name"`
+	Cep    string        `json:"cep"`
+	Lat    float64       `json:"lat"`
+	Lng    float64       `json:"lng"`
+	Radius int64         `json:"radius"`
+	Type   sql.NullInt64 `json:"type"`
 }
 
 func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams) (ZonasRisco, error) {
@@ -30,6 +32,7 @@ func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams
 		arg.Lat,
 		arg.Lng,
 		arg.Radius,
+		arg.Type,
 	)
 	var i ZonasRisco
 	err := row.Scan(
@@ -39,6 +42,7 @@ func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams
 		&i.Lat,
 		&i.Lng,
 		&i.Radius,
+		&i.Type,
 		&i.Status,
 	)
 	return i, err
@@ -56,7 +60,7 @@ func (q *Queries) DeleteZonaRisco(ctx context.Context, id int64) error {
 }
 
 const getAllZonasRisco = `-- name: GetAllZonasRisco :many
-SELECT id, name, cep, lat, lng, radius, status FROM zonas_risco WHERE status = true
+SELECT id, name, cep, lat, lng, radius, type, status FROM zonas_risco WHERE status = true
 `
 
 func (q *Queries) GetAllZonasRisco(ctx context.Context) ([]ZonasRisco, error) {
@@ -75,6 +79,7 @@ func (q *Queries) GetAllZonasRisco(ctx context.Context) ([]ZonasRisco, error) {
 			&i.Lat,
 			&i.Lng,
 			&i.Radius,
+			&i.Type,
 			&i.Status,
 		); err != nil {
 			return nil, err
@@ -91,7 +96,7 @@ func (q *Queries) GetAllZonasRisco(ctx context.Context) ([]ZonasRisco, error) {
 }
 
 const getZonaRiscoById = `-- name: GetZonaRiscoById :one
-SELECT id, name, cep, lat, lng, radius, status FROM zonas_risco WHERE id = $1 AND status = true
+SELECT id, name, cep, lat, lng, radius, type, status FROM zonas_risco WHERE id = $1 AND status = true
 `
 
 func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, error) {
@@ -104,6 +109,7 @@ func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, e
 		&i.Lat,
 		&i.Lng,
 		&i.Radius,
+		&i.Type,
 		&i.Status,
 	)
 	return i, err
@@ -111,18 +117,19 @@ func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, e
 
 const updateZonaRisco = `-- name: UpdateZonaRisco :one
 UPDATE zonas_risco
-SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6
+SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6, type= $7
 WHERE id = $1 and status = true
-RETURNING id, name, cep, lat, lng, radius, status
+RETURNING id, name, cep, lat, lng, radius, type, status
 `
 
 type UpdateZonaRiscoParams struct {
-	ID     int64   `json:"id"`
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
+	ID     int64         `json:"id"`
+	Name   string        `json:"name"`
+	Cep    string        `json:"cep"`
+	Lat    float64       `json:"lat"`
+	Lng    float64       `json:"lng"`
+	Radius int64         `json:"radius"`
+	Type   sql.NullInt64 `json:"type"`
 }
 
 func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams) (ZonasRisco, error) {
@@ -133,6 +140,7 @@ func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams
 		arg.Lat,
 		arg.Lng,
 		arg.Radius,
+		arg.Type,
 	)
 	var i ZonasRisco
 	err := row.Scan(
@@ -142,6 +150,7 @@ func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams
 		&i.Lat,
 		&i.Lng,
 		&i.Radius,
+		&i.Type,
 		&i.Status,
 	)
 	return i, err
