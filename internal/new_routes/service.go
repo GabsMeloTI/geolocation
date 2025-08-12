@@ -4125,3 +4125,4 @@ func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64
 	sLat := r.Waypoints[0].Location[1]
 	return sLat, sLon, true
 }
+//test
