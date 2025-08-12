@@ -2,9 +2,9 @@ package zonas_risco
 
 import (
 	"context"
-	db "geolocation/db/sqlc"
 	"database/sql"
 	"errors"
+	db "geolocation/db/sqlc"
 )
 
 type InterfaceService interface {
@@ -30,6 +30,7 @@ func (s *Service) CreateZonaRiscoService(ctx context.Context, data CreateZonaRis
 		Lat:    data.Lat,
 		Lng:    data.Lng,
 		Radius: data.Radius,
+		Type:   sql.NullInt64{Int64: data.Type, Valid: true},
 	}
 
 	result, err := s.InterfaceService.CreateZonaRisco(ctx, arg)
@@ -49,6 +50,7 @@ func (s *Service) UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRis
 		Lat:    data.Lat,
 		Lng:    data.Lng,
 		Radius: data.Radius,
+		Type:   sql.NullInt64{Int64: data.Type, Valid: true},
 	}
 	result, err := s.InterfaceService.UpdateZonaRisco(ctx, arg)
 	if err != nil {
@@ -79,7 +81,7 @@ func (s *Service) GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRi
 
 	resp := ZonaRiscoResponse{}
 	resp.ParseFromDb(result)
-	
+
 	return resp, nil
 }
 

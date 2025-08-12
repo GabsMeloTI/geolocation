@@ -550,11 +550,12 @@ type ViewRouteRequest struct {
 }
 
 type ZonasRisco struct {
-	ID     int64   `json:"id"`
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
-	Status bool    `json:"status"`
+	ID     int64         `json:"id"`
+	Name   string        `json:"name"`
+	Cep    string        `json:"cep"`
+	Lat    float64       `json:"lat"`
+	Lng    float64       `json:"lng"`
+	Radius int64         `json:"radius"`
+	Type   sql.NullInt64 `json:"type"`
+	Status bool          `json:"status"`
 }

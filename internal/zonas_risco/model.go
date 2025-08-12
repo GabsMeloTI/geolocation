@@ -10,6 +10,7 @@ type CreateZonaRiscoRequest struct {
 	Lat    float64 `json:"lat"`
 	Lng    float64 `json:"lng"`
 	Radius int64   `json:"radius"`
+	Type   int64   `json:"type"`
 }
 
 type UpdateZonaRiscoRequest struct {
@@ -19,7 +20,7 @@ type UpdateZonaRiscoRequest struct {
 	Lat    float64 `json:"lat"`
 	Lng    float64 `json:"lng"`
 	Radius int64   `json:"radius"`
-	Status bool    `json:"status"`
+	Type   int64   `json:"type"`
 }
 
 type ZonaRiscoResponse struct {
@@ -29,6 +30,7 @@ type ZonaRiscoResponse struct {
 	Lat    float64 `json:"lat"`
 	Lng    float64 `json:"lng"`
 	Radius int64   `json:"radius"`
+	Type   int64   `json:"type"`
 	Status bool    `json:"status"`
 }
 
@@ -39,5 +41,6 @@ func (r *ZonaRiscoResponse) ParseFromDb(result db.ZonasRisco) {
 	r.Lat = result.Lat
 	r.Lng = result.Lng
 	r.Radius = result.Radius
+	r.Type = result.Type.Int64
 	r.Status = result.Status
 }

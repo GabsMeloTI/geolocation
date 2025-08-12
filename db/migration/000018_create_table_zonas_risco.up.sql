@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS zonas_risco (
   lat         FLOAT NOT NULL,
   lng         FLOAT NOT NULL,
   radius      BIGINT      NOT NULL,
+  type BIGINT null,
   status      BOOLEAN      NOT NULL DEFAULT TRUE
 );
