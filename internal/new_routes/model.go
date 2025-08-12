@@ -64,6 +64,15 @@ type LocationHisk struct {
 	Longitude float64 `json:"longitude"`
 }
 
+type Point struct{ Lat, Lon float64 }
+
+type RiskZone struct {
+	Lat    float64 // centro
+	Lon    float64
+	Radius float64 // metros
+}
+
+
 type TotalSummary struct {
 	LocationOrigin      AddressInfo `json:"location_origin"`
 	LocationDestination AddressInfo `json:"location_destination"`
