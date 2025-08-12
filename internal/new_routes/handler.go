@@ -338,7 +338,6 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceHandler(c echo
 		})
 	}
 
-
 	// Calcular rotas com desvio de zonas de risco
 	result, err := h.InterfaceService.CalculateDistancesBetweenPointsWithRiskAvoidance(c.Request().Context(), req)
 	if err != nil {
