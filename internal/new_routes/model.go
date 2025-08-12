@@ -49,7 +49,7 @@ type Summary struct {
 type Response struct {
 	Routes     []DetailedRoute `json:"routes"`
 	TotalRoute TotalSummary    `json:"total_route"`
-	TesteFront string `json:"front"`
+	Front      string `json:"front"`
 }
 type DetailedRoute struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
@@ -64,15 +64,6 @@ type LocationHisk struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 }
-
-type Point struct{ Lat, Lon float64 }
-
-type RiskZone struct {
-	Lat    float64 // centro
-	Lon    float64
-	Radius float64 // metros
-}
-
 
 type TotalSummary struct {
 	LocationOrigin      AddressInfo `json:"location_origin"`
