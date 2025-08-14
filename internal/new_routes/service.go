@@ -17,6 +17,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"net/http"
 	"net/url"
 	neturl "net/url"
@@ -3853,24 +3854,17 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 }
 
 // calculateTotalRouteWithAvoidance calcula rota total com desvios
-func (s *Service) calculateTotalRouteWithAvoidance(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	ceps []string,
-	totalDistance, totalDuration float64,
-	data FrontInfoCEPRequest,
-) TotalSummary {
+func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, ceps []string, totalDistance, totalDuration float64, data FrontInfoCEPRequest) TotalSummary {
 
-	const arcPoints = 3        // adicionar 3 pontos laterais
-	const arcExtraBuffer = 200 // ~200m além do raio
-	const chunkWindow = 12     // tamanho de janela do fallback chunked
+	const arcPoints = 3        // até 3 vias laterais por zona
+	const arcExtraBuffer = 200 // ~200 m além do raio
+	const chunkWindow = 12     // janela do fallback chunked
 
 	var allCoords []string
 	var waypoints []string
 	var originLocation, destinationLocation Location
 
-	// 1) Resolve todos os CEPs
+	// 1) Resolve CEPs para lon,lat
 	for idx, cep := range ceps {
 		lat, lon, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
@@ -3891,10 +3885,9 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 	}
 
 	if len(allCoords) < 2 {
-		return TotalSummary{} // nada a fazer
+		return TotalSummary{}
 	}
 
-	// helpers
 	parseLonLat := func(s string) (lon, lat float64) {
 		fmt.Sscanf(s, "%f,%f", &lon, &lat)
 		return
@@ -3911,21 +3904,18 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 
 	var newCoords []string
 	newCoords = append(newCoords, allCoords[0])
-
 	var extraWaypointsForURL []string
 
-	// 2) Para cada segmento, injeta vias se cruzar risco
+	// 2) Para cada segmento, injeta vias laterais e valida se removeu o risco
 	for i := 0; i < len(allCoords)-1; i++ {
 		lon1, lat1 := parseLonLat(allCoords[i])
 		lon2, lat2 := parseLonLat(allCoords[i+1])
 
 		hasRisk, hint := s.CheckRouteForRiskZones(riskZones, lat1, lon1, lat2, lon2)
 		if !hasRisk {
-			// sem risco → segue normal
 			newCoords = append(newCoords, allCoords[i+1])
 			continue
 		}
-
 		zone, ok := s.findRiskZoneByHint(riskZones, hint)
 		if !ok {
 			newCoords = append(newCoords, allCoords[i+1])
@@ -3934,9 +3924,10 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 
 		log.Printf("🛑 Segmento %d cruza risco (%s). Gerando laterais…", i+1, zone.Name)
 
-		// 2.1 Base: rota real do segmento para achar ENTRY/EXIT
+		// Base p/ ENTRY/EXIT
 		segCoords := fmt.Sprintf("%f,%f;%f,%f", lon1, lat1, lon2, lat2)
 		baseRoute, err := s.osrmRouteWithRetries(client, segCoords, fmt.Sprintf("seg%d-base", i+1))
+
 		var entry, exit Location
 		okEntryExit := false
 		if err == nil {
@@ -3947,9 +3938,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 		}
 
-		var chosenVias []Location
 		tryAndValidate := func(vias []Location, tag string) bool {
-			// monta sequência: A + vias + B
 			coordsSeg := fmt.Sprintf("%f,%f", lon1, lat1)
 			for _, v := range vias {
 				coordsSeg += fmt.Sprintf(";%f,%f", v.Longitude, v.Latitude)
@@ -3961,17 +3950,16 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 				log.Printf("   ❌ seg%d-%s falhou: %v", i+1, tag, err)
 				return false
 			}
-			// valida: rota com vias NÃO pode cruzar risco
+			// valida: não pode cruzar a zona
 			if okRisk, _ := s.checkRouteGeometryForRiskZones([]RiskZone{zone}, r.Geometry, lat1, lon1, lat2, lon2); okRisk {
 				log.Printf("   🚫 seg%d-%s ainda cruza a zona — descartando", i+1, tag)
 				return false
 			}
-			chosenVias = vias
 			log.Printf("   ✅ seg%d-%s aprovado (vias=%d)", i+1, tag, len(vias))
 			return true
 		}
 
-		// 2.2 Primeira tentativa: menor arco (3 vias)
+		// 2.1 menor arco (3 vias)
 		if okEntryExit {
 			shortArc := s.buildArcWaypointsDir(entry, exit, zone, arcPoints, arcExtraBuffer, false)
 			for k := range shortArc {
@@ -3979,7 +3967,6 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 				log.Printf("   • short_arc[%d]=(%.6f,%.6f)", k, shortArc[k].Latitude, shortArc[k].Longitude)
 			}
 			if tryAndValidate(shortArc, "arc_short") {
-				// injeta no trajeto total
 				for _, v := range shortArc {
 					appendVia(&newCoords, v)
 					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", v.Latitude, v.Longitude))
@@ -3988,7 +3975,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 				continue
 			}
 
-			// 2.3 Lado oposto do arco
+			// 2.2 lado oposto
 			longArc := s.buildArcWaypointsDir(entry, exit, zone, arcPoints, arcExtraBuffer, true)
 			for k := range longArc {
 				longArc[k] = snapPoint(longArc[k])
@@ -4004,7 +3991,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 		}
 
-		// 2.4 Fallback: A/B geométrico
+		// 2.3 fallback A/B
 		wpA, wpB := s.computeBypassWaypoints(lat1, lon1, lat2, lon2, zone)
 		wpA = snapPoint(wpA)
 		wpB = snapPoint(wpB)
@@ -4018,7 +4005,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			continue
 		}
 
-		// 2.5 Escalonar afastamento
+		// 2.4 escala afastamento
 		for _, sc := range []float64{1.5, 2.0, 3.0} {
 			wpA2 := s.pushAwayFromCenter(wpA, zone, float64(zone.Radius)*(sc-1)+500)
 			wpB2 := s.pushAwayFromCenter(wpB, zone, float64(zone.Radius)*(sc-1)+500)
@@ -4033,13 +4020,11 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 		}
 
-		// sempre adiciona o destino do segmento
-		newCoords = append(newCoords, allCoords[i+1])
+		newCoords = append(newCoords, allCoords[i+1]) // garante fechamento do segmento
 	}
 
-	// 3) Recalcula a ROTA TOTAL (retry) e faz fallback chunked se precisar
+	// 3) Recalcula TOTAL (retry) + fallback chunked
 	var totalRoute TotalSummary
-
 	coordsStr := strings.Join(newCoords, ";")
 	log.Printf("🌐 [TOTAL] vias=%d, tamURL=%d", len(newCoords), len(coordsStr))
 
@@ -4050,14 +4035,12 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		if errTotal != nil {
 			log.Printf("❌ [TOTAL] chunked falhou: %v", errTotal)
 		} else {
-			log.Printf("✅ [TOTAL] chunked OK (dist=%.0fm dur=%.0fs, polyline=%v)",
-				route.Distance, route.Duration, route.Geometry != "")
+			log.Printf("✅ [TOTAL] chunked OK (dist=%.0fm dur=%.0fs, polyline=%v)", route.Distance, route.Duration, route.Geometry != "")
 		}
 	}
 
-	// 4) Monta URLs e resumo final (ou cai nos fallbacks antigos)
+	// 4) Monta TotalSummary (ou fallbacks)
 	if errTotal == nil {
-		// Waypoints para URL (endereços + via:lat,lng)
 		waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
 		if len(waypoints) > 2 {
 			waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
@@ -4067,14 +4050,14 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		}
 		totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
 	} else {
-		// Fallback 1: rota sem desvios
+		// Fallback 1: rota base sem desvios
 		if totalRoute.TotalDistance.Value == 0 {
 			baseCoords := strings.Join(allCoords, ";")
 			if r2, err2 := s.osrmRouteWithRetries(client, baseCoords, "total-base"); err2 == nil {
 				totalRoute = s.createTotalSummary(r2, originLocation, destinationLocation, waypoints, data)
 			}
 		}
-		// Fallback 2: agregados (dist/dur somados anteriormente)
+		// Fallback 2: agregados
 		if totalRoute.TotalDistance.Value == 0 {
 			distText, distVal := formatDistance(totalDistance)
 			durText, durVal := formatDuration(totalDuration)
@@ -4087,39 +4070,27 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			destAddress := waypoints[len(waypoints)-1]
 			waypointStr := ""
 			if len(waypoints) > 2 {
-				waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+				waypointStr = "&waypoints=" + url.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
 			}
 
 			googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
-				neturl.QueryEscape(originAddress),
-				neturl.QueryEscape(destAddress),
-				waypointStr,
-			)
+				url.QueryEscape(originAddress), url.QueryEscape(destAddress), waypointStr)
 
 			currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
 			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-				neturl.QueryEscape(destAddress),
-				neturl.QueryEscape(originAddress),
-				currentTimeMillis,
-			)
+				url.QueryEscape(destAddress), url.QueryEscape(originAddress), currentTimeMillis)
 
 			totalRoute = TotalSummary{
-				LocationOrigin: AddressInfo{
-					Location: originLocation,
-					Address:  originAddress,
-				},
-				LocationDestination: AddressInfo{
-					Location: destinationLocation,
-					Address:  destAddress,
-				},
-				TotalDistance: Distance{Text: distText, Value: distVal},
-				TotalDuration: Duration{Text: durText, Value: durVal},
-				URL:           googleURL,
-				URLWaze:       wazeURL,
-				Tolls:         nil,
-				TotalTolls:    0,
-				Polyline:      "",
-				TotalFuelCost: totalFuelCost,
+				LocationOrigin:      AddressInfo{Location: originLocation, Address: originAddress},
+				LocationDestination: AddressInfo{Location: destinationLocation, Address: destAddress},
+				TotalDistance:       Distance{Text: distText, Value: distVal},
+				TotalDuration:       Duration{Text: durText, Value: durVal},
+				URL:                 googleURL,
+				URLWaze:             wazeURL,
+				Tolls:               nil,
+				TotalTolls:          0,
+				Polyline:            "",
+				TotalFuelCost:       totalFuelCost,
 			}
 		}
 	}
@@ -4604,43 +4575,27 @@ func (s *Service) osrmRouteWithRetries(client http.Client, coordsStr, label stri
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		start := time.Now()
+
 		resp, err := client.Get(u)
 		if err != nil {
 			lastErr = err
 			log.Printf("❌ OSRM (%s) tentativa %d/%d: erro de rede: %v", label, attempt, maxAttempts, err)
 		} else {
-			func() {
-				defer resp.Body.Close()
-				if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-					var r OSRMResponse
-					if json.NewDecoder(resp.Body).Decode(&r) == nil && len(r.Routes) > 0 {
-						log.Printf("✅ OSRM (%s) OK em %s", label, time.Since(start))
-						lastErr = nil
-						// sucesso
-						route := r.Routes[0]
-						return
-					}
-					lastErr = fmt.Errorf("decode OSRM (%s) vazio ou inválido", label)
-				} else {
-					body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-					lastErr = fmt.Errorf("HTTP %d (%s): %s", resp.StatusCode, label, strings.TrimSpace(string(body)))
-					log.Printf("⚠️  OSRM (%s) tentativa %d/%d falhou: %v", label, attempt, maxAttempts, lastErr)
-				}
-			}()
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				var r OSRMResponse
+				decErr := json.NewDecoder(resp.Body).Decode(&r)
+				resp.Body.Close()
 
-			// Para devolver a rota no sucesso acima, refazemos o GET leve (sem muito log)
-			if lastErr == nil {
-				resp2, err2 := client.Get(u)
-				if err2 != nil {
-					lastErr = err2
-				} else {
-					defer resp2.Body.Close()
-					var r2 OSRMResponse
-					if json.NewDecoder(resp2.Body).Decode(&r2) == nil && len(r2.Routes) > 0 {
-						return r2.Routes[0], nil
-					}
-					lastErr = fmt.Errorf("decode OSRM (%s) falhou após sucesso", label)
+				if decErr == nil && len(r.Routes) > 0 {
+					log.Printf("✅ OSRM (%s) OK em %s", label, time.Since(start))
+					return r.Routes[0], nil
 				}
+				lastErr = fmt.Errorf("decode OSRM (%s) vazio/ inválido: %v", label, decErr)
+			} else {
+				body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+				resp.Body.Close()
+				lastErr = fmt.Errorf("HTTP %d (%s): %s", resp.StatusCode, label, strings.TrimSpace(string(body)))
+				log.Printf("⚠️  OSRM (%s) tentativa %d/%d falhou: %v", label, attempt, maxAttempts, lastErr)
 			}
 		}
 
@@ -4698,10 +4653,8 @@ func (s *Service) osrmRouteChunkedTotal(client http.Client, coords []string, win
 	out := OSRMRoute{
 		Distance: totalDist,
 		Duration: totalDur,
-		Geometry: "",
+		Geometry: "", // se tiver um encoder polyline, você pode reconstruir aqui
 	}
-	// Se você tiver um encoder Polyline, pode montar a Geometry aqui.
-	// out.Geometry = encodePolyline(allPts)
-	_ = geomOK // mantemos vazio se não houver encoder
+	_ = geomOK // caso não reconstrua a polyline total
 	return out, nil
 }
