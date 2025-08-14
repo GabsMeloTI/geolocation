@@ -49,13 +49,13 @@ type Summary struct {
 type Response struct {
 	Routes     []DetailedRoute `json:"routes"`
 	TotalRoute TotalSummary    `json:"total_route"`
-	Front      string `json:"front"`
+	Front      string          `json:"front"`
 }
 type DetailedRoute struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
 	LocationDestination AddressInfo    `json:"location_destination"`
 	HasRisk             bool           `json:"has_risk"`
-	LocationHisk        LocationHisk    `json:"location_hisk"`
+	LocationHisk        LocationHisk   `json:"location_hisk"`
 	Summaries           []RouteSummary `json:"summaries"`
 }
 
@@ -83,6 +83,16 @@ type SummaryResponse struct {
 	FuelPrice           FuelPrice      `json:"fuel_price"`
 	FuelEfficiency      FuelEfficiency `json:"fuel_efficiency"`
 	RouteOptions        RouteOptions   `json:"route_options"`
+}
+
+type RiskOffsets struct {
+	Zone      RiskZone `json:"zone"`
+	Entry     Location `json:"entry"`
+	Exit      Location `json:"exit"`
+	Before5km Location `json:"before_5km"`
+	After5km  Location `json:"after_5km"`
+	EntryCum  float64  `json:"entry_cum_m"`
+	ExitCum   float64  `json:"exit_cum_m"`
 }
 
 type Toll struct {
@@ -128,6 +138,7 @@ type RouteSummary struct {
 	Tolls         []Toll   `json:"tolls,omitempty"`
 	TotalTolls    float64  `json:"total_tolls,omitempty"`
 	Polyline      string   `json:"polyline,omitempty"`
+	RiskInfo      *RiskOffsets `json:"risk_info,omitempty"`
 }
 
 type Costs struct {
