@@ -149,8 +149,17 @@ type RouteSummary struct {
 	TotalTolls    float64      `json:"total_tolls,omitempty"`
 	Polyline      string       `json:"polyline,omitempty"`
 	RiskInfo      *RiskOffsets `json:"risk_info,omitempty"`
+	Detour        *DetourPlan  `json:"detour,omitempty"`
+}
+type DetourPlan struct {
+	Source string        `json:"source"`
+	Points []DetourPoint `json:"points"`
 }
 
+type DetourPoint struct {
+	Name     string   `json:"name"`
+	Location Location `json:"location"`
+}
 type Costs struct {
 	TagAndCash      float64 `json:"tagAndCash"`
 	FuelInTheCity   float64 `json:"fuel_in_the_city"`
