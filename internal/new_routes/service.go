@@ -3327,7 +3327,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
 			if json.NewDecoder(resp.Body).Decode(&osrmResp) == nil && len(osrmResp.Routes) > 0 {
-				if off, ok := s.computeRiskOffsetsFromGeometry(osrmResp.Routes[0].Geometry, zone, 5000); ok {
+				if off, ok := s.computeRiskOffsetsFromGeometry(osrmResp.Routes[0].Geometry, zone, 2000); ok {
 					riskInfo = &off
 				}
 			}
