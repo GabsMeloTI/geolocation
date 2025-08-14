@@ -148,7 +148,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -700,7 +700,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -1205,7 +1205,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			originLon, originLat,
 			destLon, destLat,
 		)
-		baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+		baseURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 
 		type osrmResult struct {
 			resp     OSRMResponse
@@ -1377,7 +1377,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 	}
 
 	coordsStr := strings.Join(allCoords, ";")
-	urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+	urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
 
 	resp, err := client.Get(urlTotal)
 	if err == nil {
@@ -1472,7 +1472,7 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddressRaw)
 
 		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
-		baseURL := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coords))
+		baseURL := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coords))
 
 		resp, err := client.Get(baseURL)
 		if err != nil {
@@ -1663,7 +1663,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		coords += fmt.Sprintf(";%f,%f", wp.Location.Longitude, wp.Location.Latitude)
 	}
 	coords += fmt.Sprintf(";%f,%f", destination.Location.Longitude, destination.Location.Latitude)
-	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURLFast := baseOSRMURL + "?" + url.Values{
@@ -2121,7 +2121,7 @@ func (s *Service) RemoveFavoriteRouteService(ctx context.Context, id, idUser int
 
 func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error) {
 	coords := fmt.Sprintf("%f,%f;%f,%f", data.OriginLng, data.OriginLat, data.DestLng, data.DestLat)
-	baseOSRMURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 	client := http.Client{Timeout: 120 * time.Second}
 
 	osrmURL := baseOSRMURL + "?" + url.Values{
@@ -3144,7 +3144,7 @@ func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, origin
 	// Primeiro, calcular a rota real com OSRM para verificar todos os pontos
 	client := http.Client{Timeout: 30 * time.Second}
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
-	url := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
+	url := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
 
 	log.Printf("🌐 Calculando rota real com OSRM: %s", url)
 
@@ -3286,7 +3286,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		}
 		coords += fmt.Sprintf(";%f,%f", destLon, destLat)
 
-		u := "http://34.207.174.233:5001/route/v1/driving/" + coords +
+		u := "http://34.207.174.233:5000/route/v1/driving/" + coords +
 			"?alternatives=0&steps=true&overview=full&continue_straight=false"
 
 		resp, err := client.Get(u)
@@ -3500,7 +3500,7 @@ func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon 
 func (s *Service) computeBypassFromRouteGeometry(originLat, originLon, destLat, destLon float64, zone RiskZone) (Location, Location, bool) {
 	// Consulta uma rota OSRM simples entre origem e destino
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
-	osrmURL := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full", url.PathEscape(coords))
+	osrmURL := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full", url.PathEscape(coords))
 	client := http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(osrmURL)
 	if err != nil {
@@ -3841,7 +3841,7 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 		originLon, originLat,
 		destLon, destLat,
 	)
-	baseURL := "http://34.207.174.233:5001/route/v1/driving/" + url.PathEscape(coords)
+	baseURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
 
 	var summaries []RouteSummary
 
@@ -3938,7 +3938,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	var totalRoute TotalSummary
 	// Recalcula rota com a sequência ajustada (com desvios injetados, se houver)
 	coordsStr := strings.Join(newCoords, ";")
-	urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+	urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
 	if resp, err := client.Get(urlTotal); err == nil {
 		defer resp.Body.Close()
 		var osrmResp OSRMResponse
@@ -3963,7 +3963,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	if totalRoute.TotalDistance.Value == 0 {
 		// Tentar calcular a rota total via OSRM sem desvios
 		baseCoords := strings.Join(allCoords, ";")
-		urlTotal := fmt.Sprintf("http://34.207.174.233:5001/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
+		urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
 		if resp, err := client.Get(urlTotal); err == nil {
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
@@ -4033,7 +4033,7 @@ type osrmNearestResp struct {
 }
 
 func (s *Service) snapToRoad(lat, lon float64) (float64, float64, bool) {
-	urlStr := fmt.Sprintf("http://34.207.174.233:5001/nearest/v1/driving/%f,%f?number=1", lon, lat)
+	urlStr := fmt.Sprintf("http://34.207.174.233:5000/nearest/v1/driving/%f,%f?number=1", lon, lat)
 	client := http.Client{Timeout: 10 * time.Second}
 
 	resp, err := client.Get(urlStr)
@@ -4106,7 +4106,7 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 }
 
 func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64, float64, bool) {
-	u := fmt.Sprintf("http://34.207.174.233:5001/nearest/v1/driving/%.6f,%.6f?number=1", lon, lat)
+	u := fmt.Sprintf("http://34.207.174.233:5000/nearest/v1/driving/%.6f,%.6f?number=1", lon, lat)
 	resp, err := client.Get(u)
 	if err != nil {
 		return lat, lon, false
