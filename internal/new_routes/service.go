@@ -3123,16 +3123,6 @@ func (s *Service) getActiveRiskZones(ctx context.Context) ([]RiskZone, error) {
 	return riskZones, nil
 }
 
-type RiskZone struct {
-	ID     int64   `json:"id"`
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
-	Status bool    `json:"status"`
-}
-
 func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) (bool, LocationHisk) {
 	log.Printf("🔍 Verificando rota: origem(%.6f, %.6f) → destino(%.6f, %.6f)", originLat, originLon, destLat, destLon)
 
@@ -3272,7 +3262,10 @@ func (s *Service) haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
 // calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
 func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
 
-	// tenta montar rota via waypoints (já garantindo que não cruza risco)
+	const riskOffsetMeters = 2000 // 2 km (para Entry/Exit/Before/After)
+	const arcExtraBuffer = 200    // 200 m para "ficar fora" do círculo
+	const arcPoints = 2           // 2 pontos na arcada (pode usar 3)
+
 	tryRoute := func(wps []Location) (OSRMRoute, bool) {
 		coords := fmt.Sprintf("%f,%f", originLon, originLat)
 		for _, wp := range wps {
@@ -3288,38 +3281,28 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 			return OSRMRoute{}, false
 		}
 		defer resp.Body.Close()
-
 		var osrmResp OSRMResponse
 		if json.NewDecoder(resp.Body).Decode(&osrmResp) != nil || len(osrmResp.Routes) == 0 {
 			return OSRMRoute{}, false
 		}
 		r := osrmResp.Routes[0]
-
-		// revalida: se ainda cruzar risco, rejeita
-		hasRisk, _ := s.checkRouteGeometryForRiskZones(riskZones, r.Geometry, originLat, originLon, destLat, destLon)
-		if hasRisk {
+		if hasRisk, _ := s.checkRouteGeometryForRiskZones(riskZones, r.Geometry, originLat, originLon, destLat, destLon); hasRisk {
 			return OSRMRoute{}, false
 		}
 		return r, true
 	}
 
-	// 1) verifica se realmente há risco no traçado direto
+	// Se a rota direta não tem risco, só devolve direta
 	hasRisk, hint := s.CheckRouteForRiskZones(riskZones, originLat, originLon, destLat, destLon)
 	if !hasRisk {
-		// fallback: deveria cair em calculateDirectRoute, mas por garantia
 		return s.calculateDirectRoute(ctx, client, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
 	}
 
-	zone, ok := s.findRiskZoneByHint(riskZones, hint)
-	if !ok {
-		// Sem pista: retorna direta com aviso
-		sum := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, riskZones)
-		return []RouteSummary{sum}
-	}
-
-	// 1.1) calcula offsets (−5 km / +5 km) a partir da ROTA DIRETA arriscada
+	// Identifica a zona cruzada e calcula RiskInfo (entry/exit e ±2km)
 	var riskInfo *RiskOffsets
-	{
+	var zone RiskZone
+	if z, ok := s.findRiskZoneByHint(riskZones, hint); ok {
+		zone = z
 		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 		u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
 			"?alternatives=0&steps=true&overview=full"
@@ -3327,56 +3310,64 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
 			if json.NewDecoder(resp.Body).Decode(&osrmResp) == nil && len(osrmResp.Routes) > 0 {
-				if off, ok := s.computeRiskOffsetsFromGeometry(osrmResp.Routes[0].Geometry, zone, 500); ok {
+				if off, ok2 := s.computeRiskOffsetsFromGeometry(osrmResp.Routes[0].Geometry, zone, riskOffsetMeters); ok2 {
 					riskInfo = &off
 				}
 			}
 		}
 	}
 
-	// 2) gera candidato A/B (fora do círculo + buffer)
-	wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, zone)
-
-	// 3) snap ao asfalto (nearest)
-	if lat, lon, ok := s.osrmNearestSnap(client, wpA.Latitude, wpA.Longitude); ok {
-		wpA.Latitude, wpA.Longitude = lat, lon
-	}
-	if lat, lon, ok := s.osrmNearestSnap(client, wpB.Latitude, wpB.Longitude); ok {
-		wpB.Latitude, wpB.Longitude = lat, lon
-	}
-
-	// 4) tenta rota via [A,B]
-	if r, ok := tryRoute([]Location{wpA, wpB}); ok {
-		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
-		sum := s.createRouteSummary(r, "desvio_seguro", originGeocode, destGeocode, data, tolls)
-		if riskInfo != nil {
-			sum.RiskInfo = riskInfo
+	// 1) PRIORIDADE: waypoints do FRONT (se vierem)
+	if len(data.Waypoints) > 0 {
+		if userWps, err := s.normalizeUserWaypoints(data.Waypoints); err == nil && len(userWps) > 0 {
+			// Snap opcional
+			for i := range userWps {
+				if lat, lon, ok := s.osrmNearestSnap(client, userWps[i].Latitude, userWps[i].Longitude); ok {
+					userWps[i].Latitude, userWps[i].Longitude = lat, lon
+				}
+			}
+			if r, ok := tryRoute(userWps); ok {
+				tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
+				sum := s.createRouteSummary(r, "desvio_usuario", originGeocode, destGeocode, data, tolls)
+				if riskInfo != nil {
+					sum.RiskInfo = riskInfo
+				}
+				return []RouteSummary{sum}
+			}
 		}
-		return []RouteSummary{sum}
-	}
-
-	// 5) tenta invertido [B,A]
-	if r, ok := tryRoute([]Location{wpB, wpA}); ok {
-		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
-		sum := s.createRouteSummary(r, "desvio_seguro", originGeocode, destGeocode, data, tolls)
-		if riskInfo != nil {
-			sum.RiskInfo = riskInfo
-		}
-		return []RouteSummary{sum}
 	}
 
-	// 6) escala buffer (empurra mais para longe)
-	scales := []float64{1.5, 2.0, 3.0}
-	for _, sc := range scales {
-		wpA2 := s.pushAwayFromCenter(wpA, zone, float64(zone.Radius)*(sc-1)+500)
-		wpB2 := s.pushAwayFromCenter(wpB, zone, float64(zone.Radius)*(sc-1)+500)
-		if lat, lon, ok := s.osrmNearestSnap(client, wpA2.Latitude, wpA2.Longitude); ok {
-			wpA2.Latitude, wpA2.Longitude = lat, lon
+	// 2) GERAÇÃO AUTOMÁTICA DE WAYPOINTS EM ARCADA (raio + buffer)
+	if zone.ID != 0 {
+		if entry, exit, ok := s.computeBypassFromRouteGeometry(originLat, originLon, destLat, destLon, zone); ok {
+			arcWps := s.buildArcWaypoints(entry, exit, zone, arcPoints, arcExtraBuffer)
+			// Snap
+			for i := range arcWps {
+				if lat, lon, ok := s.osrmNearestSnap(client, arcWps[i].Latitude, arcWps[i].Longitude); ok {
+					arcWps[i].Latitude, arcWps[i].Longitude = lat, lon
+				}
+			}
+			if r, ok := tryRoute(arcWps); ok {
+				tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
+				sum := s.createRouteSummary(r, "desvio_arc", originGeocode, destGeocode, data, tolls)
+				if riskInfo != nil {
+					sum.RiskInfo = riskInfo
+				}
+				return []RouteSummary{sum}
+			}
 		}
-		if lat, lon, ok := s.osrmNearestSnap(client, wpB2.Latitude, wpB2.Longitude); ok {
-			wpB2.Latitude, wpB2.Longitude = lat, lon
+	}
+
+	// 3) Fallback antigo (A/B + escalas)
+	if zone.ID != 0 {
+		wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, zone)
+		if lat, lon, ok := s.osrmNearestSnap(client, wpA.Latitude, wpA.Longitude); ok {
+			wpA.Latitude, wpA.Longitude = lat, lon
 		}
-		if r, ok := tryRoute([]Location{wpA2, wpB2}); ok {
+		if lat, lon, ok := s.osrmNearestSnap(client, wpB.Latitude, wpB.Longitude); ok {
+			wpB.Latitude, wpB.Longitude = lat, lon
+		}
+		if r, ok := tryRoute([]Location{wpA, wpB}); ok {
 			tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 			sum := s.createRouteSummary(r, "desvio_seguro", originGeocode, destGeocode, data, tolls)
 			if riskInfo != nil {
@@ -3384,10 +3375,37 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 			}
 			return []RouteSummary{sum}
 		}
+		if r, ok := tryRoute([]Location{wpB, wpA}); ok {
+			tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
+			sum := s.createRouteSummary(r, "desvio_seguro", originGeocode, destGeocode, data, tolls)
+			if riskInfo != nil {
+				sum.RiskInfo = riskInfo
+			}
+			return []RouteSummary{sum}
+		}
+		// escalar distância
+		for _, sc := range []float64{1.5, 2.0, 3.0} {
+			wpA2 := s.pushAwayFromCenter(wpA, zone, float64(zone.Radius)*(sc-1)+500)
+			wpB2 := s.pushAwayFromCenter(wpB, zone, float64(zone.Radius)*(sc-1)+500)
+			if lat, lon, ok := s.osrmNearestSnap(client, wpA2.Latitude, wpA2.Longitude); ok {
+				wpA2.Latitude, wpA2.Longitude = lat, lon
+			}
+			if lat, lon, ok := s.osrmNearestSnap(client, wpB2.Latitude, wpB2.Longitude); ok {
+				wpB2.Latitude, wpB2.Longitude = lat, lon
+			}
+			if r, ok := tryRoute([]Location{wpA2, wpB2}); ok {
+				tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
+				sum := s.createRouteSummary(r, "desvio_seguro", originGeocode, destGeocode, data, tolls)
+				if riskInfo != nil {
+					sum.RiskInfo = riskInfo
+				}
+				return []RouteSummary{sum}
+			}
+		}
 	}
 
-	// 7) último recurso: retorna direta com aviso (e inclui RiskInfo se disponível)
-	sum := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, []RiskZone{zone})
+	// 4) último recurso: direta com aviso
+	sum := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, riskZones)
 	if riskInfo != nil {
 		sum.RiskInfo = riskInfo
 	}
@@ -4034,7 +4052,7 @@ func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64
 	return sLat, sLon, true
 }
 
-// NEWS
+// NEWS - DEVOLVER PONTOS ANTES DA ROTA
 func (s *Service) computeRiskOffsetsFromGeometry(geometry string, zone RiskZone, offsetMeters float64) (RiskOffsets, bool) {
 	points, err := s.decodePolylineOSRM(geometry)
 	if err != nil || len(points) < 2 {
@@ -4259,4 +4277,77 @@ func pointAtCumDistance(points []Location, cum []float64, target float64, s *Ser
 		}
 	}
 	return points[lastIdx], true
+}
+
+// Converte []Coordinate (strings) -> []Location (float64) e valida faixa
+func (s *Service) normalizeUserWaypoints(in []Coordinate) ([]Location, error) {
+	wps := make([]Location, 0, len(in))
+	for _, c := range in {
+		latStr := strings.TrimSpace(strings.ReplaceAll(c.Lat, ",", "."))
+		lngStr := strings.TrimSpace(strings.ReplaceAll(c.Lng, ",", "."))
+		lat, err1 := strconv.ParseFloat(latStr, 64)
+		lng, err2 := strconv.ParseFloat(lngStr, 64)
+		if err1 != nil || err2 != nil {
+			continue // ignora inválidos
+		}
+		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			continue
+		}
+		wps = append(wps, Location{Latitude: lat, Longitude: lng})
+	}
+	if len(wps) == 0 {
+		return nil, fmt.Errorf("nenhum waypoint válido recebido")
+	}
+	return wps, nil
+}
+
+// NEWS - ADICIONAR WAYPOINTS AUTOMATICAMENTE
+func normalizeAngle(a float64) float64 {
+	for a <= -math.Pi {
+		a += 2 * math.Pi
+	}
+	for a > math.Pi {
+		a -= 2 * math.Pi
+	}
+	return a
+}
+
+// Gera n pontos em uma ARCADA entre os ângulos de entrada/saída do círculo,
+// usando raio + extraBuffer (em metros). Usa projeção local (mesma de projectToMeters).
+func (s *Service) buildArcWaypoints(entry, exit Location, zone RiskZone, n int, extraBuffer float64) []Location {
+	latRef := zone.Lat
+	// centro em metros
+	cx, cy := s.projectToMeters(latRef, zone.Lat, zone.Lng)
+	// pontos relativos ao centro
+	ex, ey := s.projectToMeters(latRef, entry.Latitude, entry.Longitude)
+	ex -= cx
+	ey -= cy
+	sx, sy := s.projectToMeters(latRef, exit.Latitude, exit.Longitude)
+	sx -= cx
+	sy -= cy
+
+	theta1 := math.Atan2(ey, ex)
+	theta2 := math.Atan2(sy, sx)
+	delta := normalizeAngle(theta2 - theta1)
+
+	// usa a menor arcada (mais curta)
+	if math.Abs(delta) > math.Pi {
+		if delta > 0 {
+			delta -= 2 * math.Pi
+		} else {
+			delta += 2 * math.Pi
+		}
+	}
+
+	R := float64(zone.Radius) + extraBuffer
+	out := make([]Location, 0, n)
+	for i := 1; i <= n; i++ {
+		t := float64(i) / float64(n+1)
+		ang := theta1 + delta*t
+		ax := math.Cos(ang) * R
+		ay := math.Sin(ang) * R
+		lat, lon := s.unprojectFromMeters(latRef, ax+cx, ay+cy)
+		out = append(out, Location{Latitude: lat, Longitude: lon})
+	}
+	return out
 }

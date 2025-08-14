@@ -127,17 +127,27 @@ type Duration struct {
 	Value float64 `json:"value"`
 }
 
+type RiskZone struct {
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Cep    string  `json:"cep"`
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+	Radius int64   `json:"radius"`
+	Status bool    `json:"status"`
+}
+
 type RouteSummary struct {
-	RouteType     string   `json:"route_type"`
-	HasTolls      bool     `json:"hasTolls"`
-	Distance      Distance `json:"distance"`
-	Duration      Duration `json:"duration"`
-	URL           string   `json:"url"`
-	URLWaze       string   `json:"url_waze"`
-	TotalFuelCost float64  `json:"total_fuel_cost,omitempty"`
-	Tolls         []Toll   `json:"tolls,omitempty"`
-	TotalTolls    float64  `json:"total_tolls,omitempty"`
-	Polyline      string   `json:"polyline,omitempty"`
+	RouteType     string       `json:"route_type"`
+	HasTolls      bool         `json:"hasTolls"`
+	Distance      Distance     `json:"distance"`
+	Duration      Duration     `json:"duration"`
+	URL           string       `json:"url"`
+	URLWaze       string       `json:"url_waze"`
+	TotalFuelCost float64      `json:"total_fuel_cost,omitempty"`
+	Tolls         []Toll       `json:"tolls,omitempty"`
+	TotalTolls    float64      `json:"total_tolls,omitempty"`
+	Polyline      string       `json:"polyline,omitempty"`
 	RiskInfo      *RiskOffsets `json:"risk_info,omitempty"`
 }
 
@@ -274,6 +284,7 @@ type FrontInfoCEPRequest struct {
 	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
 	TypeRoute       string       `json:"typeRoute"`
 	RouteOptions    RouteOptions `json:"route_options"`
+	Waypoints       []Coordinate `json:"waypoints"`
 }
 
 type FrontInfoCoordinate struct {
