@@ -3378,43 +3378,45 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 	}
 
 	// 3) LATERAIS AUTOMÁTICOS: MENOR ARCO (um dos lados do raio)
-	log.Printf("🛠️ Gerando laterais (MENOR ARCO) com raio+%dm, n=%d", int(arcExtraBuffer), arcPoints)
-	shortArc := s.buildArcWaypointsDir(riskInfo.Entry, riskInfo.Exit, riskInfo.Zone, arcPoints, arcExtraBuffer, false)
-	for i, p := range shortArc {
-		log.Printf("   short_arc_%d bruto: lat=%.6f lon=%.6f", i+1, p.Latitude, p.Longitude)
+	const entryExitPush = 80.0 // 80 m para garantir fora do raio
+	log.Printf("🛠️ Gerando laterais + âncoras (MENOR ARCO): buffer=%dm, arcPoints=%d, push=%.0fm",
+		int(arcExtraBuffer), arcPoints, entryExitPush)
+
+	shortSeq := s.assembleLateralDetour(riskInfo.Entry, riskInfo.Exit, riskInfo.Zone, arcPoints, arcExtraBuffer, entryExitPush, false)
+	for i, p := range shortSeq {
+		log.Printf("   short_seq[%d] bruto: lat=%.6f lon=%.6f", i, p.Latitude, p.Longitude)
 	}
-	shortArc = snapMany("short_arc", shortArc)
-	if r, ok := tryRoute(shortArc, "short_arc"); ok {
+	shortSeq = snapMany("short_seq", shortSeq)
+	if r, ok := tryRoute(shortSeq, "short_seq"); ok {
 		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 		sum := s.createRouteSummary(r, "desvio_lateral_curto", originGeocode, destGeocode, data, tolls)
 		sum.RiskInfo = riskInfo
 		var pts []DetourPoint
-		for i, p := range shortArc {
-			pts = append(pts, DetourPoint{Name: "arc_short_" + strconv.Itoa(i+1), Location: p})
+		for i, p := range shortSeq {
+			pts = append(pts, DetourPoint{Name: fmt.Sprintf("short_%d", i+1), Location: p})
 		}
-		sum.Detour = &DetourPlan{Source: "arc_short", Points: pts}
+		sum.Detour = &DetourPlan{Source: "arc_short_anchored", Points: pts}
 		return []RouteSummary{sum}
 	}
-	log.Printf("↪️  MENOR ARCO falhou — tentando lado oposto.")
+	log.Printf("↪️  MENOR ARCO (com âncoras) falhou — tentando lado oposto.")
 
-	// 4) LATERAIS AUTOMÁTICOS: ARCO OPOSTO (outro lado do raio)
-	longArc := s.buildArcWaypointsDir(riskInfo.Entry, riskInfo.Exit, riskInfo.Zone, arcPoints, arcExtraBuffer, true)
-	for i, p := range longArc {
-		log.Printf("   long_arc_%d bruto: lat=%.6f lon=%.6f", i+1, p.Latitude, p.Longitude)
+	// 4) LATERAIS AUTOMÁTICOS com ÂNCORAS: ARCO OPOSTO
+	longSeq := s.assembleLateralDetour(riskInfo.Entry, riskInfo.Exit, riskInfo.Zone, arcPoints, arcExtraBuffer, entryExitPush, true)
+	for i, p := range longSeq {
+		log.Printf("   long_seq[%d] bruto: lat=%.6f lon=%.6f", i, p.Latitude, p.Longitude)
 	}
-	longArc = snapMany("long_arc", longArc)
-	if r, ok := tryRoute(longArc, "long_arc"); ok {
+	longSeq = snapMany("long_seq", longSeq)
+	if r, ok := tryRoute(longSeq, "long_seq"); ok {
 		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 		sum := s.createRouteSummary(r, "desvio_lateral_oposto", originGeocode, destGeocode, data, tolls)
 		sum.RiskInfo = riskInfo
 		var pts []DetourPoint
-		for i, p := range longArc {
-			pts = append(pts, DetourPoint{Name: "arc_long_" + strconv.Itoa(i+1), Location: p})
+		for i, p := range longSeq {
+			pts = append(pts, DetourPoint{Name: fmt.Sprintf("long_%d", i+1), Location: p})
 		}
-		sum.Detour = &DetourPlan{Source: "arc_long", Points: pts}
+		sum.Detour = &DetourPlan{Source: "arc_long_anchored", Points: pts}
 		return []RouteSummary{sum}
 	}
-	log.Printf("↪️  Ambos os lados da arcada falharam — tentando A/B geométrico.")
 
 	// 5) Fallback A/B (seu método antigo), sem anchors before/after
 	wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, riskInfo.Zone)
@@ -3852,112 +3854,211 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 
 // calculateTotalRouteWithAvoidance calcula rota total com desvios
 func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, ceps []string, totalDistance, totalDuration float64, data FrontInfoCEPRequest) TotalSummary {
+
+	// ------------------------------
+	// 1) Monta lista base de coords e endereços
+	// ------------------------------
 	var allCoords []string
 	var waypoints []string
 	var originLocation, destinationLocation Location
 
 	for idx, cep := range ceps {
-		coordLat, coordLon, err := s.getCoordByCEP(ctx, cep)
+		lat, lon, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
+			log.Printf("⚠️  Ignorando CEP %q: erro ao obter coordenadas: %v", cep, err)
 			continue
 		}
+		allCoords = append(allCoords, fmt.Sprintf("%f,%f", lon, lat))
 
-		allCoords = append(allCoords, fmt.Sprintf("%f,%f", coordLon, coordLat))
-
-		reverse, _ := s.reverseGeocode(coordLat, coordLon)
+		reverse, _ := s.reverseGeocode(lat, lon)
 		geocode, _ := s.getGeocodeAddress(ctx, reverse)
 		waypoints = append(waypoints, geocode.FormattedAddress)
 
 		if idx == 0 {
-			originLocation = Location{Latitude: coordLat, Longitude: coordLon}
+			originLocation = Location{Latitude: lat, Longitude: lon}
 		}
 		if idx == len(ceps)-1 {
-			destinationLocation = Location{Latitude: coordLat, Longitude: coordLon}
+			destinationLocation = Location{Latitude: lat, Longitude: lon}
 		}
 	}
 
-	newCoords := make([]string, 0, len(allCoords)+6)
+	if len(allCoords) < 2 {
+		log.Printf("❌ Não há coordenadas suficientes para calcular rota total")
+		return TotalSummary{}
+	}
+
+	// ------------------------------
+	// 2) Para cada segmento, injeta via-points laterais (âncoras + arco)
+	// ------------------------------
+	const (
+		arcPoints        = 2     // qtd de pontos intermediários na arcada
+		arcExtraBuffer   = 200.0 // metros além do raio para manter fora do círculo
+		entryExitPush    = 80.0  // metros para empurrar entry/exit para fora do raio
+		riskOffsetForLog = 2000  // 2 km só para cálculo de before/after (log/telemetria)
+	)
+
+	newCoords := make([]string, 0, len(allCoords)+8) // espaço extra para vias
 	newCoords = append(newCoords, allCoords[0])
+
 	var extraWaypointsForURL []string
+	var detourPtsTotal []Location // se quiser expor no TotalSummary
+
 	for i := 0; i < len(allCoords)-1; i++ {
 		var lon1, lat1, lon2, lat2 float64
 		fmt.Sscanf(allCoords[i], "%f,%f", &lon1, &lat1)
 		fmt.Sscanf(allCoords[i+1], "%f,%f", &lon2, &lat2)
 
+		log.Printf("🔍 [TOTAL] Segmento %d: (%.6f, %.6f) → (%.6f, %.6f)", i+1, lat1, lon1, lat2, lon2)
 		hasRiskSeg, hint := s.CheckRouteForRiskZones(riskZones, lat1, lon1, lat2, lon2)
+
 		if hasRiskSeg {
-			if zone, ok := s.findRiskZoneByHint(riskZones, hint); ok {
-				if wpA, wpB, ok2 := s.computeBypassFromRouteGeometry(lat1, lon1, lat2, lon2, zone); ok2 {
-					if slat, slon, okN := s.snapToRoad(wpA.Latitude, wpA.Longitude); okN {
-						wpA.Latitude, wpA.Longitude = slat, slon
+			zone, ok := s.findRiskZoneByHint(riskZones, hint)
+			if ok {
+				log.Printf("🚨 [TOTAL] Risco detectado no segmento %d — zona: %s (raio=%dm, lat=%.6f lon=%.6f)",
+					i+1, zone.Name, zone.Radius, zone.Lat, zone.Lng)
+
+				// 2.1) Rota simples do segmento para obter ENTRY/EXIT reais (polyline do próprio OSRM)
+				segCoords := fmt.Sprintf("%f,%f;%f,%f", lon1, lat1, lon2, lat2)
+				segURL := fmt.Sprintf(
+					"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full",
+					url.PathEscape(segCoords),
+				)
+
+				var entry, exit Location
+				gotEntryExit := false
+				if resp, err := client.Get(segURL); err == nil {
+					defer resp.Body.Close()
+					var segResp OSRMResponse
+					if json.NewDecoder(resp.Body).Decode(&segResp) == nil && len(segResp.Routes) > 0 {
+						if off, ok2 := s.computeRiskOffsetsFromGeometry(segResp.Routes[0].Geometry, zone, riskOffsetForLog); ok2 {
+							entry, exit = off.Entry, off.Exit
+							gotEntryExit = true
+							log.Printf("🧭 [TOTAL] ENTRY (%.6f, %.6f) / EXIT (%.6f, %.6f)",
+								entry.Latitude, entry.Longitude, exit.Latitude, exit.Longitude)
+						} else {
+							log.Printf("⚠️  [TOTAL] Falha ao obter ENTRY/EXIT via polyline do segmento")
+						}
+					} else {
+						log.Printf("⚠️  [TOTAL] OSRM sem rotas para segmento (i=%d)", i+1)
 					}
-					if slat, slon, okN := s.snapToRoad(wpB.Latitude, wpB.Longitude); okN {
-						wpB.Latitude, wpB.Longitude = slat, slon
-					}
-					newCoords = append(newCoords, fmt.Sprintf("%f,%f", wpA.Longitude, wpA.Latitude))
-					newCoords = append(newCoords, fmt.Sprintf("%f,%f", wpB.Longitude, wpB.Latitude))
-					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", wpA.Latitude, wpA.Longitude))
-					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", wpB.Latitude, wpB.Longitude))
 				} else {
+					log.Printf("⚠️  [TOTAL] Erro OSRM no segmento (i=%d): %v", i+1, err)
+				}
+
+				// 2.2) Se não achou ENTRY/EXIT, cai no A/B geométrico (fallback)
+				var viaSeq []Location
+				if gotEntryExit {
+					// monta âncoras + arcada (MENOR ARCO primeiro)
+					viaSeq = s.assembleLateralDetour(entry, exit, zone, arcPoints, arcExtraBuffer, entryExitPush, false)
+					log.Printf("🛠️ [TOTAL] Via-points (short arc + âncoras): %d pontos", len(viaSeq))
+				} else {
+					// fallback A/B
 					wpA, wpB := s.computeBypassWaypoints(lat1, lon1, lat2, lon2, zone)
-					if slat, slon, okN := s.snapToRoad(wpA.Latitude, wpA.Longitude); okN {
-						wpA.Latitude, wpA.Longitude = slat, slon
+					viaSeq = []Location{wpA, wpB}
+					log.Printf("🛠️ [TOTAL] Via-points fallback A/B: 2 pontos")
+				}
+
+				// 2.3) Snap to road e INJEÇÃO na sequência total (importantíssimo: ordem!)
+				for j := range viaSeq {
+					before := viaSeq[j]
+					if slat, slon, okN := s.snapToRoad(viaSeq[j].Latitude, viaSeq[j].Longitude); okN {
+						viaSeq[j].Latitude, viaSeq[j].Longitude = slat, slon
+						log.Printf("   🔧 snap via[%d]: (%.6f, %.6f) → (%.6f, %.6f)",
+							j, before.Latitude, before.Longitude, slat, slon)
+					} else {
+						log.Printf("   ⚠️  snap falhou via[%d] (%.6f, %.6f) — mantendo bruto",
+							j, before.Latitude, before.Longitude)
 					}
-					if slat, slon, okN := s.snapToRoad(wpB.Latitude, wpB.Longitude); okN {
-						wpB.Latitude, wpB.Longitude = slat, slon
-					}
-					newCoords = append(newCoords, fmt.Sprintf("%f,%f", wpA.Longitude, wpA.Latitude))
-					newCoords = append(newCoords, fmt.Sprintf("%f,%f", wpB.Longitude, wpB.Latitude))
-					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", wpA.Latitude, wpA.Longitude))
-					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", wpB.Latitude, wpB.Longitude))
+
+					// INJETAR no vetor de coords (FORMATO LON,LAT!)
+					newCoords = append(newCoords, fmt.Sprintf("%f,%f", viaSeq[j].Longitude, viaSeq[j].Latitude))
+					// também guardar para montar link do Google
+					extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", viaSeq[j].Latitude, viaSeq[j].Longitude))
+					// opcional: expor no JSON final
+					detourPtsTotal = append(detourPtsTotal, viaSeq[j])
+
+					log.Printf("   🧭 [TOTAL] inject via[%d]: lat=%.6f lon=%.6f (seg %d)",
+						j, viaSeq[j].Latitude, viaSeq[j].Longitude, i+1)
 				}
 			}
 		}
+
+		// Sempre adiciona o destino do segmento i → i+1
 		newCoords = append(newCoords, allCoords[i+1])
 	}
 
+	// ------------------------------
+	// 3) Recalcula a rota TOTAL com a sequência ajustada
+	// ------------------------------
 	var totalRoute TotalSummary
-	// Recalcula rota com a sequência ajustada (com desvios injetados, se houver)
+
 	coordsStr := strings.Join(newCoords, ";")
-	urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+	urlTotal := fmt.Sprintf(
+		"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+		url.PathEscape(coordsStr),
+	)
+
+	log.Printf("🌐 [TOTAL] OSRM com desvios injetados: %s", urlTotal)
+
 	if resp, err := client.Get(urlTotal); err == nil {
 		defer resp.Body.Close()
 		var osrmResp OSRMResponse
 		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
 			route := osrmResp.Routes[0]
 
-			// Monta waypoints para URL do Google (endereços originais + via:lat,lng dos desvios)
+			// Monta waypoints p/ URL do Google (endereços originais + via:lat,lng dos desvios)
 			waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
 			if len(waypoints) > 2 {
-				// Insere os via antes dos pontos intermediários textuais
+				// Insere "via:" antes dos pontos intermediários de endereço
 				waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
 				waypointsForURL = append(waypointsForURL, waypoints[1:len(waypoints)-1]...)
 			} else {
 				waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
 			}
 
-			fmt.Println(waypoints)
+			log.Printf("✅ [TOTAL] Rota OSRM (com desvios) obtida. Distância/Tempo recalculados.")
 			totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
+
+			// 👉 Se você adicionou no struct:
+			// type TotalSummary struct { ... DetourPoints []Location `json:"detour_points,omitempty"` }
+			// então:
+			// totalRoute.DetourPoints = detourPtsTotal
+
+		} else {
+			log.Printf("⚠️  [TOTAL] OSRM sem rotas após injeção de desvios")
 		}
+	} else {
+		log.Printf("❌ [TOTAL] Erro OSRM rota total (com desvios): %v", err)
 	}
 
-	// Se não conseguiu rota com desvio, tentar obter a rota completa padrão (sem desvios) para obter polyline
+	// ------------------------------
+	// 4) Fallbacks (rota total sem desvio / agregados)
+	// ------------------------------
 	if totalRoute.TotalDistance.Value == 0 {
-		// Tentar calcular a rota total via OSRM sem desvios
+		// tenta rota total padrão para obter polyline
 		baseCoords := strings.Join(allCoords, ";")
-		urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(baseCoords))
-		if resp, err := client.Get(urlTotal); err == nil {
+		urlBase := fmt.Sprintf(
+			"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			url.PathEscape(baseCoords),
+		)
+		log.Printf("↩️  [TOTAL] Fallback para rota sem desvios: %s", urlBase)
+
+		if resp, err := client.Get(urlBase); err == nil {
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
 			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
 				route := osrmResp.Routes[0]
 				totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypoints, data)
+			} else {
+				log.Printf("⚠️  [TOTAL] OSRM sem rotas também no fallback padrão")
 			}
+		} else {
+			log.Printf("❌ [TOTAL] Erro OSRM no fallback padrão: %v", err)
 		}
 	}
 
-	// Se ainda não conseguiu rota com polyline, usar dados agregados (fallback)
 	if totalRoute.TotalDistance.Value == 0 {
+		// último recurso: usa agregados
 		distText, distVal := formatDistance(totalDistance)
 		durText, durVal := formatDuration(totalDuration)
 
@@ -3972,14 +4073,15 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 			waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
 		}
 
-		googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+		googleURL := fmt.Sprintf(
+			"https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
 			neturl.QueryEscape(originAddress),
 			neturl.QueryEscape(destAddress),
 			waypointStr,
 		)
-
 		currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
-		wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+		wazeURL := fmt.Sprintf(
+			"https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
 			neturl.QueryEscape(destAddress),
 			neturl.QueryEscape(originAddress),
 			currentTimeMillis,
@@ -4446,4 +4548,32 @@ func (s *Service) buildArcWaypointsDir(entry, exit Location, zone RiskZone, n in
 		out = append(out, Location{Latitude: lat, Longitude: lon})
 	}
 	return out
+}
+
+// monta via-points: [entryOut, arc(midpoints...), exitOut]
+func (s *Service) assembleLateralDetour(
+	entry, exit Location,
+	zone RiskZone,
+	arcPoints int,
+	arcExtraBuffer float64,
+	entryExitPush float64, // ex.: 80m para garantir fora do raio
+	useLongArc bool,       // false = menor arco; true = lado oposto
+) []Location {
+	// âncoras  (ligeiro empurrão para fora)
+	entryOut := s.pushAwayFromCenter(entry, zone, entryExitPush)
+	exitOut := s.pushAwayFromCenter(exit, zone, entryExitPush)
+
+	// arcada (mesmo raio+buffer que você já usa)
+	var arc []Location
+	if useLongArc {
+		arc = s.buildArcWaypointsDir(entry, exit, zone, arcPoints, arcExtraBuffer, true)
+	} else {
+		arc = s.buildArcWaypointsDir(entry, exit, zone, arcPoints, arcExtraBuffer, false)
+	}
+
+	wps := make([]Location, 0, 2+len(arc))
+	wps = append(wps, entryOut)
+	wps = append(wps, arc...)
+	wps = append(wps, exitOut)
+	return wps
 }
