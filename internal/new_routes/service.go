@@ -4737,21 +4737,6 @@ func (s *Service) buildRouteURL(points []Location) string {
 		"&radiuses=" + strings.Join(rads, ";")
 }
 
-func (s *Service) compressClosePoints(in []Location, minMeters float64) []Location {
-	if len(in) == 0 {
-		return in
-	}
-	out := []Location{in[0]}
-	last := in[0]
-	for _, p := range in[1:] {
-		if s.haversineDistance(last.Latitude, last.Longitude, p.Latitude, p.Longitude) >= minMeters {
-			out = append(out, p)
-			last = p
-		}
-	}
-	return out
-}
-
 // Avança o ponto 'entry' na direção de 'next' por 'meters' metros (no plano local)
 func (s *Service) pushAlong(entry, next Location, meters float64) Location {
 	latRef := (entry.Latitude + next.Latitude) / 2
