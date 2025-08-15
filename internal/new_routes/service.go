@@ -3260,7 +3260,15 @@ func (s *Service) haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
 }
 
 // calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
-func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
+// calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
+func (s *Service) calculateAlternativeRouteWithAvoidance(
+	ctx context.Context,
+	client http.Client,
+	riskZones []RiskZone,
+	originLat, originLon, destLat, destLon float64,
+	originGeocode, destGeocode GeocodeResult,
+	data FrontInfoCEPRequest,
+) []RouteSummary {
 
 	const riskOffsetMeters = 2000 // 2km só p/ LOG/retorno (não vira via-point)
 	const arcExtraBuffer = 200    // ~200m p/ ficar fora do raio
@@ -3377,7 +3385,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 		}
 	}
 
-	// 3) LATERAIS AUTOMÁTICOS: MENOR ARCO (um dos lados do raio)
+	// 3) LATERAIS AUTOMÁTICOS (MENOR ARCO) — **AQUI entra compressClosePoints**
 	const entryExitPush = 80.0 // 80 m para garantir fora do raio
 	log.Printf("🛠️ Gerando laterais + âncoras (MENOR ARCO): buffer=%dm, arcPoints=%d, push=%.0fm",
 		int(arcExtraBuffer), arcPoints, entryExitPush)
@@ -3386,7 +3394,11 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 	for i, p := range shortSeq {
 		log.Printf("   short_seq[%d] bruto: lat=%.6f lon=%.6f", i, p.Latitude, p.Longitude)
 	}
+	// >>>>>>> compress aqui
+	shortSeq = s.compressClosePoints(shortSeq, 120)
+	// depois do compress, faça o snap
 	shortSeq = snapMany("short_seq", shortSeq)
+
 	if r, ok := tryRoute(shortSeq, "short_seq"); ok {
 		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 		sum := s.createRouteSummary(r, "desvio_lateral_curto", originGeocode, destGeocode, data, tolls)
@@ -3400,12 +3412,14 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 	}
 	log.Printf("↪️  MENOR ARCO (com âncoras) falhou — tentando lado oposto.")
 
-	// 4) LATERAIS AUTOMÁTICOS com ÂNCORAS: ARCO OPOSTO
+	// 4) LATERAIS AUTOMÁTICOS com ÂNCORAS: ARCO OPOSTO — **compress aqui também**
 	longSeq := s.assembleLateralDetour(riskInfo.Entry, riskInfo.Exit, riskInfo.Zone, arcPoints, arcExtraBuffer, entryExitPush, true)
 	for i, p := range longSeq {
 		log.Printf("   long_seq[%d] bruto: lat=%.6f lon=%.6f", i, p.Latitude, p.Longitude)
 	}
+	longSeq = s.compressClosePoints(longSeq, 120)
 	longSeq = snapMany("long_seq", longSeq)
+
 	if r, ok := tryRoute(longSeq, "long_seq"); ok {
 		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 		sum := s.createRouteSummary(r, "desvio_lateral_oposto", originGeocode, destGeocode, data, tolls)
@@ -3418,12 +3432,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 		return []RouteSummary{sum}
 	}
 
-	// 5) Fallback A/B (seu método antigo), sem anchors before/after
+	// 5) Fallback A/B (seu método antigo) — **vale a pena comprimir também**
 	wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, riskInfo.Zone)
 	seqs := [][]Location{{wpA, wpB}, {wpB, wpA}}
 	tags := []string{"AB", "BA"}
 
 	for k, seq := range seqs {
+		seq = s.compressClosePoints(seq, 120)
 		seq = snapMany(tags[k], seq)
 		if r, ok := tryRoute(seq, tags[k]); ok {
 			tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
@@ -3441,11 +3456,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 		}
 	}
 
-	// 6) Escalar A/B e tentar de novo
+	// 6) Escalar A/B e tentar de novo — **comprime antes do snap**
 	for _, sc := range []float64{1.5, 2.0, 3.0} {
 		wpA2 := s.pushAwayFromCenter(wpA, riskInfo.Zone, float64(riskInfo.Zone.Radius)*(sc-1)+500)
 		wpB2 := s.pushAwayFromCenter(wpB, riskInfo.Zone, float64(riskInfo.Zone.Radius)*(sc-1)+500)
-		seq := snapMany(fmt.Sprintf("AB_scale_%.1f", sc), []Location{wpA2, wpB2})
+		seq := []Location{wpA2, wpB2}
+		seq = s.compressClosePoints(seq, 120)
+		seq = snapMany(fmt.Sprintf("AB_scale_%.1f", sc), seq)
 		if r, ok := tryRoute(seq, fmt.Sprintf("AB_scale_%.1f", sc)); ok {
 			tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 			sum := s.createRouteSummary(r, "desvio_seguro_scaled", originGeocode, destGeocode, data, tolls)
@@ -4601,12 +4618,26 @@ func (s *Service) buildArcWaypointsDir(entry, exit Location, zone RiskZone, n in
 }
 
 // monta via-points: [entryOut, arc(midpoints...), exitOut]
-func (s *Service) assembleLateralDetour(entry, exit Location, zone RiskZone, arcPoints int, arcExtraBuffer float64, entryExitPush float64, useLongArc bool) []Location {
-	// âncoras  (ligeiro empurrão para fora)
-	entryOut := s.pushAwayFromCenter(entry, zone, entryExitPush)
-	exitOut := s.pushAwayFromCenter(exit, zone, entryExitPush)
+// monta via-points: [entryOut, arc(midpoints...), exitOut]
+// agora as âncoras consideram o sentido da via (pushAlong) antes de empurrar para fora do raio
+func (s *Service) assembleLateralDetour(
+	entry, exit Location,
+	zone RiskZone,
+	arcPoints int,
+	arcExtraBuffer float64,
+	entryExitPush float64,
+	useLongArc bool,
+) []Location {
 
-	// arcada (mesmo raio+buffer que você já usa)
+	// avança ~40 m no sentido ENTRY→EXIT e EXIT→ENTRY,
+	// depois empurra radialmente para fora (garante que não “beija” o círculo)
+	entryDir := s.pushAlong(entry, exit, 40)
+	exitDir := s.pushAlong(exit, entry, 40)
+
+	entryOut := s.pushAwayFromCenter(entryDir, zone, entryExitPush)
+	exitOut := s.pushAwayFromCenter(exitDir, zone, entryExitPush)
+
+	// arcada ao redor do círculo
 	var arc []Location
 	if useLongArc {
 		arc = s.buildArcWaypointsDir(entry, exit, zone, arcPoints, arcExtraBuffer, true)
@@ -4659,4 +4690,95 @@ func (s *Service) offsetByNormal(p Location, latRef, nx, ny, dist float64) Locat
 	py += ny * dist
 	lat, lon := s.unprojectFromMeters(latRef, px, py)
 	return Location{Latitude: lat, Longitude: lon}
+}
+
+// NEW
+func bearing(a, b Location) float64 {
+	lat1 := a.Latitude * math.Pi / 180
+	lat2 := b.Latitude * math.Pi / 180
+	dlon := (b.Longitude - a.Longitude) * math.Pi / 180
+	y := math.Sin(dlon) * math.Cos(lat2)
+	x := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(dlon)
+	brng := math.Atan2(y, x) * 180 / math.Pi
+	if brng < 0 {
+		brng += 360
+	}
+	return brng
+}
+
+func (s *Service) buildRouteURL(points []Location) string {
+	var coords, bears, rads []string
+	for i := range points {
+		coords = append(coords, fmt.Sprintf("%.6f,%.6f", points[i].Longitude, points[i].Latitude))
+
+		var b float64
+		switch {
+		case i == 0:
+			b = bearing(points[i], points[i+1])
+		case i == len(points)-1:
+			b = bearing(points[i-1], points[i])
+		default:
+			b1 := bearing(points[i-1], points[i])
+			b2 := bearing(points[i], points[i+1])
+			// média simples já ajuda
+			b = math.Mod(b1+b2+360, 360) / 2
+		}
+		bears = append(bears, fmt.Sprintf("%.0f,25", b)) // janela ±25°
+		if i == 0 || i == len(points)-1 {
+			rads = append(rads, "100")
+		} else {
+			rads = append(rads, "50")
+		}
+	}
+	return "http://34.207.174.233:5000/route/v1/driving/" +
+		strings.Join(coords, ";") +
+		"?alternatives=0&steps=true&overview=full&geometries=polyline6&continue_straight=true" +
+		"&bearings=" + strings.Join(bears, ";") +
+		"&radiuses=" + strings.Join(rads, ";")
+}
+
+func (s *Service) compressClosePoints(in []Location, minMeters float64) []Location {
+	if len(in) == 0 {
+		return in
+	}
+	out := []Location{in[0]}
+	last := in[0]
+	for _, p := range in[1:] {
+		if s.haversineDistance(last.Latitude, last.Longitude, p.Latitude, p.Longitude) >= minMeters {
+			out = append(out, p)
+			last = p
+		}
+	}
+	return out
+}
+
+// Avança o ponto 'entry' na direção de 'next' por 'meters' metros (no plano local)
+func (s *Service) pushAlong(entry, next Location, meters float64) Location {
+	latRef := (entry.Latitude + next.Latitude) / 2
+	ex, ey := s.projectToMeters(latRef, entry.Latitude, entry.Longitude)
+	nx, ny := s.projectToMeters(latRef, next.Latitude, next.Longitude)
+	vx, vy := nx-ex, ny-ey
+	m := math.Hypot(vx, vy)
+	if m == 0 {
+		return entry
+	}
+	vx, vy = vx/m*meters, vy/m*meters
+	lat, lon := s.unprojectFromMeters(latRef, ex+vx, ey+vy)
+	return Location{Latitude: lat, Longitude: lon}
+}
+
+// Remove via-points “colados” (ex.: ≤120 m) para evitar vai-e-volta desnecessário
+func (s *Service) compressClosePoints(in []Location, minMeters float64) []Location {
+	if len(in) == 0 {
+		return in
+	}
+	out := []Location{in[0]}
+	last := in[0]
+	for _, p := range in[1:] {
+		if s.haversineDistance(last.Latitude, last.Longitude, p.Latitude, p.Longitude) >= minMeters {
+			out = append(out, p)
+			last = p
+		}
+	}
+	return out
 }
