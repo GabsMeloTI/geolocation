@@ -3915,14 +3915,34 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		out := make([]Location, len(pts))
 		copy(out, pts)
 		for i := range out {
-			if lat, lon, ok := s.osrmNearestSnap(client, out[i].Latitude, out[i].Longitude); ok {
-				log.Printf("   🔧 snap(%s[%d]): (%.6f,%.6f) → (%.6f,%.6f)",
-					label, i, out[i].Latitude, out[i].Longitude, lat, lon)
+			// até 2 tentativas de snap se cair dentro de alguma zona
+			for tries := 0; tries < 2; tries++ {
+				lat, lon, ok := s.osrmNearestSnap(client, out[i].Latitude, out[i].Longitude)
+				if !ok {
+					log.Printf("   ⚠️  snap falhou em %s[%d] (%.6f,%.6f) — usando bruto",
+						label, i, out[i].Latitude, out[i].Longitude)
+					break
+				}
 				out[i].Latitude, out[i].Longitude = lat, lon
-			} else {
-				log.Printf("   ⚠️  snap falhou em %s[%d] (%.6f,%.6f) — usando bruto",
-					label, i, out[i].Latitude, out[i].Longitude)
+
+				// se caiu dentro de uma zona, empurra para fora e tenta snap novamente
+				inside := false
+				var z RiskZone
+				for _, zz := range riskZones {
+					if !zz.Status {
+						continue
+					}
+					if s.isPointInRiskZone(out[i].Latitude, out[i].Longitude, zz) {
+						inside, z = true, zz
+						break
+					}
+				}
+				if !inside {
+					break
+				}
+				out[i] = s.pushAwayFromCenter(out[i], z, 100) // empurra +100 m pra fora
 			}
+			log.Printf("   🔧 snap(%s[%d]) → (%.6f,%.6f)", label, i, out[i].Latitude, out[i].Longitude)
 		}
 		return out
 	}
@@ -3946,7 +3966,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		b := basePts[i+1]
 
 		log.Printf("🔍 [TOTAL] Segmento %d: (%.6f, %.6f) → (%.6f, %.6f)", i+1, a.Latitude, a.Longitude, b.Latitude, b.Longitude)
-		hasRiskSeg, hint := s.CheckRouteForRiskZones(riskZones, a.Latitude, a.Longitude, b.Latitude, b.Longitude)
+		hasRiskSeg, hint := s.segmentHasRisk(riskZones, a, b)
 
 		if hasRiskSeg {
 			if zone, ok := s.findRiskZoneByHint(riskZones, hint); ok {
@@ -4814,4 +4834,23 @@ func (s *Service) buildRouteURLStrict(pts []Location) string {
 		"&continue_straight=true" +
 		"&bearings=" + strings.Join(bears, ";") +
 		"&radiuses=" + strings.Join(rads, ";")
+}
+
+func (s *Service) segmentHasRisk(riskZones []RiskZone, a, b Location) (bool, LocationHisk) {
+	// 1) OSRM (rota real)
+	if has, hint := s.CheckRouteForRiskZones(riskZones, a.Latitude, a.Longitude, b.Latitude, b.Longitude); has {
+		return true, hint
+	}
+	// 2) Fallback geométrico: origem/destino dentro ou AB cruza círculo
+	for _, z := range riskZones {
+		if !z.Status {
+			continue
+		}
+		if s.isPointInRiskZone(a.Latitude, a.Longitude, z) ||
+			s.isPointInRiskZone(b.Latitude, b.Longitude, z) ||
+			s.doesRouteCrossRiskZone(a.Latitude, a.Longitude, b.Latitude, b.Longitude, z) {
+			return true, LocationHisk{CEP: z.Cep, Latitude: z.Lat, Longitude: z.Lng}
+		}
+	}
+	return false, LocationHisk{}
 }
