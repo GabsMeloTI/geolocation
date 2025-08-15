@@ -3378,7 +3378,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 	}
 
 	// 3) LATERAIS AUTOMÁTICOS: MENOR ARCO (um dos lados do raio)
-	const entryExitPush = 80.0 // 80 m para garantir fora do raio
+	const entryExitPush = 30.0 // 80 m para garantir fora do raio
 	log.Printf("🛠️ Gerando laterais + âncoras (MENOR ARCO): buffer=%dm, arcPoints=%d, push=%.0fm",
 		int(arcExtraBuffer), arcPoints, entryExitPush)
 
@@ -4010,7 +4010,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 				if !injectedThree {
 					log.Printf("↪️  [TOTAL] Fallback para desvio lateral padrão no segmento %d", i+1)
 					if (entry != Location{}) && (exit != Location{}) {
-						viaSeq := s.assembleLateralDetour(entry, exit, zone, 2, 200, 80, false)
+						viaSeq := s.assembleLateralDetour(entry, exit, zone, 2, 200, 30, false)
 						for j := range viaSeq {
 							if slat, slon, okN := s.snapToRoad(viaSeq[j].Latitude, viaSeq[j].Longitude); okN {
 								viaSeq[j].Latitude, viaSeq[j].Longitude = slat, slon
