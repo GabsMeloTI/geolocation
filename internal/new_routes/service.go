@@ -3378,7 +3378,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, cl
 	}
 
 	// 3) LATERAIS AUTOMÁTICOS: MENOR ARCO (um dos lados do raio)
-	const entryExitPush = 10.0 // 80 m para garantir fora do raio
+	const entryExitPush = 80.0 // 80 m para garantir fora do raio
 	log.Printf("🛠️ Gerando laterais + âncoras (MENOR ARCO): buffer=%dm, arcPoints=%d, push=%.0fm",
 		int(arcExtraBuffer), arcPoints, entryExitPush)
 
@@ -3983,7 +3983,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 							coords += fmt.Sprintf(";%f,%f", lon2, lat2)
 
 							u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
-								"?alternatives=0&steps=true&overview=full&continue_straight=false"
+								"?alternatives=0&steps=true&overview=full&continue_straight=true"
 
 							if resp2, err2 := client.Get(u); err2 == nil {
 								defer resp2.Body.Close()
@@ -4010,7 +4010,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 				if !injectedThree {
 					log.Printf("↪️  [TOTAL] Fallback para desvio lateral padrão no segmento %d", i+1)
 					if (entry != Location{}) && (exit != Location{}) {
-						viaSeq := s.assembleLateralDetour(entry, exit, zone, 2, 100, 10, false)
+						viaSeq := s.assembleLateralDetour(entry, exit, zone, 2, 200, 80, false)
 						for j := range viaSeq {
 							if slat, slon, okN := s.snapToRoad(viaSeq[j].Latitude, viaSeq[j].Longitude); okN {
 								viaSeq[j].Latitude, viaSeq[j].Longitude = slat, slon
@@ -4046,7 +4046,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 
 	coordsStr := strings.Join(newCoords, ";")
 	urlTotal := fmt.Sprintf(
-		"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+		"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=true",
 		url.PathEscape(coordsStr),
 	)
 
@@ -4088,7 +4088,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 		// tenta rota total padrão para obter polyline
 		baseCoords := strings.Join(allCoords, ";")
 		urlBase := fmt.Sprintf(
-			"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=true",
 			url.PathEscape(baseCoords),
 		)
 		log.Printf("↩️  [TOTAL] Fallback para rota sem desvios: %s", urlBase)
