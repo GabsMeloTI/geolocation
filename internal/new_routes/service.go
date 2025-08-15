@@ -3275,14 +3275,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 	const arcPoints = 2           // 2 ou 3 pontos na lateral
 
 	tryRoute := func(wps []Location, tag string) (OSRMRoute, bool) {
-		coords := fmt.Sprintf("%f,%f", originLon, originLat)
-		for _, wp := range wps {
-			coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
-		}
-		coords += fmt.Sprintf(";%f,%f", destLon, destLat)
+		// monta sequência completa: origem + vias + destino
+		pts := make([]Location, 0, len(wps)+2)
+		pts = append(pts, Location{Latitude: originLat, Longitude: originLon})
+		pts = append(pts, wps...)
+		pts = append(pts, Location{Latitude: destLat, Longitude: destLon})
 
-		u := "http://34.207.174.233:5000/route/v1/driving/" + coords +
-			"?alternatives=0&steps=true&overview=full&continue_straight=false"
+		u := s.buildRouteURLStrict(pts) // usa bearings + radiuses + continue_straight=true
 
 		log.Printf("🧪 Tentando rota (%s) via-points=%d → %s", tag, len(wps), u)
 		for i, p := range wps {
@@ -3851,7 +3850,7 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 	var summaries []RouteSummary
 
 	// Fazer requisição para rota direta
-	resp, err := client.Get(baseURL + "?alternatives=1&steps=true&overview=full&continue_straight=false")
+	resp, err := client.Get(baseURL + "?alternatives=1&steps=true&overview=full&continue_straight=true")
 	if err == nil {
 		defer resp.Body.Close()
 		var osrmResp OSRMResponse
@@ -4692,20 +4691,7 @@ func (s *Service) offsetByNormal(p Location, latRef, nx, ny, dist float64) Locat
 	return Location{Latitude: lat, Longitude: lon}
 }
 
-// NEW
-func bearing(a, b Location) float64 {
-	lat1 := a.Latitude * math.Pi / 180
-	lat2 := b.Latitude * math.Pi / 180
-	dlon := (b.Longitude - a.Longitude) * math.Pi / 180
-	y := math.Sin(dlon) * math.Cos(lat2)
-	x := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(dlon)
-	brng := math.Atan2(y, x) * 180 / math.Pi
-	if brng < 0 {
-		brng += 360
-	}
-	return brng
-}
-
+// NEWS
 func (s *Service) buildRouteURL(points []Location) string {
 	var coords, bears, rads []string
 	for i := range points {
@@ -4766,4 +4752,71 @@ func (s *Service) compressClosePoints(in []Location, minMeters float64) []Locati
 		}
 	}
 	return out
+}
+
+// média de dois headings levando em conta o wrap 0..360
+func meanBearing(b1, b2 float64) float64 {
+	r1 := b1 * math.Pi / 180
+	r2 := b2 * math.Pi / 180
+	x := math.Cos(r1) + math.Cos(r2)
+	y := math.Sin(r1) + math.Sin(r2)
+	ang := math.Atan2(y, x) * 180 / math.Pi
+	if ang < 0 {
+		ang += 360
+	}
+	return ang
+}
+
+// heading (graus) de a→b
+func bearing(a, b Location) float64 {
+	lat1 := a.Latitude * math.Pi / 180
+	lat2 := b.Latitude * math.Pi / 180
+	dlon := (b.Longitude - a.Longitude) * math.Pi / 180
+	y := math.Sin(dlon) * math.Cos(lat2)
+	x := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(dlon)
+	brng := math.Atan2(y, x) * 180 / math.Pi
+	if brng < 0 {
+		brng += 360
+	}
+	return brng
+}
+
+// Gera URL do OSRM com bearings + radiuses + continue_straight=true
+// pts: sequência completa (origem, vias..., destino)
+func (s *Service) buildRouteURLStrict(pts []Location) string {
+	coords := make([]string, 0, len(pts))
+	bears := make([]string, 0, len(pts))
+	rads := make([]string, 0, len(pts))
+
+	for i := 0; i < len(pts); i++ {
+		coords = append(coords, fmt.Sprintf("%.6f,%.6f", pts[i].Longitude, pts[i].Latitude))
+
+		var b float64
+		switch {
+		case i == 0:
+			b = bearing(pts[i], pts[i+1])
+		case i == len(pts)-1:
+			b = bearing(pts[i-1], pts[i])
+		default:
+			b1 := bearing(pts[i-1], pts[i])
+			b2 := bearing(pts[i], pts[i+1])
+			b = meanBearing(b1, b2)
+		}
+		// janela de direção ±25° em cada ponto
+		bears = append(bears, fmt.Sprintf("%.0f,25", b))
+
+		// tolerância de snap: maiores nas extremidades
+		if i == 0 || i == len(pts)-1 {
+			rads = append(rads, "120") // metros
+		} else {
+			rads = append(rads, "70")
+		}
+	}
+
+	return "http://34.207.174.233:5000/route/v1/driving/" +
+		strings.Join(coords, ";") +
+		"?alternatives=0&steps=true&overview=full&geometries=polyline" +
+		"&continue_straight=true" +
+		"&bearings=" + strings.Join(bears, ";") +
+		"&radiuses=" + strings.Join(rads, ";")
 }
