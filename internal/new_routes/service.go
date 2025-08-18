@@ -4166,6 +4166,69 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
 			route := osrmResp.Routes[0]
 
+			// ---------- AJUSTE FINO: protege a aproximação final ----------
+			// Se ainda houver um cruzamento nos últimos ~2.5 km, injeta um desvio curto
+			finalWindow := 2500.0 // metros
+			for tries := 0; tries < 2; tries++ {
+				cross := s.detectAllCrossingsFromGeometry(route.Geometry, riskZones, 1000)
+				if len(cross) == 0 {
+					break
+				}
+				last := cross[len(cross)-1]
+				if route.Distance-last.EntryCum > finalWindow {
+					break // últimos cruzamentos estão longe do destino; não mexe
+				}
+
+				// 1) menor arco
+				seq := s.assembleLateralDetour(last.Entry, last.Exit, last.Zone, 2, 200, 80, false)
+				seq = s.snapOutsideMany(client, seq, last.Zone)
+
+				inject := func(seq []Location) {
+					if len(newCoords) >= 2 {
+						destTail := newCoords[len(newCoords)-1]
+						newCoords = newCoords[:len(newCoords)-1]
+						for _, p := range seq {
+							newCoords = append(newCoords, fmt.Sprintf("%f,%f", p.Longitude, p.Latitude))
+						}
+						newCoords = append(newCoords, destTail)
+					}
+				}
+
+				// tenta menor arco
+				inject(seq)
+				coordsStr = strings.Join(newCoords, ";")
+				urlTotal = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+				if resp2, err2 := client.Get(urlTotal); err2 == nil {
+					defer resp2.Body.Close()
+					var osrm2 OSRMResponse
+					if json.NewDecoder(resp2.Body).Decode(&osrm2) == nil && len(osrm2.Routes) > 0 {
+						route = osrm2.Routes[0]
+						// se ainda cruzar, tenta arco oposto uma vez
+						if has, _ := s.checkRouteGeometryForRiskZones(riskZones, route.Geometry, originLocation.Latitude, originLocation.Longitude, destinationLocation.Latitude, destinationLocation.Longitude); has {
+							// remove seq recém inserido e tenta arco oposto
+							newCoords = newCoords[:len(newCoords)-len(seq)-1]
+							newCoords = append(newCoords, fmt.Sprintf("%f,%f", destinationLocation.Longitude, destinationLocation.Latitude))
+
+							seq2 := s.assembleLateralDetour(last.Entry, last.Exit, last.Zone, 2, 200, 80, true)
+							seq2 = s.snapOutsideMany(client, seq2, last.Zone)
+							inject(seq2)
+
+							coordsStr = strings.Join(newCoords, ";")
+							urlTotal = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", url.PathEscape(coordsStr))
+							if resp3, err3 := client.Get(urlTotal); err3 == nil {
+								defer resp3.Body.Close()
+								var osrm3 OSRMResponse
+								if json.NewDecoder(resp3.Body).Decode(&osrm3) == nil && len(osrm3.Routes) > 0 {
+									route = osrm3.Routes[0]
+								}
+							}
+						}
+					}
+				}
+				// só roda no máximo duas tentativas
+			}
+			// ---------- fim do ajuste fino ----------
+
 			// Monta waypoints p/ URL do Google (endereços originais + via:lat,lng dos desvios)
 			waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
 			if len(waypoints) > 2 {
@@ -4179,7 +4242,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 			log.Printf("✅ [TOTAL] Rota OSRM (com desvios) obtida. Distância/Tempo recalculados.")
 			totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
 
-			// Caso queira expor os pontos do desvio:
+			// Caso precise expor os pontos do desvio, habilite:
 			// totalRoute.DetourPoints = detourPtsTotal
 
 		} else {
