@@ -3260,34 +3260,10 @@ func (s *Service) haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
 }
 
 // calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
-func (s *Service) calculateAlternativeRouteWithAvoidance(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	originLat, originLon, destLat, destLon float64,
-	originGeocode, destGeocode GeocodeResult,
-	data FrontInfoCEPRequest,
-) []RouteSummary {
-
+func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
 	const arcExtraBuffer = 200.0
 	const arcPoints = 2
 	const entryExitPush = 80.0
-	const riskSafetyMarginMeters = 80.0 // margem de segurança para não "raspar" na borda
-
-	// infla o raio das zonas (cópia) para verificação/planejamento com margem
-	inflate := func(zs []RiskZone, extra float64) []RiskZone {
-		out := make([]RiskZone, 0, len(zs))
-		for _, z := range zs {
-			if !z.Status {
-				continue
-			}
-			zz := z
-			zz.Radius = int64(float64(z.Radius) + extra)
-			out = append(out, zz)
-		}
-		return out
-	}
-	zonesInfl := inflate(riskZones, riskSafetyMarginMeters)
 
 	// -------- util: calcula rota OSRM (ignora risco) com a sequência atual de via-points
 	routeRaw := func(wps []Location, tag string) (OSRMRoute, bool) {
@@ -3315,13 +3291,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		return osrmResp.Routes[0], true
 	}
 
-	// -------- util: valida a rota resultante contra TODAS as zonas (infladas)
+	// -------- util: valida a rota resultante contra TODAS as zonas (não apenas a atual)
 	tryRoute := func(wps []Location, tag string) (OSRMRoute, bool) {
 		r, ok := routeRaw(wps, tag)
 		if !ok {
 			return OSRMRoute{}, false
 		}
-		if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, r.Geometry, originLat, originLon, destLat, destLon); hasAny {
+		if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r.Geometry, originLat, originLon, destLat, destLon); hasAny {
 			log.Printf("🚫 Rota (%s) ainda cruza alguma zona — descartando", tag)
 			return OSRMRoute{}, false
 		}
@@ -3348,7 +3324,6 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 
 	// -------- util: snap que GARANTE ficar fora da zona
 	snapOutsideMany := func(label string, pts []Location, zone RiskZone) []Location {
-		// usamos a zona já com raio inflado (passada como parâmetro)
 		out := make([]Location, len(pts))
 		copy(out, pts)
 		for i := range out {
@@ -3389,8 +3364,8 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		return dst
 	}
 
-	// 0) se não tem risco (com margem) → direta
-	if hasRisk, _ := s.CheckRouteForRiskZones(zonesInfl, originLat, originLon, destLat, destLon); !hasRisk {
+	// 0) se não tem risco → direta
+	if hasRisk, _ := s.CheckRouteForRiskZones(riskZones, originLat, originLon, destLat, destLon); !hasRisk {
 		return s.calculateDirectRoute(ctx, client, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
 	}
 
@@ -3401,7 +3376,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 	}
 	collectCrossings := func(geometry string) []RiskOffsets {
 		var offs []RiskOffsets
-		for _, z := range zonesInfl { // *** usa zonas infladas ***
+		for _, z := range riskZones {
 			if !z.Status {
 				continue
 			}
@@ -3413,7 +3388,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		return offs
 	}
 
-	// 2) usar WAYPOINTS do usuário (se houver), mas aceitando só se limpar TODAS as zonas (infladas)
+	// 2) usar WAYPOINTS do usuário (se houver), mas aceitando só se limpar TODAS as zonas
 	if len(data.Waypoints) > 0 {
 		if userWps, err := s.normalizeUserWaypoints(data.Waypoints); err == nil && len(userWps) > 0 {
 			log.Printf("🧭 Tentativa 1: desvio com WAYPOINTS do usuário (n=%d)", len(userWps))
@@ -3453,16 +3428,16 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 			continue
 		}
 
-		// pega a PRIMEIRA zona ainda cruzada na polyline atual (já inflada)
+		// pega a PRIMEIRA zona ainda cruzada na polyline atual
 		off := crossings[0]
 		log.Printf("🛠️ Zona %s ainda cruzada (iter=%d). ENTRY=(%.6f,%.6f) EXIT=(%.6f,%.6f)",
 			off.Zone.Name, iter, off.Entry.Latitude, off.Entry.Longitude, off.Exit.Latitude, off.Exit.Longitude)
 
-		// ===== Etapa 3: LATERAL (menor arco) — usa zona inflada
+		// ===== Etapa 3: LATERAL (menor arco)
 		shortSeq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, arcPoints, arcExtraBuffer, entryExitPush, false)
 		shortSeq = snapOutsideMany("short_seq", shortSeq, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), shortSeq...), fmt.Sprintf("iter_%d_short", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
 				accumWps = appendUnique(accumWps, shortSeq...)
 				for i := range shortSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3473,13 +3448,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 				continue
 			}
 		}
-		log.Printf("↪️  MENOR ARCO removeu a zona atual, mas ainda cruza outra — tentando alternativa.")
+		log.Printf("↪️  MENOR ARCO removeu a zona atual, mas ainda cruza outra — descartando e tentando alternativa.")
 
 		// ===== Etapa 4: LATERAL (arco oposto)
 		longSeq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, arcPoints, arcExtraBuffer, entryExitPush, true)
 		longSeq = snapOutsideMany("long_seq", longSeq, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), longSeq...), fmt.Sprintf("iter_%d_long", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
 				accumWps = appendUnique(accumWps, longSeq...)
 				for i := range longSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3495,7 +3470,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, off.Zone)
 		abSeq := snapOutsideMany("ab", []Location{wpA, wpB}, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), abSeq...), fmt.Sprintf("iter_%d_ab", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
 				accumWps = appendUnique(accumWps, abSeq...)
 				for i := range abSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3515,7 +3490,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 			wpB2 := s.pushAwayFromCenter(wpB, off.Zone, float64(off.Zone.Radius)*(sc-1)+500)
 			abScaled := snapOutsideMany(fmt.Sprintf("ab_scale_%.1f", sc), []Location{wpA2, wpB2}, off.Zone)
 			if r2, ok := routeRaw(append(append([]Location{}, accumWps...), abScaled...), fmt.Sprintf("iter_%d_ab_scale_%.1f", iter, sc)); ok {
-				if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+				if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
 					accumWps = appendUnique(accumWps, abScaled...)
 					for i := range abScaled {
 						detourPoints = append(detourPoints, DetourPoint{
@@ -3586,14 +3561,15 @@ func (s *Service) findRiskZoneByHint(riskZones []RiskZone, hint LocationHisk) (R
 	return RiskZone{}, false
 }
 
-// Gera dois via-points nos lados opostos do círculo para contorno (usa margem).
 func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon float64, zone RiskZone) (Location, Location) {
+	// vetor da rota em metros
 	latRef := (originLat + destLat) / 2.0
 	ax, ay := s.projectToMeters(latRef, originLat, originLon)
 	bx, by := s.projectToMeters(latRef, destLat, destLon)
 	cx, cy := s.projectToMeters(latRef, zone.Lat, zone.Lng)
 
 	vx, vy := bx-ax, by-ay
+	// normal unitária
 	nx, ny := -vy, vx
 	mag := math.Hypot(nx, ny)
 	if mag == 0 {
@@ -3602,9 +3578,11 @@ func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon 
 	nx /= mag
 	ny /= mag
 
-	buffer := 500.0 // base
-	safe := float64(zone.Radius) + buffer + riskSafetyMarginMeters
+	// empurra para fora do círculo: raio + buffer
+	buffer := 500.0 // 500 m adicional
+	safe := float64(zone.Radius) + buffer
 
+	// projeta o centro da zona na reta AB para pegar o "miolo" por onde cruzaria
 	den := vx*vx + vy*vy
 	var tx float64
 	if den == 0 {
@@ -3616,17 +3594,20 @@ func (s *Service) computeBypassWaypoints(originLat, originLon, destLat, destLon 
 	midX := ax + tx*vx
 	midY := ay + tx*vy
 
+	// dois pontos a lados opostos do círculo, fora da borda
 	ax2 := midX + nx*safe
 	ay2 := midY + ny*safe
 	bx2 := midX - nx*safe
 	by2 := midY - ny*safe
 
+	// volta pra lat/lon
 	aLatOff, aLonOff := s.unprojectFromMeters(latRef, ax2, ay2)
 	bLatOff, bLonOff := s.unprojectFromMeters(latRef, bx2, by2)
 
-	wpA := Location{Latitude: aLatOff, Longitude: aLonOff}
-	wpB := Location{Latitude: bLatOff, Longitude: bLonOff}
+	wpA := Location{Latitude: aLatOff + (0), Longitude: aLonOff + (0)}
+	wpB := Location{Latitude: bLatOff + (0), Longitude: bLonOff + (0)}
 
+	// ordena pelo avanço a partir da origem
 	dA := s.haversineDistance(originLat, originLon, wpA.Latitude, wpA.Longitude)
 	dB := s.haversineDistance(originLat, originLon, wpB.Latitude, wpB.Longitude)
 	if dA <= dB {
@@ -3937,31 +3918,7 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 }
 
 // calculateTotalRouteWithAvoidance calcula rota total com desvios
-func (s *Service) calculateTotalRouteWithAvoidance(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	ceps []string,
-	totalDistance, totalDuration float64,
-	data FrontInfoCEPRequest,
-) TotalSummary {
-
-	const riskSafetyMarginMeters = 80.0 // margem de segurança
-
-	// infla o raio das zonas (cópia) para verificação/planejamento com margem
-	inflate := func(zs []RiskZone, extra float64) []RiskZone {
-		out := make([]RiskZone, 0, len(zs))
-		for _, z := range zs {
-			if !z.Status {
-				continue
-			}
-			zz := z
-			zz.Radius = int64(float64(z.Radius) + extra)
-			out = append(out, zz)
-		}
-		return out
-	}
-	zonesInfl := inflate(riskZones, riskSafetyMarginMeters)
+func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, ceps []string, totalDistance, totalDuration float64, data FrontInfoCEPRequest) TotalSummary {
 
 	// ------------------------------
 	// 1) Monta lista base de coords e endereços
@@ -4011,6 +3968,8 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 
 		log.Printf("🔍 [TOTAL] Segmento %d: (%.6f, %.6f) → (%.6f, %.6f)", i+1, lat1, lon1, lat2, lon2)
 
+		// Sempre vamos trabalhar numa lista de via-points ACUMULADOS por segmento,
+		// porque um desvio pode "mudar" a rota e remover/adicionar novos cruzamentos.
 		segWps := []Location{} // via-points inseridos nesse segmento
 
 		// helper para calcular a polyline do segmento COM os via-points atuais
@@ -4038,9 +3997,9 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			return r.Routes[0], true
 		}
 
-		// 2.A) Calcula rota do segmento (sem vias) e coleta TODAS as zonas cruzadas (infladas)
+		// 2.A) Calcula rota do segmento (sem vias) e coleta TODAS as zonas cruzadas
 		if r0, ok := routeForSegment(); ok {
-			crossings := s.detectAllCrossingsFromGeometry(r0.Geometry, zonesInfl, 1000)
+			crossings := s.detectAllCrossingsFromGeometry(r0.Geometry, riskZones, 1000)
 
 			// 2.B) Itera enquanto ainda cruzar alguma zona
 			iter := 0
@@ -4056,7 +4015,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 				injected := false
 
 				if nx != 0 || ny != 0 {
-					baseDist := float64(off.Zone.Radius) + 200.0 // raio (já inflado) + buffer
+					baseDist := float64(off.Zone.Radius) + 200.0 // raio + buffer
 					mid := Location{
 						Latitude:  (off.Entry.Latitude + off.Exit.Latitude) / 2,
 						Longitude: (off.Entry.Longitude + off.Exit.Longitude) / 2,
@@ -4071,7 +4030,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 
 					for _, sc := range []float64{1.0, 1.3, 1.6, 2.0} {
 						cand := buildSeq(sc)
-						// Snap GARANTINDO ficar fora da zona (inflada)
+						// Snap GARANTINDO ficar fora da zona
 						cand = s.snapOutsideMany(client, cand, off.Zone)
 
 						// Testa rota do segmento com segWps + cand
@@ -4095,7 +4054,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 							}
 							return r.Routes[0], true
 						}(); ok2 {
-							// rota de teste não pode cruzar ESTA zona (inflada)
+							// rota de teste não pode cruzar ESTA zona
 							if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, lat1, lon1, lat2, lon2); !hasThis {
 								segWps = append(segWps, cand...)
 								for _, p := range cand {
@@ -4172,14 +4131,16 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 
 				// Recalcula rota do segmento com os via-points acumulados e atualiza a lista de crossings
 				if rNow, okNow := routeForSegment(); okNow {
-					crossings = s.detectAllCrossingsFromGeometry(rNow.Geometry, zonesInfl, 1000)
+					crossings = s.detectAllCrossingsFromGeometry(rNow.Geometry, riskZones, 1000)
 				} else {
+					// sem rota após tentativa — interrompe
 					break
 				}
 			} // while cruzar zona
 		}
 
-		// materializa via-points e destino do segmento
+		// Append final do destino do segmento e também materializa os via-points em newCoords
+		// 1) origem já estava em newCoords; 2) injetar via-points deste segmento; 3) destino do segmento
 		for _, wp := range segWps {
 			newCoords = append(newCoords, fmt.Sprintf("%f,%f", wp.Longitude, wp.Latitude))
 		}
@@ -4205,50 +4166,10 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
 			route := osrmResp.Routes[0]
 
-			// ----- pente-fino global: garante que a aproximação final não “entre” na zona
-			for k := 0; k < 3; k++ {
-				if hasAny, _ := s.checkRouteGeometryForRiskZones(zonesInfl, route.Geometry,
-					originLocation.Latitude, originLocation.Longitude,
-					destinationLocation.Latitude, destinationLocation.Longitude); !hasAny {
-					break
-				}
-				cross := s.detectAllCrossingsFromGeometry(route.Geometry, zonesInfl, 1000)
-				if len(cross) == 0 {
-					break
-				}
-				off := cross[0]
-
-				seq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, 2, 200, 80, false)
-				seq = s.snapOutsideMany(client, seq, off.Zone)
-
-				// injeta os via-points imediatamente antes do último ponto (destino final)
-				if len(newCoords) >= 2 {
-					tail := newCoords[len(newCoords)-1]
-					newCoords = newCoords[:len(newCoords)-1]
-					for _, p := range seq {
-						newCoords = append(newCoords, fmt.Sprintf("%f,%f", p.Longitude, p.Latitude))
-					}
-					newCoords = append(newCoords, tail)
-				}
-
-				// recomputa rota total após a injeção
-				coordsStr = strings.Join(newCoords, ";")
-				urlTotal = fmt.Sprintf(
-					"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
-					url.PathEscape(coordsStr),
-				)
-				if resp2, err2 := client.Get(urlTotal); err2 == nil {
-					defer resp2.Body.Close()
-					var osrm2 OSRMResponse
-					if json.NewDecoder(resp2.Body).Decode(&osrm2) == nil && len(osrm2.Routes) > 0 {
-						route = osrm2.Routes[0]
-					}
-				}
-			}
-
 			// Monta waypoints p/ URL do Google (endereços originais + via:lat,lng dos desvios)
 			waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
 			if len(waypoints) > 2 {
+				// Insere "via:" antes dos pontos intermediários de endereço
 				waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
 				waypointsForURL = append(waypointsForURL, waypoints[1:len(waypoints)-1]...)
 			} else {
@@ -4258,8 +4179,9 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			log.Printf("✅ [TOTAL] Rota OSRM (com desvios) obtida. Distância/Tempo recalculados.")
 			totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
 
-			// // Caso queira expor os pontos do desvio:
+			// Caso queira expor os pontos do desvio:
 			// totalRoute.DetourPoints = detourPtsTotal
+
 		} else {
 			log.Printf("⚠️  [TOTAL] OSRM sem rotas após injeção de desvios")
 		}
@@ -4271,6 +4193,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 	// 4) Fallbacks (rota total sem desvio / agregados)
 	// ------------------------------
 	if totalRoute.TotalDistance.Value == 0 {
+		// tenta rota total padrão para obter polyline
 		baseCoords := strings.Join(allCoords, ";")
 		urlBase := fmt.Sprintf(
 			"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
@@ -4293,35 +4216,52 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 	}
 
 	if totalRoute.TotalDistance.Value == 0 {
-		// último recurso: usa agregados (inalterado)
+		// último recurso: usa agregados
 		distText, distVal := formatDistance(totalDistance)
 		durText, durVal := formatDuration(totalDuration)
+
 		avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
 		totalKm := totalDistance / 1000
 		totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
 		originAddress := waypoints[0]
 		destAddress := waypoints[len(waypoints)-1]
 		waypointStr := ""
 		if len(waypoints) > 2 {
 			waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
 		}
-		googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
-			neturl.QueryEscape(originAddress), neturl.QueryEscape(destAddress), waypointStr)
+
+		googleURL := fmt.Sprintf(
+			"https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+			neturl.QueryEscape(originAddress),
+			neturl.QueryEscape(destAddress),
+			waypointStr,
+		)
 		currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
-		wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-			neturl.QueryEscape(destAddress), neturl.QueryEscape(originAddress), currentTimeMillis)
+		wazeURL := fmt.Sprintf(
+			"https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+			neturl.QueryEscape(destAddress),
+			neturl.QueryEscape(originAddress),
+			currentTimeMillis,
+		)
 
 		totalRoute = TotalSummary{
-			LocationOrigin:      AddressInfo{Location: originLocation, Address: originAddress},
-			LocationDestination: AddressInfo{Location: destinationLocation, Address: destAddress},
-			TotalDistance:       Distance{Text: distText, Value: distVal},
-			TotalDuration:       Duration{Text: durText, Value: durVal},
-			URL:                 googleURL,
-			URLWaze:             wazeURL,
-			Tolls:               nil,
-			TotalTolls:          0,
-			Polyline:            "",
-			TotalFuelCost:       totalFuelCost,
+			LocationOrigin: AddressInfo{
+				Location: originLocation,
+				Address:  originAddress,
+			},
+			LocationDestination: AddressInfo{
+				Location: destinationLocation,
+				Address:  destAddress,
+			},
+			TotalDistance: Distance{Text: distText, Value: distVal},
+			TotalDuration: Duration{Text: durText, Value: durVal},
+			URL:           googleURL,
+			URLWaze:       wazeURL,
+			Tolls:         nil,
+			TotalTolls:    0,
+			Polyline:      "",
+			TotalFuelCost: totalFuelCost,
 		}
 	}
 
@@ -4829,26 +4769,27 @@ func (s *Service) offsetByNormal(p Location, latRef, nx, ny, dist float64) Locat
 	return Location{Latitude: lat, Longitude: lon}
 }
 
-// --- segurança contra "raspar" no círculo (pode ajustar)
-const riskSafetyMarginMeters = 80.0
-
-// clona zonas inflando o raio apenas para verificação/planejamento
-func inflateZones(zs []RiskZone, extra float64) []RiskZone {
-	out := make([]RiskZone, 0, len(zs))
-	for _, z := range zs {
-		if !z.Status {
-			continue
+// news
+// Snap que GARANTE ficar fora da zona. Se o snap cair dentro, empurra p/ fora e tenta de novo.
+func (s *Service) snapOutsideMany(client http.Client, pts []Location, zone RiskZone) []Location {
+	out := make([]Location, len(pts))
+	copy(out, pts)
+	for i := range out {
+		p := out[i]
+		for step := 0; step < 6; step++ {
+			lat, lon, ok := s.osrmNearestSnap(client, p.Latitude, p.Longitude)
+			if ok && s.haversineDistance(lat, lon, zone.Lat, zone.Lng) > float64(zone.Radius)+5 {
+				out[i] = Location{Latitude: lat, Longitude: lon}
+				break
+			}
+			p = s.pushAwayFromCenter(p, zone, 120.0)
 		}
-		zz := z
-		zz.Radius = int64(float64(z.Radius) + extra)
-		out = append(out, zz)
 	}
 	return out
 }
 
+// Detecta TODAS as zonas cruzadas pela polyline e devolve ordenadas pela distância acumulada de entrada.
 func (s *Service) detectAllCrossingsFromGeometry(geometry string, zones []RiskZone, offsetMeters float64) []RiskOffsets {
-	zones = inflateZones(zones, riskSafetyMarginMeters)
-
 	offs := make([]RiskOffsets, 0, len(zones))
 	for _, z := range zones {
 		if !z.Status {
@@ -4862,9 +4803,7 @@ func (s *Service) detectAllCrossingsFromGeometry(geometry string, zones []RiskZo
 	return offs
 }
 
-// Checa rota OSRM real e retorna TODAS as zonas cruzadas (ordenadas).
-// Bool indica se há pelo menos uma zona a ser evitada.
-// Usa margem (zonas infladas) para a detecção.
+// Checa rota OSRM real e retorna TODAS as zonas cruzadas (ordenadas). Bool indica se há pelo menos uma.
 func (s *Service) CheckRouteForAllRiskZones(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) ([]RiskOffsets, bool) {
 	client := http.Client{Timeout: 30 * time.Second}
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
@@ -4872,7 +4811,9 @@ func (s *Service) CheckRouteForAllRiskZones(riskZones []RiskZone, originLat, ori
 
 	resp, err := client.Get(url)
 	if err != nil {
+		// fallback: mantém seu comportamento antigo (linha reta), mas sem offsets detalhados
 		if s.checkRouteForRiskZonesFallback(riskZones, originLat, originLon, destLat, destLon) {
+			// sem offsets nesse fallback
 			return nil, true
 		}
 		return nil, false
@@ -4890,22 +4831,4 @@ func (s *Service) CheckRouteForAllRiskZones(riskZones []RiskZone, originLat, ori
 	route := osrmResp.Routes[0]
 	offs := s.detectAllCrossingsFromGeometry(route.Geometry, riskZones, 1000)
 	return offs, len(offs) > 0
-}
-
-func (s *Service) snapOutsideMany(client http.Client, pts []Location, zone RiskZone) []Location {
-	out := make([]Location, len(pts))
-	copy(out, pts)
-	for i := range out {
-		p := out[i]
-		for step := 0; step < 6; step++ {
-			lat, lon, ok := s.osrmNearestSnap(client, p.Latitude, p.Longitude)
-			if ok && s.haversineDistance(lat, lon, zone.Lat, zone.Lng) > float64(zone.Radius)+riskSafetyMarginMeters {
-				out[i] = Location{Latitude: lat, Longitude: lon}
-				break
-			}
-			// se falhou snap ou ainda ficou dentro, empurra mais e tenta de novo
-			p = s.pushAwayFromCenter(p, zone, 120.0)
-		}
-	}
-	return out
 }
