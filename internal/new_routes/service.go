@@ -2746,19 +2746,6 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 	return nil
 }
 
-func convertGasStation(row db.GetGasStationRow) GasStation {
-	latitude, _ := validation.ParseStringToFloat(row.Latitude)
-	longitude, _ := validation.ParseStringToFloat(row.Longitude)
-	return GasStation{
-		Name:    row.Name,
-		Address: row.AddressName,
-		Location: Location{
-			Latitude:  latitude,
-			Longitude: longitude,
-		},
-	}
-}
-
 func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, error error) {
 	cepData, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
 	if err != nil {
@@ -2814,175 +2801,6 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	long, _ := strconv.ParseFloat(apiResp.Response.CEP.Longitude, 64)
 
 	return lat, long, nil
-}
-
-func getConcessionImage(concession string) string {
-	switch concession {
-	case "VIAPAULISTA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viapaulista.png"
-	case "ROTA 116":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_116.png"
-	case "EPR VIAS DO CAFÉ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_vias_do_cafe.png"
-	case "VIARONDON":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viarondon.png"
-	case "ROTA DO OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_oeste.png"
-	case "VIA ARAUCÁRIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_araucaria.png"
-	case "VIA BRASIL MT-163":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_163.png"
-	case "MUNICIPAL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/municipal.png"
-	case "ROTA DE SANTA MARIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.png"
-	case "RODOANEL OESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_rodoanel.png"
-	case "CSG":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
-	case "ROTA DAS BANDEIRAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_das_bandeiras.png"
-	case "CONCEF":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concef.png"
-	case "TRIUNFO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.png"
-	case "ECO 050":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco50.png"
-	case "AB NASCENTES DAS GERAIS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.png"
-	case "FLUMINENSE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fluminense.png"
-	case "Associação Gleba Barreiro":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/associacao_gleba_barreiro.png"
-	case "RODOVIA DO AÇO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_do_aco.png"
-	case "ECO RIOMINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_riominas.png"
-	case "CSG - Free Flow":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
-	case "RODOVIAS DO TIETÊ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovias_do_tietÃª.png"
-	case "ECO RODOVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.png"
-	case "EPR TRIANGULO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-triangulo.png"
-	case "VIA RIO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.png"
-	case "WAY - 306":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_306.png"
-	case "EPR SUL DE MINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_sul_de_minas.png"
-	case "ECO101":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco101.png"
-	case "ECO SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_sul.png"
-	case "ROTA DO ATLÂNTICO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_atlÃ¢ntico.png"
-	case "VIA BRASIL - MT-100":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil___mt_100.png"
-	case "ROTA DOS GRÃOS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_graos.png"
-	case "TRANSBRASILIANA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/transbrasiliana.png"
-	case "APASI":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/apasi.png"
-	case "RODOVIA DA MUDANÇA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_da_mudanca.png"
-	case "ENTREVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/entrevias.png"
-	case "AB COLINAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_colinas.png"
-	case "CCR ViaLagos":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_vialagos.png"
-	case "ROTA DOS COQUEIROS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_coqueiros.png"
-	case "CRP CONCESSIONARIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/crp_concessionaria.png"
-	case "WAY - 112":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_112.png"
-	case "EPR LITORAL PIONEIRO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_litoral_pioneiro.png"
-	case "PLANALTO SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/planalto_sul.png"
-	case "CCR VIA COSTEIRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_via_costeira.png"
-	case "LITORAL SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/litoral_sul.png"
-	case "SPVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spvias.png"
-	case "AUTOBAN":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/autoban.png"
-	case "ECOVIAS DO CERRADO":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.png"
-	case "EPR VIA MINEIRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-via-mineira.png"
-	case "SPMAR":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.png"
-	case "JOTEC":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/jotec.png"
-	case "VIA NORTE SUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_norte_sul.png"
-	case "CONCER":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concer.png"
-	case "ECONOROESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/econoroeste.png"
-	case "ECOPONTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecoponte.png"
-	case "ECO 135":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_135.png"
-	case "VIA BRASIL MT-246":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_246.png"
-	case "ECOVIAS DO ARAGUAIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_araguaia.png"
-	case "VIABAHIA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viabahia.png"
-	case "GUARUJÁ":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.png"
-	case "CONCEBRA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/truinfo_concebra.png"
-	case "DER":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.png"
-	case "EGR":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/egr.png"
-	case "PREFEITURA DE ITIRAPINA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/prefeitura_de_itirapina.png"
-	case "VIA PAULISTA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_paulista.png"
-	case "CCR VIASUL":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_viasul.png"
-	case "INTERVIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/intervias.png"
-	case "CCR MSVia":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_msvia.png"
-	case "EIXO SP":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eixo_sp.png"
-	case "RÉGIS BITTENCOURT":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/regis_bittencourt.png"
-	case "FERNÃO DIAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fernao_dias.png"
-	case "CART":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.png"
-	case "CCR RioSP":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr-riosp.png"
-	case "VIAOESTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.png"
-	case "MORRO DA MESA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/morro_da_mesa.png"
-	case "TOMOIOS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tomoios.png"
-	case "EPG Sul de Minas":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epg_sul_de_minas.png"
-	case "ECOPISTAS":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecopistas.png"
-	case "LAMSA":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/lamsa.png"
-	case "TEBE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tebe.png"
-	case "BAHIA NORTE":
-		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.png"
-	default:
-		return ""
-	}
 }
 
 // ---- new function
@@ -3056,7 +2874,9 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		}
 
 		if len(summaries) == 0 {
-			return Response{}, fmt.Errorf("não foi possível calcular rota entre %s e %s", originCEP, destCEP)
+			log.Printf("⚠️  OSRM indisponível/sem rota para %s → %s. Aplicando fallback local.", originCEP, destCEP)
+			fb := s.createDirectEstimateSummary(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
+			summaries = []RouteSummary{fb}
 		}
 
 		// Usar a primeira rota para cálculos totais
@@ -3958,35 +3778,6 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 		TotalTolls:    0,
 		Polyline:      "", // Sem polyline para rota direta
 	}
-}
-
-// calculateDirectRoute calcula rota direta sem desvios
-func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
-	coords := fmt.Sprintf("%f,%f;%f,%f",
-		originLon, originLat,
-		destLon, destLat,
-	)
-	baseURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords)
-
-	var summaries []RouteSummary
-
-	// Fazer requisição para rota direta
-	resp, err := client.Get(baseURL + "?alternatives=1&steps=true&overview=full&continue_straight=false")
-	if err == nil {
-		defer resp.Body.Close()
-		var osrmResp OSRMResponse
-		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
-			route := osrmResp.Routes[0]
-
-			// Buscar pedágios na rota
-			tolls, _ := s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
-
-			summary := s.createRouteSummary(route, "rota_direta", originGeocode, destGeocode, data, tolls)
-			summaries = append(summaries, summary)
-		}
-	}
-
-	return summaries
 }
 
 // calculateTotalRouteWithAvoidance calcula rota total com desvios
@@ -5042,4 +4833,80 @@ func (s *Service) computeArrivalGuardPoint(zone RiskZone, dest Location, buffer 
 
 	lat, lon := s.unprojectFromMeters(latRef, gx, gy)
 	return Location{Latitude: lat, Longitude: lon}
+}
+
+// Fallback: calcula distância/tempo por Haversine e monta um resumo "ok".
+func (s *Service) createDirectEstimateSummary(
+	originLat, originLon, destLat, destLon float64,
+	originGeocode, destGeocode GeocodeResult,
+	data FrontInfoCEPRequest,
+) RouteSummary {
+
+	// distância/tempo estimados
+	distance := s.haversineDistance(originLat, originLon, destLat, destLon)
+	duration := distance / 16.67 // ~60km/h
+
+	distText, distVal := formatDistance(distance)
+	durText, durVal := formatDuration(duration)
+
+	avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+	totalKm := distance / 1000
+	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+		neturl.QueryEscape(originGeocode.FormattedAddress),
+		neturl.QueryEscape(destGeocode.FormattedAddress),
+	)
+	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&reverse=yes",
+		neturl.QueryEscape(destGeocode.PlaceID),
+		neturl.QueryEscape(originGeocode.PlaceID),
+	)
+
+	return RouteSummary{
+		RouteType:     "rota_direta_fallback",
+		HasTolls:      false,
+		Distance:      Distance{Text: distText, Value: distVal},
+		Duration:      Duration{Text: durText, Value: durVal},
+		URL:           googleURL,
+		URLWaze:       wazeURL,
+		TotalFuelCost: totalFuelCost,
+		Tolls:         nil,
+		TotalTolls:    0,
+		Polyline:      "", // sem polyline no fallback
+	}
+}
+
+func (s *Service) calculateDirectRoute(
+	ctx context.Context, client http.Client,
+	originLat, originLon, destLat, destLon float64,
+	originGeocode, destGeocode GeocodeResult,
+	data FrontInfoCEPRequest,
+) []RouteSummary {
+
+	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
+	baseURL := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
+		"?alternatives=1&steps=true&overview=full&continue_straight=false"
+
+	resp, err := client.Get(baseURL)
+	if err == nil && resp != nil {
+		defer resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			var osrmResp OSRMResponse
+			if json.NewDecoder(resp.Body).Decode(&osrmResp) == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				tolls, _ := s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				return []RouteSummary{
+					s.createRouteSummary(route, "rota_direta", originGeocode, destGeocode, data, tolls),
+				}
+			}
+		}
+		log.Printf("⚠️  OSRM retornou status %d ou payload inválido (rota direta). Usando fallback.", resp.StatusCode)
+	} else {
+		log.Printf("⚠️  Erro HTTP ao consultar OSRM (rota direta): %v. Usando fallback.", err)
+	}
+
+	// Fallback local (nunca devolve erro ao front)
+	return []RouteSummary{
+		s.createDirectEstimateSummary(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data),
+	}
 }
