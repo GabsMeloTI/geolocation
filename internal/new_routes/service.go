@@ -3170,7 +3170,8 @@ func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, origin
 
 func (s *Service) isPointInRiskZone(lat, lng float64, zone RiskZone) bool {
 	distance := s.haversineDistance(lat, lng, zone.Lat, zone.Lng)
-	isInside := distance <= float64(zone.Radius)
+	const eps = 5.0 // m
+	isInside := distance <= float64(zone.Radius)+eps
 
 	if isInside {
 		log.Printf("   🎯 Ponto (%.6f, %.6f) está dentro da zona %s: distância=%.1fm, raio=%dm",
@@ -4558,6 +4559,9 @@ func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64
 }
 
 // NEWS - DEVOLVER PONTOS ANTES DA ROTA
+// computeRiskOffsetsFromGeometry (versão robusta)
+// - Detecta entrada/saída por varredura do estado inside (com epsilon)
+// - Usa a interseção do segmento com o círculo para obter t exato
 func (s *Service) computeRiskOffsetsFromGeometry(geometry string, zone RiskZone, offsetMeters float64) (RiskOffsets, bool) {
 	points, err := s.decodePolylineOSRM(geometry)
 	if err != nil || len(points) < 2 {
@@ -4574,108 +4578,82 @@ func (s *Service) computeRiskOffsetsFromGeometry(geometry string, zone RiskZone,
 	}
 	total := cum[len(cum)-1]
 
-	// Descobrir entrada/saída com interseção segmento-círculo (em metros)
-	latRef := zone.Lat // boa aproximação local
-	var (
-		foundEntry bool
-		entrySeg   int
-		entryT     float64
-		exitSeg    int
-		exitT      float64
-	)
+	// Considera borda com uma folga para tolerar “quase na borda”
+	const epsMeters = 20.0
+	isInside := func(p Location) bool {
+		return s.haversineDistance(p.Latitude, p.Longitude, zone.Lat, zone.Lng) <= float64(zone.Radius)+epsMeters
+	}
 
-	inside := s.haversineDistance(points[0].Latitude, points[0].Longitude, zone.Lat, zone.Lng) <= float64(zone.Radius)
+	latRef := zone.Lat
+	prevInside := isInside(points[0])
+
+	haveEntry := false
+	var entrySeg, exitSeg int
+	var entryT, exitT float64
 
 	for i := 0; i < len(points)-1; i++ {
-		ts := s.segmentCircleIntersectionsMeters(points[i], points[i+1], zone, latRef)
-		if len(ts) == 0 {
-			// Atualiza estado "inside" usando extremo B
-			inside = s.haversineDistance(points[i+1].Latitude, points[i+1].Longitude, zone.Lat, zone.Lng) <= float64(zone.Radius)
-			continue
-		}
-
-		// Ordena e processa na ordem do percurso
-		sort.Float64s(ts)
-
-		if !foundEntry {
-			if inside {
-				// rota começa dentro → primeira interseção é SAÍDA
-				exitSeg, exitT = i, ts[0]
-				foundEntry = true // marca que já processamos um dos dois
-				inside = false
-				// ainda pode haver 2ª interseção no mesmo segmento (reentrada)
-				if len(ts) > 1 {
-					entrySeg, entryT = i, ts[1]
-					inside = true
-					break
+		currInside := isInside(points[i+1])
+		if prevInside != currInside {
+			// houve cruzamento no segmento i
+			ts := s.segmentCircleIntersectionsMeters(points[i], points[i+1], zone, latRef)
+			// escolhe o t coerente com a direção da transição
+			var t float64
+			switch len(ts) {
+			case 0:
+				// fallback numérico simples (bisseção)
+				lo, hi := 0.0, 1.0
+				for it := 0; it < 25; it++ {
+					m := (lo + hi) / 2.0
+					ax, ay := s.projectToMeters(latRef, points[i].Latitude, points[i].Longitude)
+					bx, by := s.projectToMeters(latRef, points[i+1].Latitude, points[i+1].Longitude)
+					mx := ax + (bx-ax)*m
+					my := ay + (by-ay)*m
+					px, py := s.projectToMeters(latRef, zone.Lat, zone.Lng)
+					d := math.Hypot(mx-px, my-py)
+					if (d <= float64(zone.Radius)) == prevInside {
+						// ainda do mesmo lado -> anda para o outro
+						lo = m
+					} else {
+						hi = m
+					}
 				}
-			} else {
-				// fora → primeira interseção é ENTRADA
-				entrySeg, entryT = i, ts[0]
-				foundEntry = true
-				inside = true
-				// se houver 2ª interseção no mesmo segmento, ela é a SAÍDA
-				if len(ts) > 1 {
-					exitSeg, exitT = i, ts[1]
-					inside = false
-					break
+				t = (lo + hi) / 2.0
+			case 1:
+				t = ts[0]
+			default:
+				// duas interseções: se estava fora e vai para dentro → pega a menor;
+				// se estava dentro e vai para fora → pega a maior.
+				if !prevInside && currInside {
+					t = math.Min(ts[0], ts[1])
+				} else {
+					t = math.Max(ts[0], ts[1])
 				}
 			}
-		} else {
-			// Já tivemos a primeira interseção; a próxima é a complementar
-			if inside {
-				// estávamos dentro → próxima é SAÍDA
-				exitSeg, exitT = i, ts[0]
-				inside = false
+
+			if !haveEntry && !prevInside && currInside {
+				entrySeg, entryT = i, t
+				haveEntry = true
+			} else if haveEntry && prevInside && !currInside {
+				exitSeg, exitT = i, t
 				break
-			} else {
-				// estávamos fora → próxima é ENTRADA (caso raro)
-				entrySeg, entryT = i, ts[0]
-				inside = true
-				// se tiver uma segunda ainda neste segmento, já é a SAÍDA
-				if len(ts) > 1 {
-					exitSeg, exitT = i, ts[1]
-					inside = false
-					break
-				}
 			}
 		}
-
-		// Atualiza estado para o fim do segmento
-		inside = s.haversineDistance(points[i+1].Latitude, points[i+1].Longitude, zone.Lat, zone.Lng) <= float64(zone.Radius)
+		prevInside = currInside
 	}
 
-	// Se não achou par completo, aborta
-	// (se só encontrou SAÍDA sem ENTRADA — rota começa dentro — criamos ENTRADA no ponto inicial)
-	var entryLoc, exitLoc Location
-	var entryCum, exitCum float64
-	if entrySeg == 0 && entryT == 0 && !foundEntry {
+	if !haveEntry {
+		// nunca entrou (ou só tangenciou sem alternar o estado)
 		return RiskOffsets{}, false
 	}
 
-	if entrySeg == 0 && entryT == 0 && inside == false {
-		// nada a fazer
+	// Se entrou e nunca saiu, considera saída no final
+	if exitSeg == 0 && exitT == 0 && prevInside {
+		exitSeg, exitT = len(points)-2, 1.0
 	}
 
-	// Se não temos ENTRADA mas temos SAÍDA → define ENTRADA no início da rota
-	if entrySeg == 0 && entryT == 0 && exitT != 0 || (entrySeg == 0 && exitSeg != 0 && !pointIsValid(entrySeg, entryT)) {
-		entrySeg, entryT = 0, 0
-	}
+	entryLoc, entryCum := interpOnSegmentCum(points, cum, entrySeg, entryT, s)
+	exitLoc, exitCum := interpOnSegmentCum(points, cum, exitSeg, exitT, s)
 
-	if !pointIsValid(exitSeg, exitT) && pointIsValid(entrySeg, entryT) {
-		// achou apenas a entrada (ficou preso dentro até o final) → define saída no fim
-		exitSeg, exitT = len(points)-2, 1
-	}
-
-	if !pointIsValid(entrySeg, entryT) && !pointIsValid(exitSeg, exitT) {
-		return RiskOffsets{}, false
-	}
-
-	// Interpola pontos de entrada/saída e distâncias acumuladas
-	entryLoc, entryCum = interpOnSegmentCum(points, cum, entrySeg, entryT, s)
-	exitLoc, exitCum = interpOnSegmentCum(points, cum, exitSeg, exitT, s)
-
-	// 5 km antes de entrar e 5 km depois de sair (limitando ao início/fim)
 	beforeTarget := entryCum - offsetMeters
 	if beforeTarget < 0 {
 		beforeTarget = 0
