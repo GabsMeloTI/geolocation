@@ -3445,7 +3445,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		shortSeq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, arcPoints, arcExtraBuffer, entryExitPush, false)
 		shortSeq = snapOutsideMany("short_seq", shortSeq, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), shortSeq...), fmt.Sprintf("iter_%d_short", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, originLat, originLon, destLat, destLon); !hasThis {
 				accumWps = appendUnique(accumWps, shortSeq...)
 				for i := range shortSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3456,13 +3456,12 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 				continue
 			}
 		}
-		log.Printf("↪️  MENOR ARCO removeu a zona atual, mas ainda cruza outra — descartando e tentando alternativa.")
 
 		// ===== Etapa 4: LATERAL (arco oposto)
 		longSeq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, arcPoints, arcExtraBuffer, entryExitPush, true)
 		longSeq = snapOutsideMany("long_seq", longSeq, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), longSeq...), fmt.Sprintf("iter_%d_long", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, originLat, originLon, destLat, destLon); !hasThis {
 				accumWps = appendUnique(accumWps, longSeq...)
 				for i := range longSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3478,7 +3477,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		wpA, wpB := s.computeBypassWaypoints(originLat, originLon, destLat, destLon, off.Zone)
 		abSeq := snapOutsideMany("ab", []Location{wpA, wpB}, off.Zone)
 		if r2, ok := routeRaw(append(append([]Location{}, accumWps...), abSeq...), fmt.Sprintf("iter_%d_ab", iter)); ok {
-			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+			if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, originLat, originLon, destLat, destLon); !hasThis {
 				accumWps = appendUnique(accumWps, abSeq...)
 				for i := range abSeq {
 					detourPoints = append(detourPoints, DetourPoint{
@@ -3498,7 +3497,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 			wpB2 := s.pushAwayFromCenter(wpB, off.Zone, float64(off.Zone.Radius)*(sc-1)+500)
 			abScaled := snapOutsideMany(fmt.Sprintf("ab_scale_%.1f", sc), []Location{wpA2, wpB2}, off.Zone)
 			if r2, ok := routeRaw(append(append([]Location{}, accumWps...), abScaled...), fmt.Sprintf("iter_%d_ab_scale_%.1f", iter, sc)); ok {
-				if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, r2.Geometry, originLat, originLon, destLat, destLon); !hasAny {
+				if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, originLat, originLon, destLat, destLon); !hasThis {
 					accumWps = appendUnique(accumWps, abScaled...)
 					for i := range abScaled {
 						detourPoints = append(detourPoints, DetourPoint{
