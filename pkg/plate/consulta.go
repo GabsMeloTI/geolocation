@@ -213,13 +213,14 @@ func ConsultarMultas(placa string) ([]MultaA, error) {
 	}
 
 	// Debug opcional
-	fmt.Printf("📄 Resposta bruta da API de multas (placa %s):\n%s\n", placa, string(body))
 
 	// Parse
 	var multaResp MultasResponse
 	if err := json.Unmarshal(body, &multaResp); err != nil {
 		return nil, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
 	}
+
+	fmt.Printf("📄 Resposta bruta da API de multas (placa %s):\n%s\n", placa, multaResp)
 
 	fmt.Printf("✅ Multas consultadas para %s em %v (total %d)\n",
 		placa, time.Since(start), len(multaResp.Data.Registros))
