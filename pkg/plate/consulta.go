@@ -182,7 +182,7 @@ type MultasResponse struct {
 	} `json:"data"`
 }
 
-func ConsultarMultas(placa string) ([]MultaA, error) {
+func ConsultarMultas(placa string) (MultasResponse, error) {
 	start := time.Now()
 	placa = strings.ToUpper(strings.TrimSpace(placa))
 
@@ -194,7 +194,7 @@ func ConsultarMultas(placa string) ([]MultaA, error) {
 
 	req, err := http.NewRequest("POST", multasURL, bytes.NewBuffer(payload))
 	if err != nil {
-		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
+		return MultasResponse{}, fmt.Errorf("erro ao criar requisição de multas: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("DeviceToken", device)
@@ -203,13 +203,13 @@ func ConsultarMultas(placa string) ([]MultaA, error) {
 	client := &http.Client{Timeout: 20 * time.Second} // evita travar
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao enviar requisição de multas: %w", err)
+		return MultasResponse{}, fmt.Errorf("erro ao enviar requisição de multas: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao ler resposta de multas: %w", err)
+		return MultasResponse{}, fmt.Errorf("erro ao ler resposta de multas: %w", err)
 	}
 
 	// Debug opcional
@@ -217,7 +217,7 @@ func ConsultarMultas(placa string) ([]MultaA, error) {
 	// Parse
 	var multaResp MultasResponse
 	if err := json.Unmarshal(body, &multaResp); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
+		return MultasResponse{}, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
 	}
 
 	fmt.Printf("📄 Resposta bruta da API de multas (placa %s):\n%s\n", placa, multaResp)
@@ -225,5 +225,5 @@ func ConsultarMultas(placa string) ([]MultaA, error) {
 	fmt.Printf("✅ Multas consultadas para %s em %v (total %d)\n",
 		placa, time.Since(start), len(multaResp.Data.Registros))
 
-	return multaResp.Data.Registros, nil
+	return multaResp, nil
 }
