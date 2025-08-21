@@ -26,13 +26,17 @@ func init() {
 }
 
 func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
+	startTotal := time.Now() // ⏱ início da função
+
 	placa = strings.ToUpper(strings.TrimSpace(placa))
 	cacheKey := "placa:" + placa
 
+	// 🔹 Verifica cache Redis
 	if cached, err := rdb.Get(ctx, cacheKey).Result(); err == nil {
 		var cachedResp FullAPIResponse
 		if err := json.Unmarshal([]byte(cached), &cachedResp); err == nil {
 			fmt.Println("🔁 Cache Redis usado")
+			fmt.Printf("⏱ Tempo total (CACHE): %v\n", time.Since(startTotal))
 			return &cachedResp, nil
 		}
 	}
@@ -40,7 +44,12 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	bearer := os.Getenv("BEARER_TOKEN")
 	device := os.Getenv("DEVICE_TOKEN")
 
+	client := &http.Client{
+		Timeout: 20 * time.Second, // evita ficar travado muito tempo
+	}
+
 	// 1. Consulta dados do veículo
+	startVeiculo := time.Now()
 	veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
 	body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
 
@@ -52,7 +61,6 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	req.Header.Set("DeviceToken", device)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao enviar requisição do veículo: %w", err)
@@ -65,14 +73,16 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	}
 
 	fmt.Println("📄 Resposta bruta da API de dados do veículo:")
-	fmt.Println(string(respBody)) // 🚨 Log do retorno bruto
+	fmt.Println(string(respBody))
+	fmt.Printf("⏱ Tempo API veículos: %v\n", time.Since(startVeiculo))
 
 	var fullResp FullAPIResponse
 	if err := json.Unmarshal(respBody, &fullResp); err != nil {
 		return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
 	}
 
-	// 2. Consulta multas (nova API)
+	// 2. Consulta multas
+	startMultas := time.Now()
 	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
 	multaPayload := fmt.Sprintf(`{"placa":"%s", "tipo": "%s"}`, placa, "renainf")
 
@@ -93,6 +103,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 		fmt.Println("📄 Resposta bruta da nova API de multas:")
 		fmt.Println(string(multasRespBody))
+		fmt.Printf("⏱ Tempo API multas: %v\n", time.Since(startMultas))
 
 		var multaAPIResponse struct {
 			Data struct {
@@ -113,5 +124,6 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		fmt.Println("❌ Falha ao salvar no Redis:", err)
 	}
 
+	fmt.Printf("✅ Tempo total da função ConsultarPlaca: %v\n", time.Since(startTotal))
 	return &fullResp, nil
 }
