@@ -1,26 +1,25 @@
 package new_routes
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	db "geolocation/db/sqlc"
+	"geolocation/internal/address"
 	"geolocation/internal/get_token"
 	"geolocation/internal/route_enterprise"
 	"geolocation/internal/routes"
 	"geolocation/internal/zonas_risco"
 	cache "geolocation/pkg"
 	"geolocation/validation"
-	"io"
 	"log"
 	"math"
 	"net/http"
 	"net/url"
 	neturl "net/url"
-	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -48,14 +47,16 @@ type Service struct {
 	InterfaceRouteEnterprise route_enterprise.InterfaceRepository
 	GoogleMapsAPIKey         string
 	RiskZonesRepository      zonas_risco.InterfaceService
+	CEPRepository            address.InterfaceRepository
 }
 
-func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string, RiskZonesRepository zonas_risco.InterfaceService) *Service {
+func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string, RiskZonesRepository zonas_risco.InterfaceService, CEPRepository address.InterfaceRepository) *Service {
 	return &Service{
 		InterfaceService:         interfaceService,
 		InterfaceRouteEnterprise: interfaceRouteEnterprise,
 		GoogleMapsAPIKey:         googleMapsAPIKey,
 		RiskZonesRepository:      RiskZonesRepository,
+		CEPRepository:            CEPRepository,
 	}
 }
 
@@ -2747,60 +2748,27 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 }
 
 func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, error error) {
-	cepData, err := s.InterfaceService.FindAddressByCEPNew(ctx, cep)
+	cepRegex := regexp.MustCompile(`^\d{8}$`)
+	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(cep, "-", ""), " ", "")
+	isCEP := cepRegex.MatchString(normalizedQuery)
+	if !isCEP {
+		return 0, 0, errors.New("CEP inválido")
+	}
+
+	infoCep, err := s.CEPRepository.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
-		return 0, 0, fmt.Errorf("erro na busca local: %w", err)
+		log.Println("buscando cep pelo API Brasil")
+		address, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
+		if apiErr != nil {
+			log.Println("erro ao buscar CEP em ambas base de dados:", apiErr)
+			return 0, 0, err
+		}
+		return address.Latitude, address.Longitude, nil
 	}
 
-	if cepData.ID.Valid && cepData.ID.Int64 > 0 {
-		return cepData.Lat.Float64, cepData.Lon.Float64, nil
-	}
-
-	log.Printf("cep nao encontrado na nossa base, buscando por api %w", cep)
-	url := "https://gateway.apibrasil.io/api/v2/cep/cep"
-	bodyData := map[string]string{"cep": cep}
-	bodyJSON, _ := json.Marshal(bodyData)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyJSON))
-	if err != nil {
-		return 0, 0, err
-	}
-
-	bearer := os.Getenv("BEARER_TOKEN")
-	device := os.Getenv("DEVICE_TOKEN_CEP")
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	req.Header.Set("DeviceToken", device)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, 0, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return 0, 0, fmt.Errorf("erro na APIBrasil: %s", string(body))
-	}
-
-	var apiResp APIBrasilResponse
-	err = json.Unmarshal(body, &apiResp)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if apiResp.Error {
-		return 0, 0, errors.New(apiResp.Message)
-	}
-
-	lat, _ = strconv.ParseFloat(apiResp.Response.CEP.Latitude, 64)
-	long, _ := strconv.ParseFloat(apiResp.Response.CEP.Longitude, 64)
-
-	return lat, long, nil
+	fmt.Println(cep)
+	fmt.Println(infoCep)
+	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, nil
 }
 
 // ---- new function
