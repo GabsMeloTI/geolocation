@@ -299,7 +299,7 @@ func (h *Handler) ConsultarPlaca(c echo.Context) error {
 		return errors.New("placa invalido")
 	}
 
-	result, err := plate.ConsultarPlaca(placa)
+	result, err := plate.ConsultarMultas(placa)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

@@ -1,6 +1,7 @@
 package plate
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -126,4 +127,102 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 	fmt.Printf("✅ Tempo total da função ConsultarPlaca: %v\n", time.Since(startTotal))
 	return &fullResp, nil
+}
+
+type MultaA struct {
+	NumeroAutoInfracao           string `json:"numeroautoinfracao"`
+	DataInfracao                 string `json:"datadainfracao"`
+	Exigibilidade                string `json:"exigibilidade"`
+	Infracao                     string `json:"infracao"`
+	Orgao                        string `json:"orgao"`
+	ConsultaDetalheExisteErro    string `json:"consultadetalhe_existe_erro"`
+	ConsultaDetalheMensagem      string `json:"consultadetalhe_mensagem"`
+	DetalheCadastramentoInfracao string `json:"detalhe_cadastramento_infracao"`
+	DetalheCodInfracao           string `json:"detalhe_cod_infracao"`
+	DetalheCodMunEmplacamento    string `json:"detalhe_cod_mun_emplacamento"`
+	DetalheCodMunInfracao        string `json:"detalhe_cod_mun_infracao"`
+	DetalheDtEmissaoPenalidade   string `json:"detalhe_dt_emissao_penalidade"`
+	DetalheDtInfracao            string `json:"detalhe_dt_infracao"`
+	DetalheDtNotificacaoInfracao string `json:"detalhe_dt_notificacao_infracao"`
+	DetalheHrInfracao            string `json:"detalhe_hr_infracao"`
+	DetalheLimitePermitido       string `json:"detalhe_limite_permitido"`
+	DetalheLocalInfracao         string `json:"detalhe_local_infracao"`
+	DetalheAmrcamodelo           string `json:"detalhe_amrcamodelo"`
+	DetalheMedicaoConsiderada    string `json:"detalhe_medicao_considerada"`
+	DetalheMedicaoReal           string `json:"detalhe_medicao_real"`
+	DetalheNumAutoInfracao       string `json:"detalhe_num_auto_infracao"`
+	DetalheOrgaoAutuador         string `json:"detalhe_orgao_autuador"`
+	DetalhePlaca                 string `json:"detalhe_placa"`
+	DetalheTipoAutoInfracao      string `json:"detalhe_tipo_auto_infracao"`
+	DetalheUfJurisdicaoVeiculo   string `json:"detalhe_uf_jurisdicao_veiculo"`
+	DetalheUfOrgaoAutuador       string `json:"detalhe_uf_orgao_autuador"`
+	DetalheUfPlaca               string `json:"detalhe_uf_placa"`
+	DetalheUnidadeMedida         string `json:"detalhe_unidade_medida"`
+	DetalheValorInfracao         string `json:"detalhe_valor_infracao"`
+	DadosSuspensaoAceiteUfJuris  string `json:"dadosdasuspensao_aceite_uf_jurisdicao"`
+	DadosSuspensaoDataRegistro   string `json:"dadosdasuspensao_data_registro"`
+	DadosSuspensaoOrigem         string `json:"dadosdasuspensao_origem"`
+	DadosSuspensaoTipo           string `json:"dadosdasuspensao_tipo"`
+	DadosInfratorCnhCondutor     string `json:"dadosinfrator_cnh_condutor"`
+	DadosInfratorCnhInfrator     string `json:"dadosinfrator_cnh_infrator"`
+	DadosPagamentoDtPagamento    string `json:"dadosdopagamento_dt_pagamento"`
+	DadosPagamentoDtRegistroPgto string `json:"dadosdopagamento_dt_do_registro_do_pgmto"`
+	DadosPagamentoUfPagamento    string `json:"dadosdopagamento_uf_pagamento"`
+	DadosPagamentoValorPago      string `json:"dadosdopagamento_valor_pago"`
+	DadosPagamentoDadosPgmto     string `json:"dadosdopagamento_dados_pgmto"`
+}
+
+type MultasResponse struct {
+	Data struct {
+		Alerta                   string   `json:"alerta"`
+		Placa                    string   `json:"placa"`
+		QuantidadeOcorrencias    string   `json:"quantidade_ocorrencias"`
+		QuantidadeOcorrenciasTot string   `json:"quantidade_ocorrencias_total"`
+		Registros                []MultaA `json:"registros"`
+	} `json:"data"`
+}
+
+func ConsultarMultas(placa string) ([]MultaA, error) {
+	start := time.Now()
+	placa = strings.ToUpper(strings.TrimSpace(placa))
+
+	bearer := os.Getenv("BEARER_TOKEN")
+	device := os.Getenv("DEVICE_TOKEN")
+
+	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
+	payload := []byte(fmt.Sprintf(`{"placa":"%s", "tipo":"renainf"}`, placa))
+
+	req, err := http.NewRequest("POST", multasURL, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("DeviceToken", device)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 20 * time.Second} // evita travar
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao enviar requisição de multas: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao ler resposta de multas: %w", err)
+	}
+
+	// Debug opcional
+	fmt.Printf("📄 Resposta bruta da API de multas (placa %s):\n%s\n", placa, string(body))
+
+	// Parse
+	var multaResp MultasResponse
+	if err := json.Unmarshal(body, &multaResp); err != nil {
+		return nil, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
+	}
+
+	fmt.Printf("✅ Multas consultadas para %s em %v (total %d)\n",
+		placa, time.Since(start), len(multaResp.Data.Registros))
+
+	return multaResp.Data.Registros, nil
 }
