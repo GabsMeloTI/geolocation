@@ -3069,14 +3069,22 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		}
 		coords += fmt.Sprintf(";%f,%f", destLon, destLat)
 
-		u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
-			"?alternatives=0&steps=true&overview=full&continue_straight=false"
+		profile := "driving"
+		if data.Type != "" {
+			profile = data.Type // ex: "car", "truck"
+		}
+
+		u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			profile, url.PathEscape(coords))
 
 		resp, err := client.Get(u)
-		if err != nil {
-			log.Printf("❌ OSRM erro (%s): %v", tag, err)
-			return OSRMRoute{}, false
+		if err != nil || resp.StatusCode != 200 {
+			log.Printf("⚠️ rota com perfil %q falhou, tentando fallback com driving padrão", profile)
+			u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+				url.PathEscape(coords))
+			resp, err = client.Get(u)
 		}
+
 		defer resp.Body.Close()
 
 		var osrmResp OSRMResponse
@@ -3817,14 +3825,22 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 			coords += fmt.Sprintf(";%f,%f", lon2, lat2)
 
-			u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
-				"?alternatives=0&steps=true&overview=full&continue_straight=false"
+			profile := "driving"
+			if data.Type != "" {
+				profile = data.Type // ex: "car", "truck"
+			}
+
+			u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+				profile, url.PathEscape(coords))
 
 			resp, err := client.Get(u)
-			if err != nil {
-				log.Printf("⚠️  [TOTAL] Erro OSRM segmento %d: %v", i+1, err)
-				return OSRMRoute{}, false
+			if err != nil || resp.StatusCode != 200 {
+				log.Printf("⚠️ rota com perfil %q falhou, tentando fallback com driving padrão", profile)
+				u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+					url.PathEscape(coords))
+				resp, err = client.Get(u)
 			}
+
 			defer resp.Body.Close()
 			var r OSRMResponse
 			if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
@@ -3878,12 +3894,23 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 								coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
 							}
 							coords += fmt.Sprintf(";%f,%f", lon2, lat2)
-							u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
-								"?alternatives=0&steps=true&overview=full&continue_straight=false"
-							resp, err := client.Get(u)
-							if err != nil {
-								return OSRMRoute{}, false
+
+							profile := "driving"
+							if data.Type != "" {
+								profile = data.Type // ex: "car", "truck"
 							}
+
+							u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+								profile, url.PathEscape(coords))
+
+							resp, err := client.Get(u)
+							if err != nil || resp.StatusCode != 200 {
+								log.Printf("⚠️ rota com perfil %q falhou, tentando fallback com driving padrão", profile)
+								u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+									url.PathEscape(coords))
+								resp, err = client.Get(u)
+							}
+
 							defer resp.Body.Close()
 							var r OSRMResponse
 							if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
@@ -3918,12 +3945,23 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 								coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
 							}
 							coords += fmt.Sprintf(";%f,%f", lon2, lat2)
-							u := "http://34.207.174.233:5000/route/v1/driving/" + url.PathEscape(coords) +
-								"?alternatives=0&steps=true&overview=full&continue_straight=false"
-							resp, err := client.Get(u)
-							if err != nil {
-								return OSRMRoute{}, false
+
+							profile := "driving"
+							if data.Type != "" {
+								profile = data.Type // ex: "car", "truck"
 							}
+
+							u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+								profile, url.PathEscape(coords))
+
+							resp, err := client.Get(u)
+							if err != nil || resp.StatusCode != 200 {
+								log.Printf("⚠️ rota com perfil %q falhou, tentando fallback com driving padrão", profile)
+								u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+									url.PathEscape(coords))
+								resp, err = client.Get(u)
+							}
+
 							defer resp.Body.Close()
 							var r OSRMResponse
 							if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
@@ -4125,6 +4163,12 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 
 			log.Printf("✅ [TOTAL] Rota OSRM (com desvios) obtida. Distância/Tempo recalculados.")
+			if len(waypointsForURL) == 0 {
+				waypointsForURL = []string{
+					fmt.Sprintf("%f,%f", originLocation.Latitude, originLocation.Longitude),
+					fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude),
+				}
+			}
 			totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
 
 			// Caso precise expor os pontos do desvio, habilite:
@@ -4255,6 +4299,12 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 		totalTollCost += toll.CashCost
 	}
 
+	if len(waypoints) == 0 {
+		// fallback: usa coordenadas em string
+		originAddress := fmt.Sprintf("%f,%f", originLocation.Latitude, originLocation.Longitude)
+		destAddress := fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude)
+		waypoints = []string{originAddress, destAddress}
+	}
 	originAddress := waypoints[0]
 	destAddress := waypoints[len(waypoints)-1]
 	waypointStr := ""
