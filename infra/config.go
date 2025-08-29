@@ -38,7 +38,7 @@ type Config struct {
 
 func NewConfig() Config {
 	if os.Getenv("ENVIRONMENT") == "" {
-		if err := godotenv.Load(".env.homolog"); err != nil {
+		if err := godotenv.Load(".env"); err != nil {
 			panic("Error loading env file")
 		}
 	}

@@ -44,7 +44,7 @@ jobs:
             docker ps -a -q -f name=go-geolocation-container && docker rm go-geolocation-container || true
           
             echo "Executando novo container..."
-            docker run -d -p 7777:8080 --env-file .env.homolog --name go-geolocation-container go-geolocation
+            docker run -d -p 7777:8080 --env-file .env --name go-geolocation-container go-geolocation
           
             echo "Limpando imagens antigas..."
             docker image prune -f

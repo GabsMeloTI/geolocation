@@ -1,5 +1,5 @@
 # include
-include .env.homolog
+include .env
 
 ifneq ($(filter migrate,$(MAKECMDGOALS)),)
   MIGRATION_NAME := $(word 2,$(MAKECMDGOALS))
