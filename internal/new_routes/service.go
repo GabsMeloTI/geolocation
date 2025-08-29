@@ -23,6 +23,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -1176,7 +1177,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		return Response{}, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
 	}
 
-	client := http.Client{Timeout: 60 * time.Second}
+	client := http.Client{Timeout: 30 * time.Second}
 	var resultRoutes []DetailedRoute
 	var totalDistance float64
 	var totalDuration float64
@@ -1449,7 +1450,7 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 		return nil, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
 	}
 
-	client := http.Client{Timeout: 60 * time.Second}
+	client := http.Client{Timeout: 30 * time.Second}
 	originCEP := data.CEPs[0]
 
 	originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
@@ -2188,8 +2189,17 @@ func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, 
 }
 
 func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
+	// Implementar cache para coordenadas
+	cacheKey := fmt.Sprintf("reverse_geocode:%.6f,%.6f", lat, lng)
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		return cached, nil
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (reverse_geocode): %v", err)
+	}
+
 	geocodeURL := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, lng)
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 
 	resp, err := client.Get(geocodeURL)
 	if err != nil {
@@ -2202,6 +2212,11 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("erro ao decodificar resposta de geocodificação reversa: %w", err)
+	}
+
+	// Salvar no cache para futuras consultas
+	if err := cache.Rdb.Set(cache.Ctx, cacheKey, result.DisplayName, 7*24*time.Hour).Err(); err != nil {
+		log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", err)
 	}
 
 	return result.DisplayName, nil
@@ -2663,17 +2678,17 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 }
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	//address = StateToCapital(strings.ToLower(address))
-	//cacheKey := fmt.Sprintf("geocode:%s", address)
-	//cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
-	//if err == nil {
-	//	var result GeocodeResult
-	//	if json.Unmarshal([]byte(cached), &result) == nil {
-	//		return result, nil
-	//	}
-	//} else if !errors.Is(err, redis.Nil) {
-	//	fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
-	//}
+	// Implementar cache para evitar chamadas repetidas
+	cacheKey := fmt.Sprintf("geocode:%s", address)
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var result GeocodeResult
+		if json.Unmarshal([]byte(cached), &result) == nil {
+			return result, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
+	}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -2710,12 +2725,13 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		},
 	}
 
-	//data, err := json.Marshal(result)
-	//if err == nil {
-	//	if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-	//		fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
-	//	}
-	//}
+	// Salvar no cache para futuras consultas
+	data, err := json.Marshal(result)
+	if err == nil {
+		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
+		}
+	}
 	return result, nil
 }
 
@@ -2750,6 +2766,21 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		return 0, 0, errors.New("CEP inválido")
 	}
 
+	// Implementar cache para CEPs
+	cacheKey := fmt.Sprintf("cep_coords:%s", normalizedQuery)
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var coords struct {
+			Lat float64 `json:"lat"`
+			Lon float64 `json:"lon"`
+		}
+		if json.Unmarshal([]byte(cached), &coords) == nil {
+			return coords.Lat, coords.Lon, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (cep_coords): %v", err)
+	}
+
 	infoCep, err := s.CEPRepository.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
 		address, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
@@ -2757,7 +2788,28 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 			log.Printf("erro ao buscar CEP em ambas base de dados: %v", apiErr)
 			return 0, 0, err
 		}
+
+		// Salvar no cache
+		coords := struct {
+			Lat float64 `json:"lat"`
+			Lon float64 `json:"lon"`
+		}{address.Latitude, address.Longitude}
+
+		if data, err := json.Marshal(coords); err == nil {
+			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+		}
+
 		return address.Latitude, address.Longitude, nil
+	}
+
+	// Salvar no cache
+	coords := struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64}
+
+	if data, err := json.Marshal(coords); err == nil {
+		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
 	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, nil
@@ -2770,72 +2822,159 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		return Response{}, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
 	}
 
+	// Buscar zonas de risco uma única vez
 	riskZones, err := s.getActiveRiskZones(ctx)
 	if err != nil {
 		log.Printf("Erro ao buscar zonas de risco: %v", err)
 		return s.CalculateDistancesBetweenPoints(ctx, data)
 	}
 
-	client := http.Client{Timeout: 60 * time.Second}
+	// Cliente HTTP com timeout reduzido para melhor performance
+	client := http.Client{Timeout: 30 * time.Second}
 	var resultRoutes []DetailedRoute
 	var totalDistance float64
 	var totalDuration float64
 
+	// Pré-processar todos os CEPs para evitar chamadas repetidas
+	cepCoordinates := make(map[string]struct {
+		lat, lon float64
+		address  string
+		geocode  GeocodeResult
+	})
+
+	for _, cep := range data.CEPs {
+		if _, exists := cepCoordinates[cep]; exists {
+			continue
+		}
+
+		lat, lon, err := s.getCoordByCEP(ctx, cep)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas do CEP %s: %w", cep, err)
+		}
+
+		// Geocodificação reversa e geocodificação em paralelo
+		addressChan := make(chan string, 1)
+		geocodeChan := make(chan GeocodeResult, 1)
+		errorChan := make(chan error, 2)
+
+		go func(lat, lon float64) {
+			address, err := s.reverseGeocode(lat, lon)
+			if err != nil {
+				errorChan <- err
+				return
+			}
+			addressChan <- address
+		}(lat, lon)
+
+		go func(address string) {
+			geocode, err := s.getGeocodeAddress(ctx, address)
+			if err != nil {
+				errorChan <- err
+				return
+			}
+			geocodeChan <- geocode
+		}(fmt.Sprintf("%f,%f", lat, lon))
+
+		// Aguardar resultados
+		address := <-addressChan
+		geocode := <-geocodeChan
+
+		// Verificar erros
+		select {
+		case err := <-errorChan:
+			if err != nil {
+				log.Printf("Erro na geocodificação do CEP %s: %v", cep, err)
+				// Continuar com dados básicos
+			}
+		default:
+		}
+
+		cepCoordinates[cep] = struct {
+			lat, lon float64
+			address  string
+			geocode  GeocodeResult
+		}{lat, lon, address, geocode}
+	}
+
+	// Processar segmentos em paralelo quando possível
+	type segmentResult struct {
+		index   int
+		route   DetailedRoute
+		hasRisk bool
+	}
+
+	segmentChan := make(chan segmentResult, len(data.CEPs)-1)
+	var wg sync.WaitGroup
+
 	for i := 0; i < len(data.CEPs)-1; i++ {
-		originCEP := data.CEPs[i]
-		destCEP := data.CEPs[i+1]
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
 
-		originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
-		if err != nil {
-			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
-		}
-		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
-		if err != nil {
-			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
-		}
+			originCEP := data.CEPs[i]
+			destCEP := data.CEPs[i+1]
 
-		originAddress, _ := s.reverseGeocode(originLat, originLon)
-		destAddress, _ := s.reverseGeocode(destLat, destLon)
+			originData := cepCoordinates[originCEP]
+			destData := cepCoordinates[destCEP]
 
-		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
-		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
+			// Verificar se há zonas de risco no caminho direto
+			offs, hasAny := s.CheckRouteForAllRiskZones(riskZones, originData.lat, originData.lon, destData.lat, destData.lon)
 
-		// Verificar se há zonas de risco no caminho direto
-		offs, hasAny := s.CheckRouteForAllRiskZones(riskZones, originLat, originLon, destLat, destLon)
+			locations := make([]LocationHisk, 0, len(offs))
+			for _, o := range offs {
+				locations = append(locations, LocationHisk{
+					CEP:       o.Zone.Cep,
+					Latitude:  o.Zone.Lat,
+					Longitude: o.Zone.Lng,
+				})
+			}
 
-		locations := make([]LocationHisk, 0, len(offs))
-		for _, o := range offs {
-			locations = append(locations, LocationHisk{
-				CEP:       o.Zone.Cep,
-				Latitude:  o.Zone.Lat,
-				Longitude: o.Zone.Lng,
-			})
-		}
+			var summaries []RouteSummary
+			if hasAny {
+				summaries = s.calculateAlternativeRouteWithAvoidance(ctx, client, riskZones, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+			} else {
+				summaries = s.calculateDirectRoute(ctx, client, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+			}
 
-		var summaries []RouteSummary
-		if hasAny {
-			summaries = s.calculateAlternativeRouteWithAvoidance(ctx, client, riskZones, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
-		} else {
-			summaries = s.calculateDirectRoute(ctx, client, originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
-		}
+			if len(summaries) == 0 {
+				fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+				summaries = []RouteSummary{fb}
+			}
 
-		if len(summaries) == 0 {
-			fb := s.createDirectEstimateSummary(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
-			summaries = []RouteSummary{fb}
-		}
+			// Usar a primeira rota para cálculos totais
+			route := summaries[0]
+			totalDistance += route.Distance.Value
+			totalDuration += route.Duration.Value
 
-		// Usar a primeira rota para cálculos totais
-		route := summaries[0]
-		totalDistance += route.Distance.Value
-		totalDuration += route.Duration.Value
+			segmentChan <- segmentResult{
+				index: i,
+				route: DetailedRoute{
+					LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
+					LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+					HasRisk:             hasAny,
+					LocationHisk:        locations,
+					Summaries:           summaries,
+				},
+				hasRisk: hasAny,
+			}
+		}(i)
+	}
 
-		resultRoutes = append(resultRoutes, DetailedRoute{
-			LocationOrigin:      AddressInfo{Location: Location{Latitude: originLat, Longitude: originLon}, Address: originGeocode.FormattedAddress},
-			LocationDestination: AddressInfo{Location: Location{Latitude: destLat, Longitude: destLon}, Address: destGeocode.FormattedAddress},
-			HasRisk:             hasAny,
-			LocationHisk:        locations,
-			Summaries:           summaries,
-		})
+	// Aguardar todos os segmentos
+	go func() {
+		wg.Wait()
+		close(segmentChan)
+	}()
+
+	// Coletar resultados na ordem correta
+	segmentResults := make([]segmentResult, len(data.CEPs)-1)
+	for result := range segmentChan {
+		segmentResults[result.index] = result
+	}
+
+	// Montar resultado final na ordem correta
+	for _, result := range segmentResults {
+		resultRoutes = append(resultRoutes, result.route)
 	}
 
 	// Calcular rota total com desvios
@@ -2884,7 +3023,7 @@ func (s *Service) CheckRouteForRiskZones(riskZones []RiskZone, originLat, origin
 	}
 
 	// Primeiro, calcular a rota real com OSRM para verificar todos os pontos
-	client := http.Client{Timeout: 30 * time.Second}
+	client := http.Client{Timeout: 15 * time.Second}
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 	url := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
 
@@ -3017,11 +3156,13 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
 			profile, url.PathEscape(coords))
 
-		resp, err := client.Get(u)
+		// Cliente com timeout reduzido para melhor performance
+		fastClient := http.Client{Timeout: 15 * time.Second}
+		resp, err := fastClient.Get(u)
 		if err != nil || resp.StatusCode != 200 {
 			u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
 				url.PathEscape(coords))
-			resp, err = client.Get(u)
+			resp, err = fastClient.Get(u)
 		}
 
 		defer resp.Body.Close()
@@ -3301,7 +3442,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 	}
 	// ---------- fim do guard sweep ----------
 
-	// tenta “best_effort” já com possíveis guards
+	// tenta "best_effort" já com possíveis guards
 	if r, ok := tryRoute(accumWps, "best_effort"); ok {
 		tolls, _ := s.findTollsOnRoute(ctx, r.Geometry, data.Type, float64(data.Axles))
 		sum := s.createRouteSummary(r, "desvio_multi_zonas_best_effort", originGeocode, destGeocode, data, tolls)
@@ -3404,7 +3545,7 @@ func (s *Service) computeBypassFromRouteGeometry(originLat, originLon, destLat, 
 	// Consulta uma rota OSRM simples entre origem e destino
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 	osrmURL := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full", url.PathEscape(coords))
-	client := http.Client{Timeout: 30 * time.Second}
+	client := http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Get(osrmURL)
 	if err != nil {
 		return Location{}, Location{}, false
@@ -3721,11 +3862,13 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			u := fmt.Sprintf("http://34.207.174.233:5000/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
 				profile, url.PathEscape(coords))
 
-			resp, err := client.Get(u)
+			// Cliente com timeout reduzido para melhor performance
+			fastClient := http.Client{Timeout: 15 * time.Second}
+			resp, err := fastClient.Get(u)
 			if err != nil || resp.StatusCode != 200 {
 				u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
 					url.PathEscape(coords))
-				resp, err = client.Get(u)
+				resp, err = fastClient.Get(u)
 			}
 
 			defer resp.Body.Close()
@@ -4136,7 +4279,7 @@ type osrmNearestResp struct {
 
 func (s *Service) snapToRoad(lat, lon float64) (float64, float64, bool) {
 	urlStr := fmt.Sprintf("http://34.207.174.233:5000/nearest/v1/driving/%f,%f?number=1", lon, lat)
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 
 	resp, err := client.Get(urlStr)
 	if err != nil {
@@ -4215,7 +4358,10 @@ func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinatio
 
 func (s *Service) osrmNearestSnap(client http.Client, lat, lon float64) (float64, float64, bool) {
 	u := fmt.Sprintf("http://34.207.174.233:5000/nearest/v1/driving/%.6f,%.6f?number=1", lon, lat)
-	resp, err := client.Get(u)
+
+	// Usar timeout reduzido para melhor performance
+	fastClient := http.Client{Timeout: 5 * time.Second}
+	resp, err := fastClient.Get(u)
 	if err != nil {
 		return lat, lon, false
 	}
@@ -4671,7 +4817,7 @@ func (s *Service) detectAllCrossingsFromGeometry(geometry string, zones []RiskZo
 
 // Checa rota OSRM real e retorna TODAS as zonas cruzadas (ordenadas). Bool indica se há pelo menos uma.
 func (s *Service) CheckRouteForAllRiskZones(riskZones []RiskZone, originLat, originLon, destLat, destLon float64) ([]RiskOffsets, bool) {
-	client := http.Client{Timeout: 30 * time.Second}
+	client := http.Client{Timeout: 15 * time.Second}
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 	url := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?overview=full&steps=true", url.PathEscape(coords))
 
