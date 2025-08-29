@@ -2829,8 +2829,18 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		return s.CalculateDistancesBetweenPoints(ctx, data)
 	}
 
-	// Cliente HTTP com timeout reduzido para melhor performance
-	client := http.Client{Timeout: 30 * time.Second}
+	// Pool de clientes HTTP reutilizáveis para melhor performance
+	clientPool := &http.Client{
+		Timeout: 10 * time.Second, // Timeout ainda mais agressivo
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20, // Mais conexões por host
+			IdleConnTimeout:     30 * time.Second,
+			DisableCompression:  true,  // OSRM não usa compressão
+			DisableKeepAlives:   false, // Manter conexões ativas
+			MaxConnsPerHost:     50,    // Mais conexões simultâneas
+		},
+	}
 	var resultRoutes []DetailedRoute
 	var totalDistance float64
 	var totalDuration float64
@@ -2842,58 +2852,134 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		geocode  GeocodeResult
 	})
 
+	// Processar CEPs em batch para melhor performance
+	var wgCEP sync.WaitGroup
+	cepChan := make(chan struct {
+		cep     string
+		lat     float64
+		lon     float64
+		address string
+		geocode GeocodeResult
+		err     error
+	}, len(data.CEPs))
+
 	for _, cep := range data.CEPs {
 		if _, exists := cepCoordinates[cep]; exists {
 			continue
 		}
 
-		lat, lon, err := s.getCoordByCEP(ctx, cep)
-		if err != nil {
-			return Response{}, fmt.Errorf("erro ao buscar coordenadas do CEP %s: %w", cep, err)
-		}
+		wgCEP.Add(1)
+		go func(cep string) {
+			defer wgCEP.Done()
 
-		// Geocodificação reversa e geocodificação em paralelo
-		addressChan := make(chan string, 1)
-		geocodeChan := make(chan GeocodeResult, 1)
-		errorChan := make(chan error, 2)
-
-		go func(lat, lon float64) {
-			address, err := s.reverseGeocode(lat, lon)
+			lat, lon, err := s.getCoordByCEP(ctx, cep)
 			if err != nil {
-				errorChan <- err
+				cepChan <- struct {
+					cep     string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{cep: cep, err: err}
 				return
 			}
-			addressChan <- address
-		}(lat, lon)
 
-		go func(address string) {
-			geocode, err := s.getGeocodeAddress(ctx, address)
-			if err != nil {
-				errorChan <- err
-				return
+			// Geocodificação reversa e geocodificação em paralelo
+			addressChan := make(chan string, 1)
+			geocodeChan := make(chan GeocodeResult, 1)
+			errorChan := make(chan error, 2)
+
+			go func(lat, lon float64) {
+				address, err := s.reverseGeocode(lat, lon)
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				addressChan <- address
+			}(lat, lon)
+
+			go func() {
+				geocode, err := s.getGeocodeAddress(ctx, fmt.Sprintf("%f,%f", lat, lon))
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				geocodeChan <- geocode
+			}()
+
+			// Aguardar resultados com timeout
+			select {
+			case address := <-addressChan:
+				select {
+				case geocode := <-geocodeChan:
+					cepChan <- struct {
+						cep     string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{cep, lat, lon, address, geocode, nil}
+				case err := <-errorChan:
+					cepChan <- struct {
+						cep     string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{cep, lat, lon, "", GeocodeResult{}, err}
+				case <-time.After(5 * time.Second):
+					cepChan <- struct {
+						cep     string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{cep, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
+				}
+			case err := <-errorChan:
+				cepChan <- struct {
+					cep     string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{cep, lat, lon, "", GeocodeResult{}, err}
+			case <-time.After(5 * time.Second):
+				cepChan <- struct {
+					cep     string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{cep, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
 			}
-			geocodeChan <- geocode
-		}(fmt.Sprintf("%f,%f", lat, lon))
+		}(cep)
+	}
 
-		// Aguardar resultados
-		address := <-addressChan
-		geocode := <-geocodeChan
+	// Aguardar todos os CEPs serem processados
+	go func() {
+		wgCEP.Wait()
+		close(cepChan)
+	}()
 
-		// Verificar erros
-		select {
-		case err := <-errorChan:
-			if err != nil {
-				log.Printf("Erro na geocodificação do CEP %s: %v", cep, err)
-				// Continuar com dados básicos
-			}
-		default:
+	// Coletar resultados dos CEPs
+	for result := range cepChan {
+		if result.err != nil {
+			log.Printf("Erro na geocodificação do CEP %s: %v", result.cep, result.err)
+			continue
 		}
 
-		cepCoordinates[cep] = struct {
+		cepCoordinates[result.cep] = struct {
 			lat, lon float64
 			address  string
 			geocode  GeocodeResult
-		}{lat, lon, address, geocode}
+		}{result.lat, result.lon, result.address, result.geocode}
 	}
 
 	// Processar segmentos em paralelo quando possível
@@ -2906,58 +2992,100 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	segmentChan := make(chan segmentResult, len(data.CEPs)-1)
 	var wg sync.WaitGroup
 
-	for i := 0; i < len(data.CEPs)-1; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+	// Early exit se não há zonas de risco
+	if len(riskZones) == 0 {
+		// Processar todos os segmentos sem verificação de risco
+		for i := 0; i < len(data.CEPs)-1; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
 
-			originCEP := data.CEPs[i]
-			destCEP := data.CEPs[i+1]
+				originCEP := data.CEPs[i]
+				destCEP := data.CEPs[i+1]
 
-			originData := cepCoordinates[originCEP]
-			destData := cepCoordinates[destCEP]
+				originData := cepCoordinates[originCEP]
+				destData := cepCoordinates[destCEP]
 
-			// Verificar se há zonas de risco no caminho direto
-			offs, hasAny := s.CheckRouteForAllRiskZones(riskZones, originData.lat, originData.lon, destData.lat, destData.lon)
+				// Sem zonas de risco, usar rota direta
+				summaries := s.calculateDirectRoute(ctx, *clientPool, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
 
-			locations := make([]LocationHisk, 0, len(offs))
-			for _, o := range offs {
-				locations = append(locations, LocationHisk{
-					CEP:       o.Zone.Cep,
-					Latitude:  o.Zone.Lat,
-					Longitude: o.Zone.Lng,
-				})
-			}
+				if len(summaries) == 0 {
+					fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+					summaries = []RouteSummary{fb}
+				}
 
-			var summaries []RouteSummary
-			if hasAny {
-				summaries = s.calculateAlternativeRouteWithAvoidance(ctx, client, riskZones, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
-			} else {
-				summaries = s.calculateDirectRoute(ctx, client, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
-			}
+				route := summaries[0]
+				totalDistance += route.Distance.Value
+				totalDuration += route.Duration.Value
 
-			if len(summaries) == 0 {
-				fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
-				summaries = []RouteSummary{fb}
-			}
+				segmentChan <- segmentResult{
+					index: i,
+					route: DetailedRoute{
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						HasRisk:             false,
+						LocationHisk:        []LocationHisk{},
+						Summaries:           summaries,
+					},
+					hasRisk: false,
+				}
+			}(i)
+		}
+	} else {
+		// Com zonas de risco, verificar cada segmento
+		for i := 0; i < len(data.CEPs)-1; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
 
-			// Usar a primeira rota para cálculos totais
-			route := summaries[0]
-			totalDistance += route.Distance.Value
-			totalDuration += route.Duration.Value
+				originCEP := data.CEPs[i]
+				destCEP := data.CEPs[i+1]
 
-			segmentChan <- segmentResult{
-				index: i,
-				route: DetailedRoute{
-					LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
-					LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
-					HasRisk:             hasAny,
-					LocationHisk:        locations,
-					Summaries:           summaries,
-				},
-				hasRisk: hasAny,
-			}
-		}(i)
+				originData := cepCoordinates[originCEP]
+				destData := cepCoordinates[destCEP]
+
+				// Verificar se há zonas de risco no caminho direto
+				offs, hasAny := s.CheckRouteForAllRiskZones(riskZones, originData.lat, originData.lon, destData.lat, destData.lon)
+
+				locations := make([]LocationHisk, 0, len(offs))
+				for _, o := range offs {
+					locations = append(locations, LocationHisk{
+						CEP:       o.Zone.Cep,
+						Latitude:  o.Zone.Lat,
+						Longitude: o.Zone.Lng,
+					})
+				}
+
+				var summaries []RouteSummary
+				if hasAny {
+					summaries = s.calculateAlternativeRouteWithAvoidance(ctx, *clientPool, riskZones, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+				} else {
+					summaries = s.calculateDirectRoute(ctx, *clientPool, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+				}
+
+				if len(summaries) == 0 {
+					fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, data)
+					summaries = []RouteSummary{fb}
+				}
+
+				// Usar a primeira rota para cálculos totais
+				route := summaries[0]
+				totalDistance += route.Distance.Value
+				totalDuration += route.Duration.Value
+
+				segmentChan <- segmentResult{
+					index: i,
+					route: DetailedRoute{
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						HasRisk:             hasAny,
+						LocationHisk:        locations,
+						Summaries:           summaries,
+					},
+					hasRisk: hasAny,
+				}
+			}(i)
+		}
 	}
 
 	// Aguardar todos os segmentos
@@ -2978,7 +3106,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	}
 
 	// Calcular rota total com desvios
-	totalRoute := s.calculateTotalRouteWithAvoidance(ctx, client, riskZones, data.CEPs, totalDistance, totalDuration, data)
+	totalRoute := s.calculateTotalRouteWithAvoidance(ctx, *clientPool, riskZones, data.CEPs, totalDistance, totalDuration, data)
 
 	return Response{
 		Routes:     resultRoutes,
