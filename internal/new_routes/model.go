@@ -294,6 +294,7 @@ type FrontInfoCEPRequest struct {
 	TypeRoute       string       `json:"typeRoute"`
 	RouteOptions    RouteOptions `json:"route_options"`
 	Waypoints       []Coordinate `json:"waypoints"`
+	OrganizationID  int64        `json:"organization_id" validate:"required"`
 }
 
 type FrontInfoCoordinate struct {

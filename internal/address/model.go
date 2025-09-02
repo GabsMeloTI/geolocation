@@ -158,7 +158,7 @@ func ParseFromUniqueCEPRow(results []db.FindUniqueAddressByCEPRow) ([]AddressRes
 		addressDetail := AddressDetail{
 			IDAddress: result.AddressID,
 			Number:    result.Number.String,
-			CEP:       result.Cep,
+			//CEP:       result.Cep,
 			IsExactly: false,
 		}
 

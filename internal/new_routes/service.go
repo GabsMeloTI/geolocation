@@ -2823,7 +2823,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	}
 
 	// Buscar zonas de risco uma única vez
-	riskZones, err := s.getActiveRiskZones(ctx)
+	riskZones, err := s.getActiveRiskZones(ctx, data.OrganizationID)
 	if err != nil {
 		log.Printf("Erro ao buscar zonas de risco: %v", err)
 		return s.CalculateDistancesBetweenPoints(ctx, data)
@@ -3115,13 +3115,17 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 	}, nil
 }
 
-func (s *Service) getActiveRiskZones(ctx context.Context) ([]RiskZone, error) {
+func (s *Service) getActiveRiskZones(ctx context.Context, id int64) ([]RiskZone, error) {
 	if s.RiskZonesRepository == nil {
 
 		return []RiskZone{}, nil
 	}
 
-	dbZones, err := s.RiskZonesRepository.GetAllZonasRiscoService(ctx)
+	org := sql.NullInt64{
+		Int64: id,
+		Valid: true,
+	}
+	dbZones, err := s.RiskZonesRepository.GetAllZonasRiscoService(ctx, org)
 	if err != nil {
 		log.Printf("Erro ao buscar zonas de risco: %v", err)
 		return nil, fmt.Errorf("erro ao buscar zonas de risco: %w", err)

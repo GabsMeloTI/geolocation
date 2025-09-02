@@ -11,7 +11,7 @@ type InterfaceRepository interface {
 	UpdateZonaRisco(ctx context.Context, arg db.UpdateZonaRiscoParams) (db.ZonasRisco, error)
 	DeleteZonaRisco(ctx context.Context, id int64) error
 	GetZonaRiscoById(ctx context.Context, id int64) (db.ZonasRisco, error)
-	GetAllZonasRisco(ctx context.Context) ([]db.ZonasRisco, error)
+	GetAllZonasRisco(ctx context.Context, organization_id sql.NullInt64) ([]db.ZonasRisco, error)
 }
 
 type Repository struct {
@@ -47,6 +47,6 @@ func (r *Repository) GetZonaRiscoById(ctx context.Context, id int64) (db.ZonasRi
 	return r.Queries.GetZonaRiscoById(ctx, id)
 }
 
-func (r *Repository) GetAllZonasRisco(ctx context.Context) ([]db.ZonasRisco, error) {
-	return r.Queries.GetAllZonasRisco(ctx)
+func (r *Repository) GetAllZonasRisco(ctx context.Context, organization_id sql.NullInt64) ([]db.ZonasRisco, error) {
+	return r.Queries.GetAllZonasRisco(ctx, organization_id)
 }

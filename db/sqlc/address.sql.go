@@ -125,7 +125,7 @@ type FindAddressGroupedByCEPRow struct {
 	Longitude        sql.NullFloat64 `json:"longitude"`
 }
 
-func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep string) (FindAddressGroupedByCEPRow, error) {
+func (q *Queries) FindAddressGroupedByCEP(ctx context.Context, cep interface{}) (FindAddressGroupedByCEPRow, error) {
 	row := q.db.QueryRowContext(ctx, findAddressGroupedByCEP, cep)
 	var i FindAddressGroupedByCEPRow
 	err := row.Scan(
@@ -685,12 +685,12 @@ type FindUniqueAddressByCEPRow struct {
 	StateLon         sql.NullFloat64 `json:"state_lon"`
 	AddressID        int32           `json:"address_id"`
 	Number           sql.NullString  `json:"number"`
-	Cep              string          `json:"cep"`
+	Cep              interface{}     `json:"cep"`
 	Lat              sql.NullFloat64 `json:"lat"`
 	Lon              sql.NullFloat64 `json:"lon"`
 }
 
-func (q *Queries) FindUniqueAddressByCEP(ctx context.Context, cep string) ([]FindUniqueAddressByCEPRow, error) {
+func (q *Queries) FindUniqueAddressByCEP(ctx context.Context, cep interface{}) ([]FindUniqueAddressByCEPRow, error) {
 	rows, err := q.db.QueryContext(ctx, findUniqueAddressByCEP, cep)
 	if err != nil {
 		return nil, err
