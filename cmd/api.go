@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -29,6 +30,9 @@ import (
 
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
+
+	// Configurar JSON serializer personalizado para não escapar barras
+	e.JSONSerializer = &CustomJSONSerializer{}
 
 	go func() {
 		for {
@@ -179,4 +183,20 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	locations.GET("/list/:providerId", container.HandlerLocation.GetLocationHandler)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
+}
+
+// CustomJSONSerializer é um serializer JSON personalizado que não escapa barras
+type CustomJSONSerializer struct{}
+
+func (j *CustomJSONSerializer) Serialize(c echo.Context, i interface{}, indent string) error {
+	enc := json.NewEncoder(c.Response())
+	if indent != "" {
+		enc.SetIndent("", indent)
+	}
+	enc.SetEscapeHTML(false)
+	return enc.Encode(i)
+}
+
+func (j *CustomJSONSerializer) Deserialize(c echo.Context, i interface{}) error {
+	return json.NewDecoder(c.Request().Body).Decode(i)
 }

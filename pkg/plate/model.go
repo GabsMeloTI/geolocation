@@ -102,7 +102,12 @@ type Response struct {
 	Cilindradas          string     `json:"cilindradas"`
 	SituacaoVeiculo      string     `json:"situacao_veiculo"`
 	Listamodelo          [][]string `json:"listamodelo"`
-	Multas               struct {
+	Extra                struct {
+		AnoFabricacao   string `json:"ano_fabricacao"`
+		CapMaximaTracao string `json:"cap_maxima_tracao"`
+		Chassi          string `json:"chassi"`
+	} `json:"extra"`
+	Multas struct {
 		Dados []Multa `json:"dados"`
 	} `json:"multas,omitempty"`
 }
