@@ -115,7 +115,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)
 	e.GET("/user/email", container.UserHandler.UserExists)
-	e.GET("/caminhao/:modelo", container.UserHandler.InfoCaminhao)
+	e.POST("/caminhao/carbono", container.UserHandler.InfoCaminhao)
 	e.GET("/consulta/:placa", container.UserHandler.ConsultarPlaca)
 
 	public := e.Group("/public")
@@ -139,7 +139,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	// simpplify
 	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/check-route-tolls-simpplify-cep", container.HandlerNewRoutes.CalculateRoutesWithCEP, _midlleware.CheckAuthorization)
-    e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
+	e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
 	e.POST("/route-cep-avoidance", container.HandlerNewRoutes.CalculateDistancesBetweenPointsWithRiskAvoidanceHandler)
 	e.POST("/nearby-location", container.HandlerNewRoutes.CalculateDistancesFromOrigin)
 

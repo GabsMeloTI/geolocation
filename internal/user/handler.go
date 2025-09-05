@@ -280,12 +280,12 @@ func (h *Handler) UpdateUserPassword(c echo.Context) error {
 }
 
 func (h *Handler) InfoCaminhao(c echo.Context) error {
-	modelo := c.Param("modelo")
-	if modelo == "" {
-		return errors.New("modelo invalido")
+	var request gpt.RequisicaoCaminhao
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := gpt.PerguntarAoGptEstruturado(modelo)
+	result, err := gpt.PerguntarAoGptEstruturado(request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -299,7 +299,7 @@ func (h *Handler) ConsultarPlaca(c echo.Context) error {
 		return errors.New("placa invalido")
 	}
 
-	result, err := plate.ConsultarMultas(placa)
+	result, err := plate.ConsultarPlaca(placa)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

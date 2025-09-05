@@ -20,7 +20,7 @@ var (
 
 func init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "3.238.112.146:6379",
+		Addr:     "3.238.87.0:6379",
 		Password: "",
 		DB:       0,
 	})
@@ -46,7 +46,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	device := os.Getenv("DEVICE_TOKEN")
 
 	client := &http.Client{
-		Timeout: 20 * time.Second, // evita ficar travado muito tempo
+		Timeout: 60 * time.Second, // evita ficar travado muito tempo
 	}
 
 	// 1. Consulta dados do veículo
