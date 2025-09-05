@@ -100,7 +100,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	zonasRisco.POST("/create", container.HandlerZonasRisco.CreateZonaRiscoHandler)
 	zonasRisco.PUT("/update", container.HandlerZonasRisco.UpdateZonaRiscoHandler)
 	zonasRisco.PUT("/delete/:id", container.HandlerZonasRisco.DeleteZonaRiscoHandler)
-	zonasRisco.GET("/list", container.HandlerZonasRisco.GetAllZonasRiscoHandler)
+	zonasRisco.GET("/list/all/:id", container.HandlerZonasRisco.GetAllZonasRiscoHandler)
 	zonasRisco.GET("/list/:id", container.HandlerZonasRisco.GetZonaRiscoByIdHandler)
 
 	e.POST("/recover-password", container.UserHandler.RecoverPassword)
