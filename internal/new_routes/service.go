@@ -4453,6 +4453,27 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 		totalKm := totalDistance / 1000
 		totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
+		// Buscar pedágios para a rota base (sem desvios)
+		baseCoords := strings.Join(allCoords, ";")
+		urlBase := fmt.Sprintf(
+			"http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			url.PathEscape(baseCoords),
+		)
+
+		var tolls []Toll
+		var totalTollCost float64
+		if resp, err := client.Get(urlBase); err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				tolls, _ = s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				for _, toll := range tolls {
+					totalTollCost += toll.CashCost
+				}
+			}
+		}
+
 		originAddress := waypoints[0]
 		destAddress := waypoints[len(waypoints)-1]
 		waypointStr := ""
@@ -4487,8 +4508,8 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			TotalDuration: Duration{Text: durText, Value: durVal},
 			URL:           googleURL,
 			URLWaze:       wazeURL,
-			Tolls:         nil,
-			TotalTolls:    0,
+			Tolls:         tolls,
+			TotalTolls:    math.Round(totalTollCost*100) / 100,
 			Polyline:      "",
 			TotalFuelCost: totalFuelCost,
 		}
@@ -4644,29 +4665,24 @@ func (s *Service) createTotalSummaryWithURLWaypoints(
 	originAddress := waypoints[0]
 	destAddress := waypoints[len(waypoints)-1]
 
-	// Usa waypointsForURL para construir as URLs, mas waypoints originais para os endereços
-	urlWaypoints := waypointsForURL
-	if len(urlWaypoints) == 0 {
-		urlWaypoints = waypoints
-	}
-
+	// Sempre usa os endereços originais para a URL do Google Maps
 	waypointStr := ""
-	if len(urlWaypoints) > 2 {
-		waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(urlWaypoints[1:len(urlWaypoints)-1], "|"))
+	if len(waypoints) > 2 {
+		waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
 	}
 
 	googleURL := fmt.Sprintf(
 		"https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
-		neturl.QueryEscape(urlWaypoints[0]),
-		neturl.QueryEscape(urlWaypoints[len(urlWaypoints)-1]),
+		neturl.QueryEscape(waypoints[0]),
+		neturl.QueryEscape(waypoints[len(waypoints)-1]),
 		waypointStr,
 	)
 
 	currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
 	wazeURL := fmt.Sprintf(
 		"https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-		neturl.QueryEscape(urlWaypoints[len(urlWaypoints)-1]),
-		neturl.QueryEscape(urlWaypoints[0]),
+		neturl.QueryEscape(waypoints[len(waypoints)-1]),
+		neturl.QueryEscape(waypoints[0]),
 		currentTimeMillis,
 	)
 
@@ -4691,14 +4707,15 @@ func (s *Service) createTotalSummaryWithURLWaypoints(
 	}
 
 	// Tenta obter duração mais precisa do Google Directions API
-	if s.GoogleMapsAPIKey != "" && len(urlWaypoints) >= 2 {
-		waypointsForAPI := append([]string{}, urlWaypoints...)
+	if s.GoogleMapsAPIKey != "" && len(waypoints) >= 2 {
+		waypointsForAPI := append([]string{}, waypoints...)
 
 		if gDurText, gDurVal, err := GetGoogleDurationWithTraffic(
 			context.Background(),
 			s.GoogleMapsAPIKey,
-			urlWaypoints[0],
-			urlWaypoints[len(urlWaypoints)-1],
+
+			waypoints[0],
+			waypoints[len(waypoints)-1],
 			waypointsForAPI,
 		); err == nil {
 			summary.TotalDuration = Duration{Text: gDurText, Value: float64(gDurVal)}
