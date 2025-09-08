@@ -12,6 +12,7 @@ import (
 
 	"geolocation/internal/get_token"
 	"geolocation/validation"
+	"regexp"
 )
 
 type Handler struct {
@@ -320,18 +321,12 @@ func (h *Handler) ConsultarMultiplasPlacas(c echo.Context) error {
 		})
 	}
 
-	if err := c.Validate(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Lista de placas é obrigatória e deve conter entre 1 e 10 placas",
-		})
-	}
-
 	// Valida se todas as placas são válidas
 	for _, placa := range request.Placas {
 		placa = strings.ToUpper(strings.TrimSpace(placa))
-		if placa == "" || len(placa) != 7 {
+		if !isValidPlate(placa) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": fmt.Sprintf("Placa inválida: %s", placa),
+				"error": fmt.Sprintf("Placa inválida: %s. Formato deve ser ABC1234 ou ABC1D23", placa),
 			})
 		}
 	}
@@ -348,4 +343,18 @@ func (h *Handler) ConsultarMultiplasPlacas(c echo.Context) error {
 		"data":    results,
 		"total":   len(results),
 	})
+}
+
+// isValidPlate valida se a placa está no formato correto (antigo ou novo)
+func isValidPlate(placa string) bool {
+	if len(placa) != 7 {
+		return false
+	}
+
+	// Formato antigo: ABC1234 (3 letras + 4 números)
+	oldFormat := regexp.MustCompile(`^[A-Z]{3}[0-9]{4}$`)
+	// Formato novo: ABC1D23 (3 letras + 1 número + 1 letra + 2 números)
+	newFormat := regexp.MustCompile(`^[A-Z]{3}[0-9]{1}[A-Z]{1}[0-9]{2}$`)
+
+	return oldFormat.MatchString(placa) || newFormat.MatchString(placa)
 }

@@ -33,13 +33,16 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	placa = strings.ToUpper(strings.TrimSpace(placa))
 	cacheKey := "placa:" + placa
 
-	// 🔹 Verifica cache Redis
+	// 🔹 Verifica cache Redis apenas para dados da placa (sem multas)
+	var fullResp FullAPIResponse
+	var dadosPlacaCached bool
+
 	if cached, err := rdb.Get(ctx, cacheKey).Result(); err == nil {
 		var cachedResp FullAPIResponse
 		if err := json.Unmarshal([]byte(cached), &cachedResp); err == nil {
-			fmt.Println("🔁 Cache Redis usado")
-			fmt.Printf("⏱ Tempo total (CACHE): %v\n", time.Since(startTotal))
-			return &cachedResp, nil
+			fmt.Println("🔁 Cache Redis usado para dados da placa")
+			fullResp = cachedResp
+			dadosPlacaCached = true
 		}
 	}
 
@@ -50,40 +53,47 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		Timeout: 60 * time.Second, // evita ficar travado muito tempo
 	}
 
-	// 1. Consulta dados do veículo
-	startVeiculo := time.Now()
-	veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
-	body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
+	// 1. Consulta dados do veículo (apenas se não estiver em cache)
+	if !dadosPlacaCached {
+		startVeiculo := time.Now()
+		veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
+		body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
 
-	req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("erro ao criar requisição do veículo: %w", err)
+		req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
+		if err != nil {
+			return nil, fmt.Errorf("erro ao criar requisição do veículo: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+bearer)
+		req.Header.Set("DeviceToken", device)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao enviar requisição do veículo: %w", err)
+		}
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
+		}
+
+		fmt.Println("📄 Resposta bruta da API de dados do veículo:")
+		fmt.Println(string(respBody))
+		fmt.Printf("⏱ Tempo API veículos: %v\n", time.Since(startVeiculo))
+
+		if err := json.Unmarshal(respBody, &fullResp); err != nil {
+			return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
+		}
+
+		// Cache apenas os dados da placa (sem multas)
+		respBytes, _ := json.Marshal(fullResp)
+		if err := rdb.Set(ctx, cacheKey, respBytes, 30*time.Minute).Err(); err != nil {
+			fmt.Println("❌ Falha ao salvar dados da placa no Redis:", err)
+		}
 	}
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	req.Header.Set("DeviceToken", device)
-	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao enviar requisição do veículo: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
-	}
-
-	fmt.Println("📄 Resposta bruta da API de dados do veículo:")
-	fmt.Println(string(respBody))
-	fmt.Printf("⏱ Tempo API veículos: %v\n", time.Since(startVeiculo))
-
-	var fullResp FullAPIResponse
-	if err := json.Unmarshal(respBody, &fullResp); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
-	}
-
-	// 2. Consulta multas
+	// 2. Consulta multas (SEMPRE consulta, nunca usa cache)
 	startMultas := time.Now()
 	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
 	multaPayload := fmt.Sprintf(`{"placa":"%s", "tipo": "%s"}`, placa, "renainf")
@@ -118,12 +128,6 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		} else {
 			fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
 		}
-	}
-
-	// 3. Cache final com tudo
-	respBytes, _ := json.Marshal(fullResp)
-	if err := rdb.Set(ctx, cacheKey, respBytes, 30*time.Minute).Err(); err != nil {
-		fmt.Println("❌ Falha ao salvar no Redis:", err)
 	}
 
 	fmt.Printf("✅ Tempo total da função ConsultarPlaca: %v\n", time.Since(startTotal))
