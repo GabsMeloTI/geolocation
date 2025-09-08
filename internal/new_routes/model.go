@@ -49,8 +49,8 @@ type Summary struct {
 type Response struct {
 	Routes     []DetailedRoute `json:"routes"`
 	TotalRoute TotalSummary    `json:"total_route"`
-	Front      string          `json:"front"`
 }
+
 type DetailedRoute struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
 	LocationDestination AddressInfo    `json:"location_destination"`

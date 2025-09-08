@@ -10,6 +10,9 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+	"context"
+	"net/http"
+	"encoding/json"
 )
 
 func formatDuration(seconds float64) (string, float64) {
@@ -508,4 +511,68 @@ func getConcessionImage(concession string) string {
 	default:
 		return ""
 	}
+}
+
+type GoogleDirectionsResponse struct {
+    Routes []struct {
+        Legs []struct {
+            Duration struct {
+                Text  string `json:"text"`
+                Value int64  `json:"value"`
+            } `json:"duration"`
+            DurationInTraffic struct {
+                Text  string `json:"text"`
+                Value int64  `json:"value"`
+            } `json:"duration_in_traffic"`
+            Distance struct {
+                Text  string `json:"text"`
+                Value int64  `json:"value"`
+            } `json:"distance"`
+        } `json:"legs"`
+    } `json:"routes"`
+    Status string `json:"status"`
+}
+
+func GetGoogleDurationWithTraffic(ctx context.Context, googleMapsAPIKey, origin, destination string, waypoints []string) (string, int64, error) {
+    baseURL := "https://maps.googleapis.com/maps/api/directions/json"
+
+    params := neturl.Values{}
+    params.Set("origin", origin)
+    params.Set("destination", destination)
+    if len(waypoints) > 0 {
+        params.Set("waypoints", strings.Join(waypoints, "|"))
+    }
+    params.Set("departure_time", "now")
+    params.Set("key", googleMapsAPIKey)
+
+    url := baseURL + "?" + params.Encode()
+
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return "", 0, err
+    }
+
+    client := http.Client{Timeout: 30 * time.Second}
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", 0, err
+    }
+    defer resp.Body.Close()
+
+    var gdResp GoogleDirectionsResponse
+    if err := json.NewDecoder(resp.Body).Decode(&gdResp); err != nil {
+        return "", 0, err
+    }
+
+    if gdResp.Status != "OK" || len(gdResp.Routes) == 0 || len(gdResp.Routes[0].Legs) == 0 {
+        return "", 0, fmt.Errorf("Google Directions API retornou erro: %s", gdResp.Status)
+    }
+
+    leg := gdResp.Routes[0].Legs[0]
+    // Prioriza duration_in_traffic se disponível
+    if leg.DurationInTraffic.Value > 0 {
+        return leg.DurationInTraffic.Text, leg.DurationInTraffic.Value, nil
+    }
+
+    return leg.Duration.Text, leg.Duration.Value, nil
 }
