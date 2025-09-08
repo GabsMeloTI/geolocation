@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -226,4 +227,50 @@ func ConsultarMultas(placa string) (MultasResponse, error) {
 		placa, time.Since(start), len(multaResp.Data.Registros))
 
 	return multaResp, nil
+}
+
+// ConsultarMultiplasPlacas consulta múltiplas placas e retorna um mapa com os resultados
+func ConsultarMultiplasPlacas(placas []string) (map[string]*FullAPIResponse, error) {
+	startTotal := time.Now()
+	fmt.Printf("🚀 Iniciando consulta de %d placas\n", len(placas))
+
+	results := make(map[string]*FullAPIResponse)
+
+	// Processa cada placa em paralelo usando goroutines
+	type result struct {
+		placa string
+		resp  *FullAPIResponse
+		err   error
+	}
+
+	resultsChan := make(chan result, len(placas))
+
+	// Cria goroutines para cada placa
+	for _, placa := range placas {
+		go func(p string) {
+			fmt.Printf("🔍 Consultando placa: %s\n", p)
+			resp, err := ConsultarPlaca(p)
+			resultsChan <- result{placa: p, resp: resp, err: err}
+		}(placa)
+	}
+
+	// Coleta os resultados
+	for i := 0; i < len(placas); i++ {
+		res := <-resultsChan
+		if res.err != nil {
+			fmt.Printf("❌ Erro ao consultar placa %s: %v\n", res.placa, res.err)
+			// Cria uma resposta de erro para esta placa
+			results[res.placa] = &FullAPIResponse{
+				Error:   true,
+				Message: res.err.Error(),
+				Data:    Response{},
+			}
+		} else {
+			fmt.Printf("✅ Placa %s consultada com sucesso\n", res.placa)
+			results[res.placa] = res.resp
+		}
+	}
+
+	fmt.Printf("🏁 Consulta de %d placas finalizada em %v\n", len(placas), time.Since(startTotal))
+	return results, nil
 }

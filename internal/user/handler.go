@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"geolocation/pkg/gpt"
 	"geolocation/pkg/plate"
 	"net/http"
@@ -305,4 +306,46 @@ func (h *Handler) ConsultarPlaca(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+// ConsultarMultiplasPlacas consulta múltiplas placas via POST
+func (h *Handler) ConsultarMultiplasPlacas(c echo.Context) error {
+	var request struct {
+		Placas []string `json:"placas" validate:"required,min=1,max=10"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Formato de requisição inválido",
+		})
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Lista de placas é obrigatória e deve conter entre 1 e 10 placas",
+		})
+	}
+
+	// Valida se todas as placas são válidas
+	for _, placa := range request.Placas {
+		placa = strings.ToUpper(strings.TrimSpace(placa))
+		if placa == "" || len(placa) != 7 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("Placa inválida: %s", placa),
+			})
+		}
+	}
+
+	results, err := plate.ConsultarMultiplasPlacas(request.Placas)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Erro interno do servidor",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    results,
+		"total":   len(results),
+	})
 }

@@ -4396,7 +4396,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 					fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude),
 				}
 			}
-			totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypointsForURL, data)
+			totalRoute = s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, data)
 
 			// Caso precise expor os pontos do desvio, habilite:
 			// totalRoute.DetourPoints = detourPtsTotal
@@ -4591,6 +4591,103 @@ func (s *Service) createTotalSummary(
 			s.GoogleMapsAPIKey,
 			originAddress,
 			destAddress,
+			waypointsForAPI,
+		); err == nil {
+			summary.TotalDuration = Duration{Text: gDurText, Value: float64(gDurVal)}
+		} else {
+			log.Printf("⚠️ Google Directions API falhou: %v", err)
+		}
+	}
+
+	return summary
+}
+
+// cria um resumo total da rota com waypoints para URL separados
+func (s *Service) createTotalSummaryWithURLWaypoints(
+	route OSRMRoute,
+	originLocation, destinationLocation Location,
+	waypoints []string,
+	waypointsForURL []string,
+	data FrontInfoCEPRequest,
+) TotalSummary {
+	distText, distVal := formatDistance(route.Distance)
+	durText, durVal := formatDuration(route.Duration)
+
+	avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+	totalKm := route.Distance / 1000
+	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+	tolls, _ := s.findTollsOnRoute(context.Background(), route.Geometry, data.Type, float64(data.Axles))
+	var totalTollCost float64
+	for _, toll := range tolls {
+		totalTollCost += toll.CashCost
+	}
+
+	// fallback: se não vierem waypoints, usa coordenadas puras
+	if len(waypoints) == 0 {
+		originAddress := fmt.Sprintf("%f,%f", originLocation.Latitude, originLocation.Longitude)
+		destAddress := fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude)
+		waypoints = []string{originAddress, destAddress}
+	}
+
+	originAddress := waypoints[0]
+	destAddress := waypoints[len(waypoints)-1]
+
+	// Usa waypointsForURL para construir as URLs, mas waypoints originais para os endereços
+	urlWaypoints := waypointsForURL
+	if len(urlWaypoints) == 0 {
+		urlWaypoints = waypoints
+	}
+
+	waypointStr := ""
+	if len(urlWaypoints) > 2 {
+		waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(urlWaypoints[1:len(urlWaypoints)-1], "|"))
+	}
+
+	googleURL := fmt.Sprintf(
+		"https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+		neturl.QueryEscape(urlWaypoints[0]),
+		neturl.QueryEscape(urlWaypoints[len(urlWaypoints)-1]),
+		waypointStr,
+	)
+
+	currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+	wazeURL := fmt.Sprintf(
+		"https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+		neturl.QueryEscape(urlWaypoints[len(urlWaypoints)-1]),
+		neturl.QueryEscape(urlWaypoints[0]),
+		currentTimeMillis,
+	)
+
+	// Monta resumo com duração do OSRM
+	summary := TotalSummary{
+		LocationOrigin: AddressInfo{
+			Location: originLocation,
+			Address:  normalizeAddress(originAddress),
+		},
+		LocationDestination: AddressInfo{
+			Location: destinationLocation,
+			Address:  normalizeAddress(destAddress),
+		},
+		TotalDistance: Distance{Text: distText, Value: distVal},
+		TotalDuration: Duration{Text: durText, Value: durVal},
+		URL:           googleURL,
+		URLWaze:       wazeURL,
+		Tolls:         tolls,
+		TotalTolls:    math.Round(totalTollCost*100) / 100,
+		Polyline:      route.Geometry,
+		TotalFuelCost: totalFuelCost,
+	}
+
+	// Tenta obter duração mais precisa do Google Directions API
+	if s.GoogleMapsAPIKey != "" && len(urlWaypoints) >= 2 {
+		waypointsForAPI := append([]string{}, urlWaypoints...)
+
+		if gDurText, gDurVal, err := GetGoogleDurationWithTraffic(
+			context.Background(),
+			s.GoogleMapsAPIKey,
+			urlWaypoints[0],
+			urlWaypoints[len(urlWaypoints)-1],
 			waypointsForAPI,
 		); err == nil {
 			summary.TotalDuration = Duration{Text: gDurText, Value: float64(gDurVal)}
