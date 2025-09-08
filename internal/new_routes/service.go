@@ -1761,6 +1761,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		}
 	}
 
+	routeType := "efficient"
 	processRoutes := func(osrmResp OSRMResponse, routeCategory string) []RouteOutput {
 		var output []RouteOutput
 		for _, route := range osrmResp.Routes {
@@ -1954,7 +1955,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 
 		minimalRoute := RouteOutput{
 			Summary: RouteSummary{
-				RouteType:     "efficient",
+				RouteType:     routeType,
 				HasTolls:      false,
 				Distance:      Distance{Text: distText, Value: distVal},
 				Duration:      Duration{Text: durText, Value: durVal},
@@ -3516,7 +3517,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 		if rTry, ok := routeRaw(accumWps, fmt.Sprintf("iter_%d_curr_post", iter)); ok {
 			if hasAny, _ := s.checkRouteGeometryForRiskZones(riskZones, rTry.Geometry, originLat, originLon, destLat, destLon); hasAny {
 
-				sum := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, []RiskZone{off.Zone})
+				sum := s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data)
 				return []RouteSummary{sum}
 			}
 		}
@@ -3586,7 +3587,7 @@ func (s *Service) calculateAlternativeRouteWithAvoidance(
 	// fallback final: rota direta com aviso
 
 	return []RouteSummary{
-		s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data, nil),
+		s.createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data),
 	}
 }
 
@@ -3900,7 +3901,7 @@ func (s *Service) createRouteSummary(route OSRMRoute, routeType string, originGe
 }
 
 // createRouteSummaryWithRiskWarning cria resumo de rota com aviso de risco
-func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest, riskZones []RiskZone) RouteSummary {
+func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) RouteSummary {
 	// Calcular distância direta
 	distance := s.haversineDistance(originLat, originLon, destLat, destLon)
 	// Estimativa de tempo baseada na velocidade média (60 km/h)
@@ -3924,7 +3925,7 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 	)
 
 	return RouteSummary{
-		RouteType:     "rota_direta_com_aviso",
+		RouteType:     data.TypeRoute,
 		HasTolls:      false,
 		Distance:      Distance{Text: distText, Value: distVal},
 		Duration:      Duration{Text: durText, Value: durVal},
@@ -5069,7 +5070,7 @@ func (s *Service) createDirectEstimateSummary(
 	)
 
 	return RouteSummary{
-		RouteType:     "rota_direta_fallback",
+		RouteType:     data.TypeRoute,
 		HasTolls:      false,
 		Distance:      Distance{Text: distText, Value: distVal},
 		Duration:      Duration{Text: durText, Value: durVal},
