@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -59,6 +60,71 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceR
 		RiskZonesRepository:      RiskZonesRepository,
 		CEPRepository:            CEPRepository,
 	}
+}
+
+// normalizeAddress normaliza endereços removendo caracteres especiais e corrigindo codificação
+func normalizeAddress(address string) string {
+	if address == "" {
+		return address
+	}
+
+	// Remove caracteres de controle e normaliza espaços
+	address = strings.TrimSpace(address)
+	address = regexp.MustCompile(`\s+`).ReplaceAllString(address, " ")
+
+	// Corrige caracteres especiais comuns
+	replacements := map[string]string{
+		"\\u00e3": "ã", // ã
+		"\\u00e1": "á", // á
+		"\\u00e9": "é", // é
+		"\\u00ed": "í", // í
+		"\\u00f3": "ó", // ó
+		"\\u00fa": "ú", // ú
+		"\\u00e0": "à", // à
+		"\\u00e8": "è", // è
+		"\\u00ec": "ì", // ì
+		"\\u00f2": "ò", // ò
+		"\\u00f9": "ù", // ù
+		"\\u00e2": "â", // â
+		"\\u00ea": "ê", // ê
+		"\\u00ee": "î", // î
+		"\\u00f4": "ô", // ô
+		"\\u00fb": "û", // û
+		"\\u00e7": "ç", // ç
+		"\\u00c3": "Ã", // Ã
+		"\\u00c1": "Á", // Á
+		"\\u00c9": "É", // É
+		"\\u00cd": "Í", // Í
+		"\\u00d3": "Ó", // Ó
+		"\\u00da": "Ú", // Ú
+		"\\u00c0": "À", // À
+		"\\u00c8": "È", // È
+		"\\u00cc": "Ì", // Ì
+		"\\u00d2": "Ò", // Ò
+		"\\u00d9": "Ù", // Ù
+		"\\u00c2": "Â", // Â
+		"\\u00ca": "Ê", // Ê
+		"\\u00ce": "Î", // Î
+		"\\u00d4": "Ô", // Ô
+		"\\u00db": "Û", // Û
+		"\\u00c7": "Ç", // Ç
+	}
+
+	for old, new := range replacements {
+		address = strings.ReplaceAll(address, old, new)
+	}
+
+	// Remove caracteres não-ASCII problemáticos e mantém apenas caracteres válidos
+	var result strings.Builder
+	for _, r := range address {
+		if unicode.IsPrint(r) && !unicode.IsControl(r) {
+			result.WriteRune(r)
+		} else if r == '\n' || r == '\r' || r == '\t' {
+			result.WriteRune(' ')
+		}
+	}
+
+	return strings.TrimSpace(result.String())
 }
 
 func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error) {
@@ -224,8 +290,8 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	defer cancel()
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(origin.FormattedAddress),
-		neturl.QueryEscape(destination.FormattedAddress))
+		neturl.QueryEscape(normalizeAddress(origin.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destination.FormattedAddress)))
 	if len(frontInfo.Waypoints) > 0 {
 		googleURL += "&waypoints=" + neturl.QueryEscape(strings.Join(frontInfo.Waypoints, "|"))
 	}
@@ -452,14 +518,14 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 						Latitude:  origin.Location.Latitude,
 						Longitude: origin.Location.Longitude,
 					},
-					Address: origin.FormattedAddress,
+					Address: normalizeAddress(origin.FormattedAddress),
 				},
 				LocationDestination: AddressInfo{
 					Location: Location{
 						Latitude:  destination.Location.Latitude,
 						Longitude: destination.Location.Longitude,
 					},
-					Address: destination.FormattedAddress,
+					Address: normalizeAddress(destination.FormattedAddress),
 				},
 				AllStoppingPoints: func() []interface{} {
 					var stops []interface{}
@@ -519,14 +585,14 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 					Latitude:  origin.Location.Latitude,
 					Longitude: origin.Location.Longitude,
 				},
-				Address: origin.FormattedAddress,
+				Address: normalizeAddress(origin.FormattedAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{
 					Latitude:  destination.Location.Latitude,
 					Longitude: destination.Location.Longitude,
 				},
-				Address: destination.FormattedAddress,
+				Address: normalizeAddress(destination.FormattedAddress),
 			},
 			AllStoppingPoints: func() []interface{} {
 				var stops []interface{}
@@ -776,8 +842,8 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	defer cancel()
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(origin.FormattedAddress),
-		neturl.QueryEscape(destination.FormattedAddress))
+		neturl.QueryEscape(normalizeAddress(origin.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destination.FormattedAddress)))
 
 	if len(frontInfo.WaypointsCEP) > 0 {
 		var googleWp []string
@@ -1018,14 +1084,14 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 						Latitude:  origin.Location.Latitude,
 						Longitude: origin.Location.Longitude,
 					},
-					Address: origin.FormattedAddress,
+					Address: normalizeAddress(origin.FormattedAddress),
 				},
 				LocationDestination: AddressInfo{
 					Location: Location{
 						Latitude:  destination.Location.Latitude,
 						Longitude: destination.Location.Longitude,
 					},
-					Address: destination.FormattedAddress,
+					Address: normalizeAddress(destination.FormattedAddress),
 				},
 				AllStoppingPoints: func() []interface{} {
 					var stops []interface{}
@@ -1096,14 +1162,14 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 					Latitude:  origin.Location.Latitude,
 					Longitude: origin.Location.Longitude,
 				},
-				Address: origin.FormattedAddress,
+				Address: normalizeAddress(origin.FormattedAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{
 					Latitude:  destination.Location.Latitude,
 					Longitude: destination.Location.Longitude,
 				},
-				Address: destination.FormattedAddress,
+				Address: normalizeAddress(destination.FormattedAddress),
 			},
 			AllStoppingPoints: func() []interface{} {
 				var stops []interface{}
@@ -1297,8 +1363,8 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
 			googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-				neturl.QueryEscape(originGeocode.FormattedAddress),
-				neturl.QueryEscape(destGeocode.FormattedAddress),
+				neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+				neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 			)
 			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
 			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
@@ -1342,11 +1408,11 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		resultRoutes = append(resultRoutes, DetailedRoute{
 			LocationOrigin: AddressInfo{
 				Location: Location{Latitude: originLat, Longitude: originLon},
-				Address:  originGeocode.FormattedAddress,
+				Address:  normalizeAddress(originGeocode.FormattedAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{Latitude: destLat, Longitude: destLon},
-				Address:  destGeocode.FormattedAddress,
+				Address:  normalizeAddress(destGeocode.FormattedAddress),
 			},
 			Summaries: summaries,
 		})
@@ -1425,7 +1491,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 				},
 				LocationDestination: AddressInfo{
 					Location: destinationLocation,
-					Address:  destAddress,
+					Address:  normalizeAddress(destAddress),
 				},
 				TotalDistance: Distance{Text: distText, Value: distVal},
 				TotalDuration: Duration{Text: durText, Value: durVal},
@@ -1496,25 +1562,25 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 		}
 
 		googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s&travelmode=driving",
-			neturl.QueryEscape(originGeocode.FormattedAddress),
-			neturl.QueryEscape(destGeocode.FormattedAddress),
+			neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+			neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 		)
 
 		currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
 		wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-			neturl.QueryEscape(originGeocode.FormattedAddress),
-			neturl.QueryEscape(destGeocode.FormattedAddress),
+			neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+			neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 			currentTimeMillis,
 		)
 
 		results = append(results, DetailedRoute{
 			LocationOrigin: AddressInfo{
 				Location: Location{Latitude: originLat, Longitude: originLon},
-				Address:  originGeocode.FormattedAddress,
+				Address:  normalizeAddress(originGeocode.FormattedAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{Latitude: destLat, Longitude: destLon},
-				Address:  destGeocode.FormattedAddress,
+				Address:  normalizeAddress(destGeocode.FormattedAddress),
 			},
 			Summaries: []RouteSummary{
 				{
@@ -1736,8 +1802,8 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	defer cancel()
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(origin.FormattedAddress),
-		neturl.QueryEscape(destination.FormattedAddress))
+		neturl.QueryEscape(normalizeAddress(origin.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destination.FormattedAddress)))
 
 	if len(frontInfo.Waypoints) > 0 {
 		var googleWp []string
@@ -1972,14 +2038,14 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 						Latitude:  origin.Location.Latitude,
 						Longitude: origin.Location.Longitude,
 					},
-					Address: origin.FormattedAddress,
+					Address: normalizeAddress(origin.FormattedAddress),
 				},
 				LocationDestination: AddressInfo{
 					Location: Location{
 						Latitude:  destination.Location.Latitude,
 						Longitude: destination.Location.Longitude,
 					},
-					Address: destination.FormattedAddress,
+					Address: normalizeAddress(destination.FormattedAddress),
 				},
 				AllStoppingPoints: func() []interface{} {
 					var stops []interface{}
@@ -2042,14 +2108,14 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 					Latitude:  origin.Location.Latitude,
 					Longitude: origin.Location.Longitude,
 				},
-				Address: origin.FormattedAddress,
+				Address: normalizeAddress(origin.FormattedAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{
 					Latitude:  destination.Location.Latitude,
 					Longitude: destination.Location.Longitude,
 				},
-				Address: destination.FormattedAddress,
+				Address: normalizeAddress(destination.FormattedAddress),
 			},
 			AllStoppingPoints: func() []interface{} {
 				var stops []interface{}
@@ -2164,7 +2230,7 @@ func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, 
 					Latitude:  data.OriginLat,
 					Longitude: data.OriginLng,
 				},
-				Address: originAddress,
+				Address: normalizeAddress(originAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{
@@ -2220,7 +2286,7 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 		log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", err)
 	}
 
-	return result.DisplayName, nil
+	return normalizeAddress(result.DisplayName), nil
 }
 
 func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) (int64, error) {
@@ -2718,7 +2784,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	}
 
 	result := GeocodeResult{
-		FormattedAddress: results[0].FormattedAddress,
+		FormattedAddress: normalizeAddress(results[0].FormattedAddress),
 		PlaceID:          results[0].PlaceID,
 		Location: Location{
 			Latitude:  results[0].Geometry.Location.Lat,
@@ -3851,8 +3917,8 @@ func (s *Service) createRouteSummary(route OSRMRoute, routeType string, originGe
 	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(originGeocode.FormattedAddress),
-		neturl.QueryEscape(destGeocode.FormattedAddress),
+		neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 	)
 
 	currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
@@ -3915,8 +3981,8 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(originGeocode.FormattedAddress),
-		neturl.QueryEscape(destGeocode.FormattedAddress),
+		neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 	)
 
 	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&reverse=yes",
@@ -4404,7 +4470,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			},
 			LocationDestination: AddressInfo{
 				Location: destinationLocation,
-				Address:  destAddress,
+				Address:  normalizeAddress(destAddress),
 			},
 			TotalDistance: Distance{Text: distText, Value: distVal},
 			TotalDuration: Duration{Text: durText, Value: durVal},
@@ -4497,11 +4563,11 @@ func (s *Service) createTotalSummary(
 	summary := TotalSummary{
 		LocationOrigin: AddressInfo{
 			Location: originLocation,
-			Address:  originAddress,
+			Address:  normalizeAddress(originAddress),
 		},
 		LocationDestination: AddressInfo{
 			Location: destinationLocation,
-			Address:  destAddress,
+			Address:  normalizeAddress(destAddress),
 		},
 		TotalDistance: Distance{Text: distText, Value: distVal},
 		TotalDuration: Duration{Text: durText, Value: durVal},
@@ -4515,12 +4581,17 @@ func (s *Service) createTotalSummary(
 
 	// 🔹 Atualiza a duração com o Google Directions API (tempo real)
 	if s.GoogleMapsAPIKey != "" {
+		var waypointsForAPI []string
+		if len(waypoints) > 2 {
+			waypointsForAPI = waypoints[1 : len(waypoints)-1] // intermediários, se existirem
+		}
+
 		if gDurText, gDurVal, err := GetGoogleDurationWithTraffic(
 			context.Background(),
 			s.GoogleMapsAPIKey,
 			originAddress,
 			destAddress,
-			waypoints[1:len(waypoints)-1], // intermediários, se existirem
+			waypointsForAPI,
 		); err == nil {
 			summary.TotalDuration = Duration{Text: gDurText, Value: float64(gDurVal)}
 		} else {
@@ -5061,8 +5132,8 @@ func (s *Service) createDirectEstimateSummary(
 	totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
 	googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-		neturl.QueryEscape(originGeocode.FormattedAddress),
-		neturl.QueryEscape(destGeocode.FormattedAddress),
+		neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+		neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
 	)
 	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&reverse=yes",
 		neturl.QueryEscape(destGeocode.PlaceID),
