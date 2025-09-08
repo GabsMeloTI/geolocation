@@ -4398,6 +4398,17 @@ func (s *Service) calculateTotalRouteWithAvoidance(
 			}
 			totalRoute = s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, data)
 
+			// Força o uso dos valores acumulados dos segmentos para duração e distância mais precisos
+			distText, distVal := formatDistance(totalDistance)
+			durText, durVal := formatDuration(totalDuration)
+			totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
+			totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
+
+			// Recalcula custo de combustível com a distância correta
+			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+			totalKm := totalDistance / 1000
+			totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+
 			// Caso precise expor os pontos do desvio, habilite:
 			// totalRoute.DetourPoints = detourPtsTotal
 
