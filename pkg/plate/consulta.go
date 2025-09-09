@@ -31,6 +31,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	startTotal := time.Now() // ⏱ início da função
 
 	placa = strings.ToUpper(strings.TrimSpace(placa))
+	placa = strings.ReplaceAll(placa, "-", "") // Remove hífens da placa
 	cacheKey := "placa:" + placa
 
 	// 🔹 Verifica cache Redis apenas para dados da placa (sem multas)
@@ -117,17 +118,24 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		fmt.Println(string(multasRespBody))
 		fmt.Printf("⏱ Tempo API multas: %v\n", time.Since(startMultas))
 
-		// Tenta decodificar como objeto primeiro
+		// Tenta decodificar como objeto com estrutura normal
 		var multaAPIResponse struct {
-			Data struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+			Data    struct {
 				Registros []Multa `json:"registros"`
 			} `json:"data"`
 		}
 
 		if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
-			fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
+			if multaAPIResponse.Error {
+				fmt.Printf("📄 API de multas retornou erro: %s (sem tarifação)\n", multaAPIResponse.Message)
+				fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+			} else {
+				fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
+			}
 		} else {
-			// Se falhar, tenta decodificar como array vazio
+			// Se falhar, tenta decodificar como array vazio (caso raro)
 			var dataArray []interface{}
 			if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
 				fmt.Println("📄 API retornou array vazio para multas")
@@ -198,6 +206,7 @@ type MultasResponse struct {
 func ConsultarMultas(placa string) (MultasResponse, error) {
 	start := time.Now()
 	placa = strings.ToUpper(strings.TrimSpace(placa))
+	placa = strings.ReplaceAll(placa, "-", "") // Remove hífens da placa
 
 	bearer := os.Getenv("BEARER_TOKEN")
 	device := os.Getenv("DEVICE_TOKEN")
