@@ -117,6 +117,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		fmt.Println(string(multasRespBody))
 		fmt.Printf("⏱ Tempo API multas: %v\n", time.Since(startMultas))
 
+		// Tenta decodificar como objeto primeiro
 		var multaAPIResponse struct {
 			Data struct {
 				Registros []Multa `json:"registros"`
@@ -126,7 +127,14 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
 			fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
 		} else {
-			fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
+			// Se falhar, tenta decodificar como array vazio
+			var dataArray []interface{}
+			if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
+				fmt.Println("📄 API retornou array vazio para multas")
+				fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+			} else {
+				fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
+			}
 		}
 	}
 
