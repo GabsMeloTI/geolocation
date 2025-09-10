@@ -121,7 +121,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/user/email", container.UserHandler.UserExists)
 	e.POST("/caminhao/carbono", container.UserHandler.InfoCaminhao)
 	e.GET("/consulta/:placa", container.UserHandler.ConsultarPlaca)
-	e.POST("/cons	ulta/multiplas", container.UserHandler.ConsultarMultiplasPlacas)
+	e.POST("/consulta/multiplas", container.UserHandler.ConsultarMultiplasPlacas)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
