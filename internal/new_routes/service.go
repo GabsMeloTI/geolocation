@@ -37,6 +37,7 @@ type InterfaceService interface {
 	CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error)
 	CalculateDistancesBetweenPoints(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
 	CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
+	CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinates(ctx context.Context, data FrontInfoCoordinatesRequest) (Response, error)
 	CalculateDistancesFromOrigin(ctx context.Context, data FrontInfoCEPRequest) ([]DetailedRoute, error)
 	CalculateRoutesWithCoordinate(ctx context.Context, frontInfo FrontInfoCoordinate, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
@@ -3179,6 +3180,745 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		Routes:     resultRoutes,
 		TotalRoute: totalRoute,
 	}, nil
+}
+
+// ---- new function for coordinates
+func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinates(ctx context.Context, data FrontInfoCoordinatesRequest) (Response, error) {
+
+	if len(data.Coordinates) < 2 {
+		return Response{}, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
+	}
+
+	// Buscar zonas de risco uma única vez
+	riskZones, err := s.getActiveRiskZones(ctx, data.OrganizationID)
+	if err != nil {
+		log.Printf("Erro ao buscar zonas de risco: %v", err)
+		return s.CalculateDistancesBetweenPointsFromCoordinates(ctx, data)
+	}
+
+	// Pool de clientes HTTP reutilizáveis para melhor performance
+	clientPool := &http.Client{
+		Timeout: 10 * time.Second, // Timeout ainda mais agressivo
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20, // Mais conexões por host
+			IdleConnTimeout:     30 * time.Second,
+			DisableCompression:  true,  // OSRM não usa compressão
+			DisableKeepAlives:   false, // Manter conexões ativas
+			MaxConnsPerHost:     50,    // Mais conexões simultâneas
+		},
+	}
+	var resultRoutes []DetailedRoute
+	var totalDistance float64
+	var totalDuration float64
+
+	// Pré-processar todas as coordenadas para evitar chamadas repetidas
+	coordinateData := make(map[string]struct {
+		lat, lon float64
+		address  string
+		geocode  GeocodeResult
+	})
+
+	// Processar coordenadas em batch para melhor performance
+	var wgCoord sync.WaitGroup
+	coordChan := make(chan struct {
+		coord   string
+		lat     float64
+		lon     float64
+		address string
+		geocode GeocodeResult
+		err     error
+	}, len(data.Coordinates))
+
+	for _, coord := range data.Coordinates {
+		coordKey := fmt.Sprintf("%s,%s", coord.Lat, coord.Lng)
+		if _, exists := coordinateData[coordKey]; exists {
+			continue
+		}
+
+		wgCoord.Add(1)
+		go func(coord Coordinate) {
+			defer wgCoord.Done()
+
+			// Converter strings para float64
+			lat, err1 := strconv.ParseFloat(strings.ReplaceAll(coord.Lat, ",", "."), 64)
+			lon, err2 := strconv.ParseFloat(strings.ReplaceAll(coord.Lng, ",", "."), 64)
+
+			if err1 != nil || err2 != nil {
+				coordChan <- struct {
+					coord   string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{coord: coordKey, err: fmt.Errorf("erro ao converter coordenadas: %v, %v", err1, err2)}
+				return
+			}
+
+			// Geocodificação reversa e geocodificação em paralelo
+			addressChan := make(chan string, 1)
+			geocodeChan := make(chan GeocodeResult, 1)
+			errorChan := make(chan error, 2)
+
+			go func(lat, lon float64) {
+				address, err := s.reverseGeocode(lat, lon)
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				addressChan <- address
+			}(lat, lon)
+
+			go func() {
+				geocode, err := s.getGeocodeAddress(ctx, fmt.Sprintf("%f,%f", lat, lon))
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				geocodeChan <- geocode
+			}()
+
+			// Aguardar resultados com timeout
+			select {
+			case address := <-addressChan:
+				select {
+				case geocode := <-geocodeChan:
+					coordChan <- struct {
+						coord   string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{coordKey, lat, lon, address, geocode, nil}
+				case err := <-errorChan:
+					coordChan <- struct {
+						coord   string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{coordKey, lat, lon, "", GeocodeResult{}, err}
+				case <-time.After(5 * time.Second):
+					coordChan <- struct {
+						coord   string
+						lat     float64
+						lon     float64
+						address string
+						geocode GeocodeResult
+						err     error
+					}{coordKey, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
+				}
+			case err := <-errorChan:
+				coordChan <- struct {
+					coord   string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{coordKey, lat, lon, "", GeocodeResult{}, err}
+			case <-time.After(5 * time.Second):
+				coordChan <- struct {
+					coord   string
+					lat     float64
+					lon     float64
+					address string
+					geocode GeocodeResult
+					err     error
+				}{coordKey, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
+			}
+		}(coord)
+	}
+
+	// Aguardar todas as coordenadas serem processadas
+	go func() {
+		wgCoord.Wait()
+		close(coordChan)
+	}()
+
+	// Coletar resultados das coordenadas
+	for result := range coordChan {
+		if result.err != nil {
+			log.Printf("Erro na geocodificação da coordenada %s: %v", result.coord, result.err)
+			continue
+		}
+
+		coordinateData[result.coord] = struct {
+			lat, lon float64
+			address  string
+			geocode  GeocodeResult
+		}{result.lat, result.lon, result.address, result.geocode}
+	}
+
+	// Processar segmentos em paralelo quando possível
+	type segmentResult struct {
+		index   int
+		route   DetailedRoute
+		hasRisk bool
+	}
+
+	segmentChan := make(chan segmentResult, len(data.Coordinates)-1)
+	var wg sync.WaitGroup
+
+	// Early exit se não há zonas de risco
+	if len(riskZones) == 0 {
+		// Processar todos os segmentos sem verificação de risco
+		for i := 0; i < len(data.Coordinates)-1; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+
+				originCoord := data.Coordinates[i]
+				destCoord := data.Coordinates[i+1]
+				originKey := fmt.Sprintf("%s,%s", originCoord.Lat, originCoord.Lng)
+				destKey := fmt.Sprintf("%s,%s", destCoord.Lat, destCoord.Lng)
+
+				originData := coordinateData[originKey]
+				destData := coordinateData[destKey]
+
+				// Sem zonas de risco, usar rota direta
+				summaries := s.calculateDirectRoute(ctx, *clientPool, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, s.convertCoordinatesToCEPRequest(data))
+
+				if len(summaries) == 0 {
+					fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, s.convertCoordinatesToCEPRequest(data))
+					summaries = []RouteSummary{fb}
+				}
+
+				route := summaries[0]
+				totalDistance += route.Distance.Value
+				totalDuration += route.Duration.Value
+
+				segmentChan <- segmentResult{
+					index: i,
+					route: DetailedRoute{
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						HasRisk:             false,
+						LocationHisk:        []LocationHisk{},
+						Summaries:           summaries,
+					},
+					hasRisk: false,
+				}
+			}(i)
+		}
+	} else {
+		// Com zonas de risco, verificar cada segmento
+		for i := 0; i < len(data.Coordinates)-1; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+
+				originCoord := data.Coordinates[i]
+				destCoord := data.Coordinates[i+1]
+				originKey := fmt.Sprintf("%s,%s", originCoord.Lat, originCoord.Lng)
+				destKey := fmt.Sprintf("%s,%s", destCoord.Lat, destCoord.Lng)
+
+				originData := coordinateData[originKey]
+				destData := coordinateData[destKey]
+
+				// Verificar se há zonas de risco no caminho direto
+				offs, hasAny := s.CheckRouteForAllRiskZones(riskZones, originData.lat, originData.lon, destData.lat, destData.lon)
+
+				locations := make([]LocationHisk, 0, len(offs))
+				for _, o := range offs {
+					locations = append(locations, LocationHisk{
+						CEP:       o.Zone.Cep,
+						Latitude:  o.Zone.Lat,
+						Longitude: o.Zone.Lng,
+					})
+				}
+
+				var summaries []RouteSummary
+				if hasAny {
+					summaries = s.calculateAlternativeRouteWithAvoidance(ctx, *clientPool, riskZones, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, s.convertCoordinatesToCEPRequest(data))
+				} else {
+					summaries = s.calculateDirectRoute(ctx, *clientPool, originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, s.convertCoordinatesToCEPRequest(data))
+				}
+
+				if len(summaries) == 0 {
+					fb := s.createDirectEstimateSummary(originData.lat, originData.lon, destData.lat, destData.lon, originData.geocode, destData.geocode, s.convertCoordinatesToCEPRequest(data))
+					summaries = []RouteSummary{fb}
+				}
+
+				// Usar a primeira rota para cálculos totais
+				route := summaries[0]
+				totalDistance += route.Distance.Value
+				totalDuration += route.Duration.Value
+
+				segmentChan <- segmentResult{
+					index: i,
+					route: DetailedRoute{
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						HasRisk:             hasAny,
+						LocationHisk:        locations,
+						Summaries:           summaries,
+					},
+					hasRisk: hasAny,
+				}
+			}(i)
+		}
+	}
+
+	// Aguardar todos os segmentos
+	go func() {
+		wg.Wait()
+		close(segmentChan)
+	}()
+
+	// Coletar resultados na ordem correta
+	segmentResults := make([]segmentResult, len(data.Coordinates)-1)
+	for result := range segmentChan {
+		segmentResults[result.index] = result
+	}
+
+	// Montar resultado final na ordem correta
+	for _, result := range segmentResults {
+		resultRoutes = append(resultRoutes, result.route)
+	}
+
+	// Calcular rota total com desvios
+	totalRoute := s.calculateTotalRouteWithAvoidanceFromCoordinates(ctx, *clientPool, riskZones, data.Coordinates, totalDistance, totalDuration, data)
+
+	return Response{
+		Routes:     resultRoutes,
+		TotalRoute: totalRoute,
+	}, nil
+}
+
+// convertCoordinatesToCEPRequest converte FrontInfoCoordinatesRequest para FrontInfoCEPRequest
+func (s *Service) convertCoordinatesToCEPRequest(data FrontInfoCoordinatesRequest) FrontInfoCEPRequest {
+	// Converter coordenadas para CEPs fictícios para manter compatibilidade
+	ceps := make([]string, len(data.Coordinates))
+	for i, coord := range data.Coordinates {
+		ceps[i] = fmt.Sprintf("%s,%s", coord.Lat, coord.Lng)
+	}
+
+	return FrontInfoCEPRequest{
+		CEPs:            ceps,
+		ConsumptionCity: data.ConsumptionCity,
+		ConsumptionHwy:  data.ConsumptionHwy,
+		Price:           data.Price,
+		Axles:           data.Axles,
+		Type:            data.Type,
+		TypeRoute:       data.TypeRoute,
+		RouteOptions:    data.RouteOptions,
+		Waypoints:       data.Waypoints,
+		OrganizationID:  data.OrganizationID,
+	}
+}
+
+// CalculateDistancesBetweenPointsFromCoordinates função auxiliar para fallback
+func (s *Service) CalculateDistancesBetweenPointsFromCoordinates(ctx context.Context, data FrontInfoCoordinatesRequest) (Response, error) {
+	// Converter para CEPs fictícios e usar a função existente
+	cepData := s.convertCoordinatesToCEPRequest(data)
+	return s.CalculateDistancesBetweenPoints(ctx, cepData)
+}
+
+// calculateTotalRouteWithAvoidanceFromCoordinates calcula rota total com desvios para coordenadas
+func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
+	ctx context.Context,
+	client http.Client,
+	riskZones []RiskZone,
+	coordinates []Coordinate,
+	totalDistance, totalDuration float64,
+	data FrontInfoCoordinatesRequest,
+) TotalSummary {
+
+	// ------------------------------
+	// 1) Monta lista base de coords e endereços
+	// ------------------------------
+	var allCoords []string
+	var waypoints []string
+	var originLocation, destinationLocation Location
+
+	for idx, coord := range coordinates {
+		lat, err1 := strconv.ParseFloat(strings.ReplaceAll(coord.Lat, ",", "."), 64)
+		lon, err2 := strconv.ParseFloat(strings.ReplaceAll(coord.Lng, ",", "."), 64)
+
+		if err1 != nil || err2 != nil {
+			continue
+		}
+
+		allCoords = append(allCoords, fmt.Sprintf("%f,%f", lon, lat))
+
+		reverse, _ := s.reverseGeocode(lat, lon)
+		geocode, _ := s.getGeocodeAddress(ctx, reverse)
+		waypoints = append(waypoints, geocode.FormattedAddress)
+
+		if idx == 0 {
+			originLocation = Location{Latitude: lat, Longitude: lon}
+		}
+		if idx == len(coordinates)-1 {
+			destinationLocation = Location{Latitude: lat, Longitude: lon}
+		}
+	}
+
+	if len(allCoords) < 2 {
+		return TotalSummary{}
+	}
+
+	// ------------------------------
+	// 2) Para cada segmento, injeta via-points evitando TODAS as zonas cruzadas
+	// ------------------------------
+	newCoords := make([]string, 0, len(allCoords)+12) // espaço extra para vias
+	newCoords = append(newCoords, allCoords[0])
+
+	var extraWaypointsForURL []string
+	var detourPtsTotal []Location // opcional para expor no TotalSummary
+
+	for i := 0; i < len(allCoords)-1; i++ {
+		var lon1, lat1, lon2, lat2 float64
+		fmt.Sscanf(allCoords[i], "%f,%f", &lon1, &lat1)
+		fmt.Sscanf(allCoords[i+1], "%f,%f", &lon2, &lat2)
+
+		// Sempre vamos trabalhar numa lista de via-points ACUMULADOS por segmento
+		segWps := []Location{} // via-points inseridos nesse segmento
+
+		// helper para calcular a polyline do segmento COM os via-points atuais
+		routeForSegment := func() (OSRMRoute, bool) {
+			coords := fmt.Sprintf("%f,%f", lon1, lat1)
+			for _, wp := range segWps {
+				coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
+			}
+			coords += fmt.Sprintf(";%f,%f", lon2, lat2)
+
+			profile := "driving"
+			if data.Type != "" {
+				profile = data.Type // ex: "car", "truck"
+			}
+
+			u := fmt.Sprintf("http://34.207.174.233:5002/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+				profile, url.PathEscape(coords))
+
+			// Cliente com timeout reduzido para melhor performance
+			fastClient := http.Client{Timeout: 15 * time.Second}
+			resp, err := fastClient.Get(u)
+			if err != nil || resp.StatusCode != 200 {
+				u = fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+					url.PathEscape(coords))
+				resp, err = fastClient.Get(u)
+			}
+
+			defer resp.Body.Close()
+			var r OSRMResponse
+			if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
+				return OSRMRoute{}, false
+			}
+			return r.Routes[0], true
+		}
+
+		// 2.A) Calcula rota do segmento (sem vias) e coleta TODAS as zonas cruzadas
+		if r0, ok := routeForSegment(); ok {
+			crossings := s.detectAllCrossingsFromGeometry(r0.Geometry, riskZones, 1000)
+
+			// 2.B) Itera enquanto ainda cruzar alguma zona
+			iter := 0
+			for len(crossings) > 0 && iter < 15 {
+				iter++
+				off := crossings[0] // trata a próxima na ordem do percurso
+
+				// ====== Estratégia preferencial: 3 pontos no MESMO lado ======
+				latRef, nx, ny := s.awayNormalForSegment(off.Before5km, off.After5km, off.Zone)
+				injected := false
+
+				if nx != 0 || ny != 0 {
+					baseDist := float64(off.Zone.Radius) + 200.0 // raio + buffer
+					mid := Location{
+						Latitude:  (off.Entry.Latitude + off.Exit.Latitude) / 2,
+						Longitude: (off.Entry.Longitude + off.Exit.Longitude) / 2,
+					}
+					buildSeq := func(scale float64) []Location {
+						d := baseDist * scale
+						p1 := s.offsetByNormal(off.Before5km, latRef, nx, ny, d)
+						p2 := s.offsetByNormal(mid, latRef, nx, ny, d)
+						p3 := s.offsetByNormal(off.After5km, latRef, nx, ny, d)
+						return []Location{p1, p2, p3}
+					}
+
+					for _, sc := range []float64{1.0, 1.3, 1.6, 2.0} {
+						cand := buildSeq(sc)
+						// Snap GARANTINDO ficar fora da zona
+						cand = s.snapOutsideMany(client, cand, off.Zone)
+
+						// Testa rota do segmento com segWps + cand
+						segTest := append(append([]Location{}, segWps...), cand...)
+						if r2, ok2 := func() (OSRMRoute, bool) {
+							coords := fmt.Sprintf("%f,%f", lon1, lat1)
+							for _, wp := range segTest {
+								coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
+							}
+							coords += fmt.Sprintf(";%f,%f", lon2, lat2)
+
+							profile := "driving"
+							if data.Type != "" {
+								profile = data.Type // ex: "car", "truck"
+							}
+
+							u := fmt.Sprintf("http://34.207.174.233:5002/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+								profile, url.PathEscape(coords))
+
+							resp, err := client.Get(u)
+							if err != nil || resp.StatusCode != 200 {
+								u = fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+									url.PathEscape(coords))
+								resp, err = client.Get(u)
+							}
+
+							defer resp.Body.Close()
+							var r OSRMResponse
+							if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
+								return OSRMRoute{}, false
+							}
+							return r.Routes[0], true
+						}(); ok2 {
+							// rota de teste não pode cruzar ESTA zona
+							if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, lat1, lon1, lat2, lon2); !hasThis {
+								segWps = append(segWps, cand...)
+								for _, p := range cand {
+									extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", p.Latitude, p.Longitude))
+									detourPtsTotal = append(detourPtsTotal, p)
+								}
+								injected = true
+								break
+							}
+						}
+					}
+				}
+
+				// ====== Fallback: lateral e A/B
+				if !injected {
+					// menor arco
+					seq := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, 2, 200, 80, false)
+					seq = s.snapOutsideMany(client, seq, off.Zone)
+					tryInject := func(cand []Location) bool {
+						test := append(append([]Location{}, segWps...), cand...)
+						if r2, ok2 := func() (OSRMRoute, bool) {
+							coords := fmt.Sprintf("%f,%f", lon1, lat1)
+							for _, wp := range test {
+								coords += fmt.Sprintf(";%f,%f", wp.Longitude, wp.Latitude)
+							}
+							coords += fmt.Sprintf(";%f,%f", lon2, lat2)
+
+							profile := "driving"
+							if data.Type != "" {
+								profile = data.Type // ex: "car", "truck"
+							}
+
+							u := fmt.Sprintf("http://34.207.174.233:5002/route/v1/%s/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+								profile, url.PathEscape(coords))
+
+							resp, err := client.Get(u)
+							if err != nil || resp.StatusCode != 200 {
+								u = fmt.Sprintf("http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+									url.PathEscape(coords))
+								resp, err = client.Get(u)
+							}
+
+							defer resp.Body.Close()
+							var r OSRMResponse
+							if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
+								return OSRMRoute{}, false
+							}
+							return r.Routes[0], true
+						}(); ok2 {
+							if hasThis, _ := s.checkRouteGeometryForRiskZones([]RiskZone{off.Zone}, r2.Geometry, lat1, lon1, lat2, lon2); !hasThis {
+								segWps = append(segWps, cand...)
+								for _, p := range cand {
+									extraWaypointsForURL = append(extraWaypointsForURL, fmt.Sprintf("via:%f,%f", p.Latitude, p.Longitude))
+									detourPtsTotal = append(detourPtsTotal, p)
+								}
+								return true
+							}
+						}
+						return false
+					}
+
+					if !tryInject(seq) {
+						// arco oposto
+						seq2 := s.assembleLateralDetour(off.Entry, off.Exit, off.Zone, 2, 200, 80, true)
+						seq2 = s.snapOutsideMany(client, seq2, off.Zone)
+						if !tryInject(seq2) {
+							// A/B padrão
+							wpA, wpB := s.computeBypassWaypoints(lat1, lon1, lat2, lon2, off.Zone)
+							ab := s.snapOutsideMany(client, []Location{wpA, wpB}, off.Zone)
+							if !tryInject(ab) {
+								// A/B escalado
+								for _, sc := range []float64{1.5, 2.0, 3.0} {
+									wpA2 := s.pushAwayFromCenter(wpA, off.Zone, float64(off.Zone.Radius)*(sc-1)+500)
+									wpB2 := s.pushAwayFromCenter(wpB, off.Zone, float64(off.Zone.Radius)*(sc-1)+500)
+									ab2 := s.snapOutsideMany(client, []Location{wpA2, wpB2}, off.Zone)
+									if tryInject(ab2) {
+										break
+									}
+								}
+							}
+						}
+					}
+				}
+
+				// Recalcula rota do segmento com os via-points acumulados e atualiza a lista de crossings
+				if rNow, okNow := routeForSegment(); okNow {
+					crossings = s.detectAllCrossingsFromGeometry(rNow.Geometry, riskZones, 1000)
+				} else {
+					// sem rota após tentativa — interrompe
+					break
+				}
+			} // while cruzar zona
+		}
+
+		// Append final do destino do segmento e materializa os via-points em newCoords
+		for _, wp := range segWps {
+			newCoords = append(newCoords, fmt.Sprintf("%f,%f", wp.Longitude, wp.Latitude))
+		}
+		newCoords = append(newCoords, allCoords[i+1])
+	}
+
+	// ------------------------------
+	// 3) Recalcula a rota TOTAL com a sequência ajustada
+	// ------------------------------
+	var totalRoute TotalSummary
+
+	coordsStr := strings.Join(newCoords, ";")
+	urlTotal := fmt.Sprintf(
+		"http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+		url.PathEscape(coordsStr),
+	)
+
+	if resp, err := client.Get(urlTotal); err == nil {
+		defer resp.Body.Close()
+		var osrmResp OSRMResponse
+		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+			route := osrmResp.Routes[0]
+
+			// Monta waypoints p/ URL do Google (endereços originais + via:lat,lng dos desvios)
+			waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
+			if len(waypoints) > 2 {
+				// Insere "via:" antes dos pontos intermediários de endereço
+				waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
+				waypointsForURL = append(waypointsForURL, waypoints[1:len(waypoints)-1]...)
+			} else {
+				waypointsForURL = append(waypointsForURL, extraWaypointsForURL...)
+			}
+
+			if len(waypointsForURL) == 0 {
+				waypointsForURL = []string{
+					fmt.Sprintf("%f,%f", originLocation.Latitude, originLocation.Longitude),
+					fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude),
+				}
+			}
+			totalRoute = s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, s.convertCoordinatesToCEPRequest(data))
+
+			// Força o uso dos valores acumulados dos segmentos para duração e distância mais precisos
+			distText, distVal := formatDistance(totalDistance)
+			durText, durVal := formatDuration(totalDuration)
+			totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
+			totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
+
+			// Recalcula custo de combustível com a distância correta
+			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+			totalKm := totalDistance / 1000
+			totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+
+		}
+	}
+
+	// ------------------------------
+	// 4) Fallbacks (rota total sem desvio / agregados)
+	// ------------------------------
+	if totalRoute.TotalDistance.Value == 0 {
+		// tenta rota total padrão para obter polyline
+		baseCoords := strings.Join(allCoords, ";")
+		urlBase := fmt.Sprintf(
+			"http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			url.PathEscape(baseCoords),
+		)
+
+		if resp, err := client.Get(urlBase); err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				totalRoute = s.createTotalSummary(route, originLocation, destinationLocation, waypoints, s.convertCoordinatesToCEPRequest(data))
+			}
+		}
+	}
+
+	if totalRoute.TotalDistance.Value == 0 {
+		// último recurso: usa agregados
+		distText, distVal := formatDistance(totalDistance)
+		durText, durVal := formatDuration(totalDuration)
+
+		avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+		totalKm := totalDistance / 1000
+		totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+		// Buscar pedágios para a rota base (sem desvios)
+		baseCoords := strings.Join(allCoords, ";")
+		urlBase := fmt.Sprintf(
+			"http://34.207.174.233:5002/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
+			url.PathEscape(baseCoords),
+		)
+
+		var tolls []Toll
+		var totalTollCost float64
+		if resp, err := client.Get(urlBase); err == nil {
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+				route := osrmResp.Routes[0]
+				tolls, _ = s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				for _, toll := range tolls {
+					totalTollCost += toll.CashCost
+				}
+			}
+		}
+
+		originAddress := waypoints[0]
+		destAddress := waypoints[len(waypoints)-1]
+		waypointStr := ""
+		if len(waypoints) > 2 {
+			waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+		}
+
+		googleURL := fmt.Sprintf(
+			"https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+			neturl.QueryEscape(originAddress),
+			neturl.QueryEscape(destAddress),
+			waypointStr,
+		)
+		currentTimeMillis := (time.Now().UnixNano() + int64(totalDuration*float64(time.Second))) / int64(time.Millisecond)
+		wazeURL := fmt.Sprintf(
+			"https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+			neturl.QueryEscape(destAddress),
+			neturl.QueryEscape(originAddress),
+			currentTimeMillis,
+		)
+
+		totalRoute = TotalSummary{
+			LocationOrigin: AddressInfo{
+				Location: originLocation,
+				Address:  originAddress,
+			},
+			LocationDestination: AddressInfo{
+				Location: destinationLocation,
+				Address:  normalizeAddress(destAddress),
+			},
+			TotalDistance: Distance{Text: distText, Value: distVal},
+			TotalDuration: Duration{Text: durText, Value: durVal},
+			URL:           googleURL,
+			URLWaze:       wazeURL,
+			Tolls:         tolls,
+			TotalTolls:    math.Round(totalTollCost*100) / 100,
+			Polyline:      "",
+			TotalFuelCost: totalFuelCost,
+		}
+	}
+
+	return totalRoute
 }
 
 func (s *Service) getActiveRiskZones(ctx context.Context, id int64) ([]RiskZone, error) {

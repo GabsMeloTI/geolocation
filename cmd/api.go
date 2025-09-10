@@ -121,7 +121,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/user/email", container.UserHandler.UserExists)
 	e.POST("/caminhao/carbono", container.UserHandler.InfoCaminhao)
 	e.GET("/consulta/:placa", container.UserHandler.ConsultarPlaca)
-	e.POST("/consulta/multiplas", container.UserHandler.ConsultarMultiplasPlacas)
+	e.POST("/cons	ulta/multiplas", container.UserHandler.ConsultarMultiplasPlacas)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
@@ -146,6 +146,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/check-route-tolls-simpplify-cep", container.HandlerNewRoutes.CalculateRoutesWithCEP, _midlleware.CheckAuthorization)
 	e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
 	e.POST("/route-cep-avoidance", container.HandlerNewRoutes.CalculateDistancesBetweenPointsWithRiskAvoidanceHandler)
+	e.POST("/route-coordinate-avoidance", container.HandlerNewRoutes.CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler)
 	e.POST("/nearby-location", container.HandlerNewRoutes.CalculateDistancesFromOrigin)
 
 	// easyfrete
