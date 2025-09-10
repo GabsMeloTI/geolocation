@@ -350,3 +350,29 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceHandler(c echo
 }
 
 
+
+
+func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler(c echo.Context) error {
+	var req FrontInfoCoordinatesRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Dados de entrada inválidos: " + err.Error(),
+		})
+	}
+
+	if len(req.Coordinates) < 2 {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "É necessário pelo menos dois pontos para calcular rotas",
+		})
+	}
+
+	// Calcular rotas com desvio de zonas de risco
+	result, err := h.InterfaceService.CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinates(c.Request().Context(), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Erro ao calcular rotas: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, result)
+}

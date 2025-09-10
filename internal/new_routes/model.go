@@ -314,6 +314,19 @@ type FrontInfoCoordinate struct {
 	RouteOptions    RouteOptions `json:"route_options"`
 }
 
+type FrontInfoCoordinatesRequest struct {
+	Coordinates     []Coordinate `json:"coordinates" validate:"required,min=2"`
+	ConsumptionCity float64      `json:"consumptionCity"`
+	ConsumptionHwy  float64      `json:"consumptionHwy"`
+	Price           float64      `json:"price"`
+	Axles           int64        `json:"axles"`
+	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	TypeRoute       string       `json:"typeRoute"`
+	RouteOptions    RouteOptions `json:"route_options"`
+	Waypoints       []Coordinate `json:"waypoints"`
+	OrganizationID  int64        `json:"organization_id" validate:"required"`
+}
+
 type Coordinate struct {
 	Lat string `json:"lat"`
 	Lng string `json:"lng"`
