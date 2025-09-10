@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,12 +20,219 @@ var (
 	ctx = context.Background()
 )
 
+// Estrutura para a resposta da API alternativa (veiculos-dados-v1)
+type FallbackAPIResponse struct {
+	User struct {
+		FirstName    string `json:"first_name"`
+		Email        string `json:"email"`
+		Cellphone    string `json:"cellphone"`
+		Notification string `json:"notification"`
+	} `json:"user"`
+	Balance string `json:"balance"`
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+	Homolog bool   `json:"homolog"`
+	Data    []struct {
+		Placa               string `json:"placa"`
+		Chassi              string `json:"chassi"`
+		Fabricante          string `json:"fabricante"`
+		Modelo              string `json:"modelo"`
+		AnoFabricacao       int    `json:"ano_fabricacao"`
+		AnoModelo           int    `json:"ano_modelo"`
+		Combustivel         string `json:"combustivel"`
+		TipoVeiculo         string `json:"tipo_veiculo"`
+		Especie             string `json:"especie"`
+		Cor                 string `json:"cor"`
+		TipoCarroceria      string `json:"tipo_carroceria"`
+		Nacionalidade       string `json:"nacionalidade"`
+		NumeroMotor         string `json:"numero_motor"`
+		Potencia            int    `json:"potencia"`
+		Carga               *int   `json:"carga"`
+		NumeroCarroceria    *int   `json:"numero_carroceria"`
+		NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
+		NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
+		NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
+		QuantidadeEixo      int    `json:"quantidade_eixo"`
+		Cilindradas         string `json:"cilindradas"`
+		CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
+		PesoBrutoTotal      int    `json:"peso_bruto_total"`
+		QuantidadeLugares   int    `json:"quantidade_lugares"`
+		TipoMontagem        *int   `json:"tipo_montagem"`
+		UfJurisdicao        string `json:"uf_jurisdicao"`
+		UfFaturado          string `json:"uf_faturado"`
+		Cidade              string `json:"cidade"`
+	} `json:"data"`
+}
+
+// Converte a resposta da API alternativa para o formato FullAPIResponse
+func convertFallbackToFullResponse(fallbackResp FallbackAPIResponse) *FullAPIResponse {
+	// Pega o primeiro item do array (se existir)
+	var dataItem struct {
+		Placa               string `json:"placa"`
+		Chassi              string `json:"chassi"`
+		Fabricante          string `json:"fabricante"`
+		Modelo              string `json:"modelo"`
+		AnoFabricacao       int    `json:"ano_fabricacao"`
+		AnoModelo           int    `json:"ano_modelo"`
+		Combustivel         string `json:"combustivel"`
+		TipoVeiculo         string `json:"tipo_veiculo"`
+		Especie             string `json:"especie"`
+		Cor                 string `json:"cor"`
+		TipoCarroceria      string `json:"tipo_carroceria"`
+		Nacionalidade       string `json:"nacionalidade"`
+		NumeroMotor         string `json:"numero_motor"`
+		Potencia            int    `json:"potencia"`
+		Carga               *int   `json:"carga"`
+		NumeroCarroceria    *int   `json:"numero_carroceria"`
+		NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
+		NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
+		NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
+		QuantidadeEixo      int    `json:"quantidade_eixo"`
+		Cilindradas         string `json:"cilindradas"`
+		CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
+		PesoBrutoTotal      int    `json:"peso_bruto_total"`
+		QuantidadeLugares   int    `json:"quantidade_lugares"`
+		TipoMontagem        *int   `json:"tipo_montagem"`
+		UfJurisdicao        string `json:"uf_jurisdicao"`
+		UfFaturado          string `json:"uf_faturado"`
+		Cidade              string `json:"cidade"`
+	}
+
+	if len(fallbackResp.Data) > 0 {
+		dataItem = fallbackResp.Data[0]
+	}
+
+	return &FullAPIResponse{
+		Error:   fallbackResp.Error,
+		Message: fallbackResp.Message,
+		Data: Response{
+			Placa:           dataItem.Placa,
+			Chassi:          dataItem.Chassi,
+			Modelo:          dataItem.Modelo,
+			Marca:           dataItem.Fabricante,
+			Ano:             fmt.Sprintf("%d", dataItem.AnoFabricacao),
+			AnoModelo:       fmt.Sprintf("%d", dataItem.AnoModelo),
+			Cor:             dataItem.Cor,
+			Uf:              dataItem.UfJurisdicao,
+			UfPlaca:         dataItem.UfFaturado,
+			Municipio:       dataItem.Cidade,
+			Combustivel:     dataItem.Combustivel,
+			Potencia:        fmt.Sprintf("%d", dataItem.Potencia),
+			CapacidadeCarga: getIntPointerValue(dataItem.Carga),
+			Nacionalidade: struct {
+				Nacionalidade string `json:"nacionalidade"`
+			}{
+				Nacionalidade: dataItem.Nacionalidade,
+			},
+			TipoVeiculo: struct {
+				TipoVeiculo string `json:"tipo_veiculo"`
+			}{
+				TipoVeiculo: dataItem.TipoVeiculo,
+			},
+			Eixos: fmt.Sprintf("%d", dataItem.QuantidadeEixo),
+			Extra: struct {
+				AnoFabricacao   string `json:"ano_fabricacao"`
+				CapMaximaTracao string `json:"cap_maxima_tracao"`
+				Chassi          string `json:"chassi"`
+			}{
+				AnoFabricacao:   fmt.Sprintf("%d", dataItem.AnoFabricacao),
+				CapMaximaTracao: fmt.Sprintf("%d", dataItem.CapacidadeMaxTracao),
+				Chassi:          dataItem.Chassi,
+			},
+			Multas: struct {
+				Dados []Multa `json:"dados"`
+			}{
+				Dados: []Multa{}, // API alternativa não retorna multas
+			},
+		},
+	}
+}
+
+// Função auxiliar para converter interface{} para string
+func getStringValue(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", value)
+}
+
+// Função auxiliar para converter ponteiro de int para string
+func getIntPointerValue(value *int) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", *value)
+}
+
 func init() {
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     "3.238.87.0:6379",
 		Password: "",
 		DB:       0,
 	})
+}
+
+// consultarAPIAlternativa consulta a API alternativa para veiculos-dados-v1
+func consultarAPIAlternativa(placa, bearer, device string, client *http.Client) (*FullAPIResponse, error) {
+	startFallback := time.Now()
+	fallbackURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
+	fallbackPayload := fmt.Sprintf(`{"tipo":"agregados-basica","placa":"%s","homolog":false}`, placa)
+
+	// Log da requisição de fallback
+	log.Printf("🚀 [API BRASIL - FALLBACK] Iniciando consulta alternativa para placa: %s", placa)
+	log.Printf("🌐 [API BRASIL - FALLBACK] URL: %s", fallbackURL)
+	log.Printf("📤 [API BRASIL - FALLBACK] Request Body: %s", fallbackPayload)
+	log.Printf("🔑 [API BRASIL - FALLBACK] Headers - Authorization: Bearer %s", bearer)
+	log.Printf("🔑 [API BRASIL - FALLBACK] Headers - DeviceToken: %s", device)
+
+	req, err := http.NewRequest("POST", fallbackURL, strings.NewReader(fallbackPayload))
+	if err != nil {
+		log.Printf("❌ [API BRASIL - FALLBACK] Erro ao criar requisição: %v", err)
+		return nil, fmt.Errorf("erro ao criar requisição da API alternativa: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("DeviceToken", device)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("❌ [API BRASIL - FALLBACK] Erro ao enviar requisição: %v", err)
+		return nil, fmt.Errorf("erro ao enviar requisição da API alternativa: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Log da resposta de fallback
+	log.Printf("📊 [API BRASIL - FALLBACK] Status Code: %d", resp.StatusCode)
+	log.Printf("📊 [API BRASIL - FALLBACK] Response Headers: %v", resp.Header)
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("❌ [API BRASIL - FALLBACK] Erro ao ler resposta: %v", err)
+		return nil, fmt.Errorf("erro ao ler resposta da API alternativa: %w", err)
+	}
+
+	// Log da resposta completa
+	log.Printf("📄 [API BRASIL - FALLBACK] Response Body: %s", string(respBody))
+	log.Printf("⏱️ [API BRASIL - FALLBACK] Tempo de resposta: %v", time.Since(startFallback))
+
+	// Decodifica a resposta da API alternativa
+	var fallbackResp FallbackAPIResponse
+	if err := json.Unmarshal(respBody, &fallbackResp); err != nil {
+		log.Printf("❌ [API BRASIL - FALLBACK] Erro ao decodificar JSON: %v", err)
+		return nil, fmt.Errorf("erro ao decodificar JSON da API alternativa: %w", err)
+	}
+
+	// Verifica se a resposta indica erro
+	if fallbackResp.Error {
+		log.Printf("❌ [API BRASIL - FALLBACK] API alternativa retornou erro: %s", fallbackResp.Message)
+		return nil, fmt.Errorf("API alternativa retornou erro: %s", fallbackResp.Message)
+	}
+
+	// Converte para o formato esperado
+	fullResp := convertFallbackToFullResponse(fallbackResp)
+
+	log.Printf("✅ [API BRASIL - FALLBACK] Conversão concluída com sucesso")
+	return fullResp, nil
 }
 
 func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
@@ -60,8 +268,14 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
 		body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
 
+		// Log da requisição principal
+		log.Printf("🚀 [API BRASIL - DADOS VEÍCULO] Iniciando consulta para placa: %s", placa)
+		log.Printf("🌐 [API BRASIL - DADOS VEÍCULO] URL: %s", veiculoURL)
+		log.Printf("📤 [API BRASIL - DADOS VEÍCULO] Request Body: %s", body)
+
 		req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
 		if err != nil {
+			log.Printf("❌ [API BRASIL - DADOS VEÍCULO] Erro ao criar requisição: %v", err)
 			return nil, fmt.Errorf("erro ao criar requisição do veículo: %w", err)
 		}
 		req.Header.Set("Authorization", "Bearer "+bearer)
@@ -70,21 +284,44 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 		resp, err := client.Do(req)
 		if err != nil {
+			log.Printf("❌ [API BRASIL - DADOS VEÍCULO] Erro ao enviar requisição: %v", err)
 			return nil, fmt.Errorf("erro ao enviar requisição do veículo: %w", err)
 		}
 		defer resp.Body.Close()
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
+			log.Printf("❌ [API BRASIL - DADOS VEÍCULO] Erro ao ler resposta: %v", err)
 			return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
 		}
+
+		// Log da resposta principal
+		log.Printf("📊 [API BRASIL - DADOS VEÍCULO] Status Code: %d", resp.StatusCode)
+		log.Printf("📄 [API BRASIL - DADOS VEÍCULO] Response Body: %s", string(respBody))
 
 		fmt.Println("📄 Resposta bruta da API de dados do veículo:")
 		fmt.Println(string(respBody))
 		fmt.Printf("⏱ Tempo API veículos: %v\n", time.Since(startVeiculo))
 
-		if err := json.Unmarshal(respBody, &fullResp); err != nil {
-			return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
+		// Verifica se precisa fazer fallback (status 400)
+		if resp.StatusCode == 400 {
+			log.Printf("🔄 [API BRASIL - FALLBACK] Status 400 detectado, tentando API alternativa para semi-reboques/carrocerias")
+
+			// Chama a API alternativa
+			fallbackResp, fallbackErr := consultarAPIAlternativa(placa, bearer, device, client)
+			if fallbackErr != nil {
+				log.Printf("❌ [API BRASIL - FALLBACK] Erro na API alternativa: %v", fallbackErr)
+				return nil, fmt.Errorf("erro na API alternativa: %w", fallbackErr)
+			}
+
+			log.Printf("✅ [API BRASIL - FALLBACK] API alternativa executada com sucesso")
+			fullResp = *fallbackResp
+		} else {
+			// Processa resposta normal
+			if err := json.Unmarshal(respBody, &fullResp); err != nil {
+				log.Printf("❌ [API BRASIL - DADOS VEÍCULO] Erro ao decodificar JSON: %v", err)
+				return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
+			}
 		}
 
 		// Cache apenas os dados da placa (sem multas)
@@ -99,8 +336,14 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
 	multaPayload := fmt.Sprintf(`{"placa":"%s", "tipo": "%s"}`, placa, "renainf")
 
+	// Log da requisição de multas
+	log.Printf("🚀 [API BRASIL - MULTAS] Iniciando consulta para placa: %s", placa)
+	log.Printf("🌐 [API BRASIL - MULTAS] URL: %s", multasURL)
+	log.Printf("📤 [API BRASIL - MULTAS] Request Body: %s", multaPayload)
+
 	reqMultas, err := http.NewRequest("POST", multasURL, strings.NewReader(multaPayload))
 	if err != nil {
+		log.Printf("❌ [API BRASIL - MULTAS] Erro ao criar requisição: %v", err)
 		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
 	}
 	reqMultas.Header.Set("Authorization", "Bearer "+bearer)
@@ -109,39 +352,59 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 	respMultas, err := client.Do(reqMultas)
 	if err != nil {
+		log.Printf("❌ [API BRASIL - MULTAS] Erro ao enviar requisição: %v", err)
 		fmt.Println("⚠️ Erro ao consultar multas:", err)
 	} else {
 		defer respMultas.Body.Close()
+
+		// Log da resposta de multas
+		log.Printf("📊 [API BRASIL - MULTAS] Status Code: %d", respMultas.StatusCode)
+
 		multasRespBody, _ := io.ReadAll(respMultas.Body)
+
+		// Log da resposta completa
+		log.Printf("📄 [API BRASIL - MULTAS] Response Body: %s", string(multasRespBody))
+		log.Printf("⏱️ [API BRASIL - MULTAS] Tempo de resposta: %v", time.Since(startMultas))
 
 		fmt.Println("📄 Resposta bruta da nova API de multas:")
 		fmt.Println(string(multasRespBody))
 		fmt.Printf("⏱ Tempo API multas: %v\n", time.Since(startMultas))
 
-		// Tenta decodificar como objeto com estrutura normal
-		var multaAPIResponse struct {
-			Error   bool   `json:"error"`
-			Message string `json:"message"`
-			Data    struct {
-				Registros []Multa `json:"registros"`
-			} `json:"data"`
-		}
-
-		if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
-			if multaAPIResponse.Error {
-				fmt.Printf("📄 API de multas retornou erro: %s (sem tarifação)\n", multaAPIResponse.Message)
-				fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
-			} else {
-				fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
-			}
+		// Verifica se é erro de saldo insuficiente
+		if strings.Contains(string(multasRespBody), "Saldo insuficiente") {
+			log.Printf("⚠️ [API BRASIL - MULTAS] Saldo insuficiente detectado, retornando array de multas vazio")
+			fmt.Println("⚠️ Saldo insuficiente para consulta de multas, retornando array vazio")
+			fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
 		} else {
-			// Se falhar, tenta decodificar como array vazio (caso raro)
-			var dataArray []interface{}
-			if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
-				fmt.Println("📄 API retornou array vazio para multas")
-				fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+			// Tenta decodificar como objeto com estrutura normal
+			var multaAPIResponse struct {
+				Error   bool   `json:"error"`
+				Message string `json:"message"`
+				Data    struct {
+					Registros []Multa `json:"registros"`
+				} `json:"data"`
+			}
+
+			if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
+				if multaAPIResponse.Error {
+					log.Printf("📄 [API BRASIL - MULTAS] API retornou erro: %s", multaAPIResponse.Message)
+					fmt.Printf("📄 API de multas retornou erro: %s (sem tarifação)\n", multaAPIResponse.Message)
+					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+				} else {
+					fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
+				}
 			} else {
-				fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
+				// Se falhar, tenta decodificar como array vazio (caso raro)
+				var dataArray []interface{}
+				if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
+					log.Printf("📄 [API BRASIL - MULTAS] API retornou array vazio")
+					fmt.Println("📄 API retornou array vazio para multas")
+					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+				} else {
+					log.Printf("⚠️ [API BRASIL - MULTAS] Erro ao decodificar JSON: %v", err)
+					fmt.Println("⚠️ Erro ao decodificar JSON da nova API de multas:", err)
+					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas em caso de erro
+				}
 			}
 		}
 	}
@@ -234,9 +497,32 @@ func ConsultarMultas(placa string) (MultasResponse, error) {
 		return MultasResponse{}, fmt.Errorf("erro ao ler resposta de multas: %w", err)
 	}
 
-	// Debug opcional
+	// Verifica se é erro de saldo insuficiente
+	if strings.Contains(string(body), "Saldo insuficiente") {
+		log.Printf("⚠️ [API BRASIL - CONSULTAR MULTAS] Saldo insuficiente detectado, retornando array de multas vazio")
+		fmt.Println("⚠️ Saldo insuficiente para consulta de multas, retornando array vazio")
 
-	// Parse
+		// Retorna resposta com array vazio de multas
+		multaResp := MultasResponse{
+			Data: struct {
+				Alerta                   string   `json:"alerta"`
+				Placa                    string   `json:"placa"`
+				QuantidadeOcorrencias    string   `json:"quantidade_ocorrencias"`
+				QuantidadeOcorrenciasTot string   `json:"quantidade_ocorrencias_total"`
+				Registros                []MultaA `json:"registros"`
+			}{
+				Placa:     placa,
+				Registros: []MultaA{}, // Array vazio
+			},
+		}
+
+		fmt.Printf("✅ Multas consultadas para %s em %v (total %d) - Saldo insuficiente\n",
+			placa, time.Since(start), len(multaResp.Data.Registros))
+
+		return multaResp, nil
+	}
+
+	// Parse normal
 	var multaResp MultasResponse
 	if err := json.Unmarshal(body, &multaResp); err != nil {
 		return MultasResponse{}, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
