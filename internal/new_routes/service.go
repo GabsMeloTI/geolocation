@@ -146,7 +146,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		var cachedOutput FinalOutput
 
 		if json.Unmarshal([]byte(cached), &cachedOutput) != nil {
-			log.Printf("Erro ao deserializar o cache: %v", err)
+			// Erro ao deserializar o cache
 			return FinalOutput{}, err
 		}
 
@@ -167,14 +167,14 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 				cachedOutput.Summary.LocationDestination.Address,
 				waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 			if errSavedRoutes != nil {
-				log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+				// Erro ao salvar rota/favorita (cache)
 			}
 
 			cachedOutput.Summary.RouteHistID = routeHistID
 			return cachedOutput, nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
+		// Erro ao recuperar cache do Redis
 	}
 
 	origin, err := s.getGeocodeAddress(ctx, frontInfo.Origin)
@@ -609,7 +609,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 
 	if data, err := json.Marshal(finalOutput); err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+			// Erro ao salvar cache do Redis
 		}
 	}
 
@@ -684,7 +684,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 					waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 
 				if errSavedRoutes != nil {
-					log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+					// Erro ao salvar rota/favorita (cache)
 				}
 
 				cachedOutput.Summary.RouteHistID = routeHistID
@@ -692,7 +692,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 			}
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
+		// Erro ao recuperar cache do Redis
 	}
 
 	originLat, originLon, err := s.getCoordByCEP(ctx, cepOrigin)
@@ -1187,7 +1187,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	if data, err := json.Marshal(finalOutput); err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+			// Erro ao salvar cache do Redis
 		}
 	}
 
@@ -1648,7 +1648,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 					waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 
 				if errSavedRoutes != nil {
-					log.Printf("Erro ao salvar rota/favorita (cache): %v", errSavedRoutes)
+					// Erro ao salvar rota/favorita (cache)
 				}
 
 				cachedOutput.Summary.RouteHistID = routeHistID
@@ -1656,7 +1656,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 			}
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (CalculateRoutes): %v", err)
+		// Erro ao recuperar cache do Redis
 	}
 
 	originLat, _ := validation.ParseStringToFloat(frontInfo.OriginLat)
@@ -2133,7 +2133,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 
 	if data, err := json.Marshal(finalOutput); err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (CalculateRoutes): %v", err)
+			// Erro ao salvar cache do Redis
 		}
 	}
 

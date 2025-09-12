@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"log"
 	"os"
 
 	"github.com/go-redis/redis/v8"
@@ -29,8 +28,6 @@ func InitRedis(environment string) {
 			panic("Não foi possível conectar ao Redis: " + err.Error())
 		}
 
-		log.Printf("Conectado ao Redis em: %s\n", redisAddr)
 		return
 	}
-	log.Println("redis pass...")
 }

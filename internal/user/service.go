@@ -173,7 +173,6 @@ func (s *Service) RecoverPasswordService(ctx context.Context, data RecoverPasswo
 		"Redefinição de senha",
 	)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	err = s.InterfaceService.CreateHistoryRecoverPasswordRepository(

@@ -2,11 +2,11 @@ package ws
 
 import (
 	"geolocation/internal/get_token"
-	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
-	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/websocket"
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -45,7 +45,7 @@ func (h *Handler) HandleWs(c echo.Context) error {
 
 	conn, err := upgrade.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	defer func(conn *websocket.Conn) {
@@ -67,11 +67,11 @@ func (h *Handler) HandleWs(c echo.Context) error {
 	home, err := h.InterfaceService.GetHomeService(c.Request().Context(), payload)
 
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	if err = conn.WriteJSON(home); err != nil {
-		log.Println(err)
+		return err
 	}
 
 	go cl.writeMessage()
