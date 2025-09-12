@@ -47,8 +47,9 @@ type Summary struct {
 }
 
 type Response struct {
-	Routes     []DetailedRoute `json:"routes"`
-	TotalRoute TotalSummary    `json:"total_route"`
+	Routes      []DetailedRoute `json:"routes"`
+	TotalRoute  TotalSummary    `json:"total_route"`
+	TotalRoutes []TotalSummary  `json:"total_routes_all,omitempty"`
 }
 
 type DetailedRoute struct {
@@ -76,6 +77,7 @@ type TotalSummary struct {
 	TotalFuelCost       float64     `json:"total_fuel_cost"`
 	Tolls               []Toll      `json:"tolls"`
 	Polyline            string      `json:"polyline"`
+	RouteType           string      `json:"route_type,omitempty"`
 }
 type SummaryResponse struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`

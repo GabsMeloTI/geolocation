@@ -2882,7 +2882,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, nil
 }
 
-// ---- new function
+// -- new function
 func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error) {
 
 	if len(data.CEPs) < 2 {
@@ -3479,13 +3479,17 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 		resultRoutes = append(resultRoutes, result.route)
 	}
 
-	// Calcular rota total com desvios
-	totalRoute := s.calculateTotalRouteWithAvoidanceFromCoordinates(ctx, *clientPool, riskZones, data.Coordinates, totalDistance, totalDuration, data)
+	// Calcular rota total com desvios - agora retorna múltiplas opções
+	totalRoute, allTotalRoutes := s.calculateTotalRouteWithAvoidanceFromCoordinates(ctx, *clientPool, riskZones, data.Coordinates, totalDistance, totalDuration, data)
 
-	return Response{
-		Routes:     resultRoutes,
-		TotalRoute: totalRoute,
-	}, nil
+	// Retorna tanto a melhor rota quanto todas as opções
+	response := Response{
+		Routes:      resultRoutes,
+		TotalRoute:  totalRoute,
+		TotalRoutes: allTotalRoutes, // Sempre inclui todas as rotas disponíveis
+	}
+
+	return response, nil
 }
 
 // convertCoordinatesToCEPRequest converte FrontInfoCoordinatesRequest para FrontInfoCEPRequest
@@ -3525,7 +3529,7 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
 	coordinates []Coordinate,
 	totalDistance, totalDuration float64,
 	data FrontInfoCoordinatesRequest,
-) TotalSummary {
+) (TotalSummary, []TotalSummary) {
 
 	// ------------------------------
 	// 1) Monta lista base de coords e endereços
@@ -3557,7 +3561,7 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
 	}
 
 	if len(allCoords) < 2 {
-		return TotalSummary{}
+		return TotalSummary{}, []TotalSummary{}
 	}
 
 	// ------------------------------
@@ -3777,22 +3781,112 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
 	}
 
 	// ------------------------------
-	// 3) Recalcula a rota TOTAL com a sequência ajustada
+	// 3) Recalcula múltiplas rotas TOTAIS com diferentes parâmetros (como no CalculateRoutes)
 	// ------------------------------
 	var totalRoute TotalSummary
 
 	coordsStr := strings.Join(newCoords, ";")
-	urlTotal := fmt.Sprintf(
-		"http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
-		neturl.PathEscape(coordsStr),
-	)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + neturl.PathEscape(coordsStr)
 
-	if resp, err := client.Get(urlTotal); err == nil {
+	// URLs para diferentes tipos de rota (EXATAMENTE igual ao CalculateRoutes)
+	osrmURLFast := baseOSRMURL + "?" + neturl.Values{
+		"alternatives":      {"3"},
+		"steps":             {"true"},
+		"overview":          {"full"},
+		"continue_straight": {"false"},
+	}.Encode()
+
+	osrmURLNoTolls := baseOSRMURL + "?" + neturl.Values{
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"toll"},
+	}.Encode()
+
+	osrmURLEfficient := baseOSRMURL + "?" + neturl.Values{
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"motorway"},
+	}.Encode()
+
+	// URLs adicionais para mais variações de rota
+	osrmURLFastNoFerry := baseOSRMURL + "?" + neturl.Values{
+		"alternatives":      {"3"},
+		"steps":             {"true"},
+		"overview":          {"full"},
+		"continue_straight": {"false"},
+		"exclude":           {"ferry"},
+	}.Encode()
+
+	osrmURLBalanced := baseOSRMURL + "?" + neturl.Values{
+		"alternatives": {"3"},
+		"steps":        {"true"},
+		"overview":     {"full"},
+		"exclude":      {"ferry,toll"},
+	}.Encode()
+
+	// Estrutura para resultados paralelos
+	type osrmTotalResult struct {
+		resp     OSRMResponse
+		err      error
+		category string
+	}
+	totalResultsCh := make(chan osrmTotalResult, 5) // Aumenta para 5 requisições
+
+	// Função para fazer requisições paralelas
+	makeTotalOSRMRequest := func(url, category, errMsg string) {
+		resp, err := client.Get(url)
+		if err != nil {
+			totalResultsCh <- osrmTotalResult{err: fmt.Errorf("%s: %w", errMsg, err), category: category}
+			return
+		}
 		defer resp.Body.Close()
 		var osrmResp OSRMResponse
-		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
-			route := osrmResp.Routes[0]
+		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+			totalResultsCh <- osrmTotalResult{err: fmt.Errorf("erro ao decodificar resposta OSRM (%s): %w", category, err), category: category}
+			return
+		}
+		if osrmResp.Code != "Ok" || len(osrmResp.Routes) == 0 {
+			totalResultsCh <- osrmTotalResult{err: fmt.Errorf("OSRM (%s) retornou erro ou nenhuma rota encontrada", category), category: category}
+			return
+		}
+		totalResultsCh <- osrmTotalResult{resp: osrmResp, category: category}
+	}
 
+	// Lança requisições paralelas - agora com mais variações
+	go makeTotalOSRMRequest(osrmURLFast, "fastest", "erro na requisição OSRM total (rota rápida)")
+	go makeTotalOSRMRequest(osrmURLNoTolls, "cheapest", "erro na requisição OSRM total (rota com menos pedágio)")
+	go makeTotalOSRMRequest(osrmURLEfficient, "efficient", "erro na requisição OSRM total (rota eficiente)")
+	go makeTotalOSRMRequest(osrmURLFastNoFerry, "fastest_no_ferry", "erro na requisição OSRM total (rota rápida sem ferry)")
+	go makeTotalOSRMRequest(osrmURLBalanced, "balanced", "erro na requisição OSRM total (rota balanceada)")
+
+	var osrmTotalRespFast, osrmTotalRespNoTolls, osrmTotalRespEfficient, osrmTotalRespFastNoFerry, osrmTotalRespBalanced OSRMResponse
+
+	// Coleta resultados
+	for i := 0; i < 5; i++ {
+		res := <-totalResultsCh
+		if res.err != nil {
+			continue // Ignora erros e tenta outras rotas
+		}
+		switch res.category {
+		case "fastest":
+			osrmTotalRespFast = res.resp
+		case "cheapest":
+			osrmTotalRespNoTolls = res.resp
+		case "efficient":
+			osrmTotalRespEfficient = res.resp
+		case "fastest_no_ferry":
+			osrmTotalRespFastNoFerry = res.resp
+		case "balanced":
+			osrmTotalRespBalanced = res.resp
+		}
+	}
+
+	// Processa múltiplas rotas como no CalculateRoutes
+	processTotalRoutes := func(osrmResp OSRMResponse, routeCategory string) []TotalSummary {
+		var totalRoutes []TotalSummary
+		for _, route := range osrmResp.Routes {
 			// Monta waypoints p/ URL do Google (endereços originais + via:lat,lng dos desvios)
 			waypointsForURL := make([]string, 0, len(waypoints)+len(extraWaypointsForURL))
 			if len(waypoints) > 2 {
@@ -3809,19 +3903,60 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
 					fmt.Sprintf("%f,%f", destinationLocation.Latitude, destinationLocation.Longitude),
 				}
 			}
-			totalRoute = s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, s.convertCoordinatesToCEPRequest(data))
+
+			routeSummary := s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, s.convertCoordinatesToCEPRequest(data))
 
 			// Força o uso dos valores acumulados dos segmentos para duração e distância mais precisos
 			distText, distVal := formatDistance(totalDistance)
 			durText, durVal := formatDuration(totalDuration)
-			totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
-			totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
+			routeSummary.TotalDistance = Distance{Text: distText, Value: distVal}
+			routeSummary.TotalDuration = Duration{Text: durText, Value: durVal}
 
 			// Recalcula custo de combustível com a distância correta
 			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
 			totalKm := totalDistance / 1000
-			totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+			routeSummary.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
 
+			// Adiciona categoria da rota
+			routeSummary.RouteType = routeCategory
+
+			totalRoutes = append(totalRoutes, routeSummary)
+		}
+		return totalRoutes
+	}
+
+	// Processa rotas exatamente como no CalculateRoutes
+	routesFast := processTotalRoutes(osrmTotalRespFast, "fastest")
+	routesNoTolls := processTotalRoutes(osrmTotalRespNoTolls, "cheapest")
+	routesEfficient := processTotalRoutes(osrmTotalRespEfficient, "efficient")
+	routesFastNoFerry := processTotalRoutes(osrmTotalRespFastNoFerry, "fastest_no_ferry")
+	routesBalanced := processTotalRoutes(osrmTotalRespBalanced, "balanced")
+
+	// Combina todas as rotas exatamente como no CalculateRoutes
+	var allTotalRoutes []TotalSummary
+	switch strings.ToLower(data.TypeRoute) {
+	case "efficient", "eficiente":
+		if len(routesEfficient) > 0 {
+			totalRoute = routesEfficient[0]
+		}
+		allTotalRoutes = routesEfficient
+	case "fastest", "fast", "rapida":
+		if len(routesFast) > 0 {
+			totalRoute = routesFast[0]
+		}
+		// Combina rotas rápidas e suas variações
+		allTotalRoutes = append(routesFast, routesFastNoFerry...)
+	case "cheapest", "cheap", "barata":
+		if len(routesNoTolls) > 0 {
+			totalRoute = routesNoTolls[0]
+		}
+		// Combina rotas baratas e suas variações
+		allTotalRoutes = append(routesNoTolls, routesBalanced...)
+	default:
+		// EXATAMENTE como no CalculateRoutes: combina TODAS as rotas
+		allTotalRoutes = append(append(append(append(routesFast, routesNoTolls...), routesEfficient...), routesFastNoFerry...), routesBalanced...)
+		if len(allTotalRoutes) > 0 {
+			totalRoute = allTotalRoutes[0]
 		}
 	}
 
@@ -3917,7 +4052,7 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
 		}
 	}
 
-	return totalRoute
+	return totalRoute, allTotalRoutes
 }
 
 func (s *Service) getActiveRiskZones(ctx context.Context, id int64) ([]RiskZone, error) {
