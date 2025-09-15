@@ -349,9 +349,6 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceHandler(c echo
 	return c.JSON(http.StatusOK, result)
 }
 
-
-
-
 func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler(c echo.Context) error {
 	var req FrontInfoCoordinatesRequest
 	if err := c.Bind(&req); err != nil {
@@ -375,4 +372,36 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+// GetCoordinatesFromAddress godoc
+// @Summary Obter coordenadas de um endereço
+// @Description Obtém latitude e longitude a partir de uma rua e número
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param street query string true "Nome da rua" example("Rua das Flores")
+// @Param number query string true "Número da casa" example("123")
+// @Success 200 {object} Location "Coordenadas do endereço"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /coordinates [get]
+func (h *Handler) GetCoordinatesFromAddress(c echo.Context) error {
+	street := c.QueryParam("street")
+	number := c.QueryParam("number")
+
+	if street == "" || number == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Parâmetros 'street' e 'number' são obrigatórios",
+		})
+	}
+
+	location, err := h.InterfaceService.GetCoordinatesFromAddress(c.Request().Context(), street, number)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Erro ao obter coordenadas: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, location)
 }

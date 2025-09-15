@@ -164,6 +164,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
 	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/address/coordinates", container.HandlerNewRoutes.GetCoordinatesFromAddress)
+
 
 	appointment := e.Group("/appointment")
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
@@ -188,7 +190,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 }
 
 // CustomJSONSerializer é um serializer JSON personalizado que não escapa barras
-type CustomJSONSerializer struct{}
+type CustomJSONSerializer struct{} 
 
 func (j *CustomJSONSerializer) Serialize(c echo.Context, i interface{}, indent string) error {
 	enc := json.NewEncoder(c.Response())

@@ -17,6 +17,12 @@ type Location struct {
 	Longitude float64 `json:"longitude"`
 }
 
+type AddressCoordinatesResponse struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Address   string  `json:"address"`
+}
+
 type AddressInfo struct {
 	Location Location `json:"location"`
 	Address  string   `json:"address"`

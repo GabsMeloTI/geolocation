@@ -42,6 +42,7 @@ type InterfaceService interface {
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
 	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
 	GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error)
+	GetCoordinatesFromAddress(ctx context.Context, street, number string) (AddressCoordinatesResponse, error)
 }
 
 type Service struct {
@@ -3522,14 +3523,7 @@ func (s *Service) CalculateDistancesBetweenPointsFromCoordinates(ctx context.Con
 }
 
 // calculateTotalRouteWithAvoidanceFromCoordinates calcula rota total com desvios para coordenadas
-func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	coordinates []Coordinate,
-	totalDistance, totalDuration float64,
-	data FrontInfoCoordinatesRequest,
-) (TotalSummary, []TotalSummary) {
+func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Context, client http.Client, riskZones []RiskZone, coordinates []Coordinate, totalDistance, totalDuration float64, data FrontInfoCoordinatesRequest) (TotalSummary, []TotalSummary) {
 
 	// ------------------------------
 	// 1) Monta lista base de coords e endereços
@@ -4199,14 +4193,7 @@ func (s *Service) haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
 }
 
 // calculateAlternativeRouteWithAvoidance calcula rota alternativa evitando zonas de risco
-func (s *Service) calculateAlternativeRouteWithAvoidance(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	originLat, originLon, destLat, destLon float64,
-	originGeocode, destGeocode GeocodeResult,
-	data FrontInfoCEPRequest,
-) []RouteSummary {
+func (s *Service) calculateAlternativeRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
 
 	const arcExtraBuffer = 200.0
 	const arcPoints = 2
@@ -4879,14 +4866,7 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 }
 
 // calculateTotalRouteWithAvoidance calcula rota total com desvios
-func (s *Service) calculateTotalRouteWithAvoidance(
-	ctx context.Context,
-	client http.Client,
-	riskZones []RiskZone,
-	ceps []string,
-	totalDistance, totalDuration float64,
-	data FrontInfoCEPRequest,
-) TotalSummary {
+func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client http.Client, riskZones []RiskZone, ceps []string, totalDistance, totalDuration float64, data FrontInfoCEPRequest) TotalSummary {
 
 	// ------------------------------
 	// 1) Monta lista base de coords e endereços
@@ -5417,12 +5397,7 @@ func (s *Service) snapToRoad(lat, lon float64) (float64, float64, bool) {
 }
 
 // cria um resumo total da rota
-func (s *Service) createTotalSummary(
-	route OSRMRoute,
-	originLocation, destinationLocation Location,
-	waypoints []string,
-	data FrontInfoCEPRequest,
-) TotalSummary {
+func (s *Service) createTotalSummary(route OSRMRoute, originLocation, destinationLocation Location, waypoints []string, data FrontInfoCEPRequest) TotalSummary {
 	distText, distVal := formatDistance(route.Distance)
 	durText, durVal := formatDuration(route.Duration)
 
@@ -5509,13 +5484,7 @@ func (s *Service) createTotalSummary(
 }
 
 // cria um resumo total da rota com waypoints para URL separados
-func (s *Service) createTotalSummaryWithURLWaypoints(
-	route OSRMRoute,
-	originLocation, destinationLocation Location,
-	waypoints []string,
-	waypointsForURL []string,
-	data FrontInfoCEPRequest,
-) TotalSummary {
+func (s *Service) createTotalSummaryWithURLWaypoints(route OSRMRoute, originLocation, destinationLocation Location, waypoints []string, waypointsForURL []string, data FrontInfoCEPRequest) TotalSummary {
 	distText, distVal := formatDistance(route.Distance)
 	durText, durVal := formatDuration(route.Duration)
 
@@ -6113,11 +6082,7 @@ func (s *Service) computeArrivalGuardPoint(zone RiskZone, dest Location, buffer 
 }
 
 // Fallback: calcula distância/tempo por Haversine e monta um resumo "ok".
-func (s *Service) createDirectEstimateSummary(
-	originLat, originLon, destLat, destLon float64,
-	originGeocode, destGeocode GeocodeResult,
-	data FrontInfoCEPRequest,
-) RouteSummary {
+func (s *Service) createDirectEstimateSummary(originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) RouteSummary {
 
 	// distância/tempo estimados
 	distance := s.haversineDistance(originLat, originLon, destLat, destLon)
@@ -6175,12 +6140,7 @@ func (s *Service) createDirectEstimateSummary(
 	}
 }
 
-func (s *Service) calculateDirectRoute(
-	ctx context.Context, client http.Client,
-	originLat, originLon, destLat, destLon float64,
-	originGeocode, destGeocode GeocodeResult,
-	data FrontInfoCEPRequest,
-) []RouteSummary {
+func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, originLat, originLon, destLat, destLon float64, originGeocode, destGeocode GeocodeResult, data FrontInfoCEPRequest) []RouteSummary {
 
 	coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
 	baseURL := "http://34.207.174.233:5000/route/v1/driving/" + neturl.PathEscape(coords) +
@@ -6207,4 +6167,86 @@ func (s *Service) calculateDirectRoute(
 	return []RouteSummary{
 		s.createDirectEstimateSummary(originLat, originLon, destLat, destLon, originGeocode, destGeocode, data),
 	}
+}
+
+// GetCoordinatesFromAddress obtém latitude e longitude a partir de um endereço (rua e número)
+func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number string) (AddressCoordinatesResponse, error) {
+	// Validação dos parâmetros de entrada
+	if strings.TrimSpace(street) == "" {
+		return AddressCoordinatesResponse{}, fmt.Errorf("rua não pode estar vazia")
+	}
+	if strings.TrimSpace(number) == "" {
+		return AddressCoordinatesResponse{}, fmt.Errorf("número não pode estar vazio")
+	}
+
+	// Monta o endereço completo
+	address := fmt.Sprintf("%s, %s, Brasil", strings.TrimSpace(street), strings.TrimSpace(number))
+
+	// Chave do cache baseada no endereço
+	cacheKey := fmt.Sprintf("geocode_address:%s", address)
+
+	// Tenta buscar no cache primeiro [[memory:7626964]]
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var location AddressCoordinatesResponse
+		if json.Unmarshal([]byte(cached), &location) == nil {
+			return location, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao buscar no cache: %v", err)
+	}
+
+	// Cria cliente do Google Maps
+	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	if err != nil {
+		return AddressCoordinatesResponse{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+	}
+
+	// Primeiro tenta usar Place Autocomplete para melhorar a precisão
+	autoCompleteReq := &maps.PlaceAutocompleteRequest{
+		Input:    address,
+		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253}, // Centro do Brasil
+		Radius:   1000000,
+		Language: "pt-BR",
+		Types:    "geocode",
+	}
+
+	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+		address = autoCompleteResp.Predictions[0].Description
+	} else if autoCompleteErr != nil {
+		log.Printf("Erro no Place Autocomplete: %v", autoCompleteErr)
+	}
+
+	// Faz a requisição de geocoding
+	req := &maps.GeocodingRequest{
+		Address: address,
+		Region:  "br",
+	}
+
+	results, err := client.Geocode(ctx, req)
+	if err != nil {
+		return AddressCoordinatesResponse{}, fmt.Errorf("erro ao consultar Google Maps API: %v", err)
+	}
+
+	if len(results) == 0 {
+		return AddressCoordinatesResponse{}, fmt.Errorf("endereço não encontrado: %s. Verifique se a rua e número estão corretos", address)
+	}
+
+	// Extrai as coordenadas do primeiro resultado
+	location := AddressCoordinatesResponse{
+		Latitude:  results[0].Geometry.Location.Lat,
+		Longitude: results[0].Geometry.Location.Lng,
+		Address:   results[0].FormattedAddress,
+	}
+
+	// Salva no cache por 30 dias [[memory:7626964]]
+	data, err := json.Marshal(location)
+	if err == nil {
+		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+			log.Printf("Erro ao salvar no cache: %v", err)
+		}
+	}
+
+	return location, nil
 }
