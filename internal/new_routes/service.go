@@ -42,7 +42,7 @@ type InterfaceService interface {
 	GetFavoriteRouteService(ctx context.Context, id int64) ([]FavoriteRouteResponse, error)
 	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
 	GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error)
-	GetCoordinatesFromAddress(ctx context.Context, street, number string) (AddressCoordinatesResponse, error)
+	GetCoordinatesFromAddress(ctx context.Context, street, number, city, state, cep string) (AddressCoordinatesResponse, error)
 }
 
 type Service struct {
@@ -6170,7 +6170,7 @@ func (s *Service) calculateDirectRoute(ctx context.Context, client http.Client, 
 }
 
 // GetCoordinatesFromAddress obtém latitude e longitude a partir de um endereço (rua e número)
-func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number string) (AddressCoordinatesResponse, error) {
+func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number, city, state, cep string) (AddressCoordinatesResponse, error) {
 	// Validação dos parâmetros de entrada
 	if strings.TrimSpace(street) == "" {
 		return AddressCoordinatesResponse{}, fmt.Errorf("rua não pode estar vazia")
@@ -6180,7 +6180,26 @@ func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number 
 	}
 
 	// Monta o endereço completo
-	address := fmt.Sprintf("%s, %s, Brasil", strings.TrimSpace(street), strings.TrimSpace(number))
+	// Monta o endereço base (rua + número)
+	addressParts := []string{
+		strings.TrimSpace(street),
+		strings.TrimSpace(number),
+	}
+
+	// Adiciona refinamentos se existirem
+	if cep != "" {
+		addressParts = append(addressParts, cep)
+	}
+	if city != "" {
+		addressParts = append(addressParts, city)
+	}
+	if state != "" {
+		addressParts = append(addressParts, state)
+	}
+
+	// Sempre termina com Brasil
+	addressParts = append(addressParts, "Brasil")
+	address := strings.Join(addressParts, ", ")
 
 	// Chave do cache baseada no endereço
 	cacheKey := fmt.Sprintf("geocode_address:%s", address)
@@ -6203,25 +6222,32 @@ func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number 
 	}
 
 	// Primeiro tenta usar Place Autocomplete para melhorar a precisão
-	autoCompleteReq := &maps.PlaceAutocompleteRequest{
-		Input:    address,
-		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253}, // Centro do Brasil
-		Radius:   1000000,
-		Language: "pt-BR",
-		Types:    "geocode",
-	}
-
-	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-		address = autoCompleteResp.Predictions[0].Description
-	} else if autoCompleteErr != nil {
-		log.Printf("Erro no Place Autocomplete: %v", autoCompleteErr)
-	}
+	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
+	//	Input:    address,
+	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253}, // Centro do Brasil
+	//	Radius:   1000000,
+	//	Language: "pt-BR",
+	//	Types:    "geocode",
+	//}
+	//fmt.Println(address)
+	//
+	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+	//	address = autoCompleteResp.Predictions[0].Description
+	//} else if autoCompleteErr != nil {
+	//	log.Printf("Erro no Place Autocomplete: %v", autoCompleteErr)
+	//}
 
 	// Faz a requisição de geocoding
 	req := &maps.GeocodingRequest{
 		Address: address,
 		Region:  "br",
+		Components: map[maps.Component]string{
+			"country":             "BR",
+			"postal_code":         cep,   // se informado
+			"administrative_area": state, // UF
+			"locality":            city,  // município
+		},
 	}
 
 	results, err := client.Geocode(ctx, req)

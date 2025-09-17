@@ -389,6 +389,9 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 func (h *Handler) GetCoordinatesFromAddress(c echo.Context) error {
 	street := c.QueryParam("street")
 	number := c.QueryParam("number")
+	cep := c.QueryParam("cep")
+	city := c.QueryParam("city")
+	state := c.QueryParam("state")
 
 	if street == "" || number == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -396,7 +399,7 @@ func (h *Handler) GetCoordinatesFromAddress(c echo.Context) error {
 		})
 	}
 
-	location, err := h.InterfaceService.GetCoordinatesFromAddress(c.Request().Context(), street, number)
+	location, err := h.InterfaceService.GetCoordinatesFromAddress(c.Request().Context(), street, number, city, state, cep)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Erro ao obter coordenadas: " + err.Error(),
