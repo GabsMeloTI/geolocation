@@ -82,8 +82,8 @@ jobs:
             git pull origin develop
           
             echo "Construindo imagem Docker..."
-            docker build -t go-geolocation-dev .
-          
+            docker build --progress=plain -t go-geolocation-dev .
+
             echo "Parando container antigo..."
             docker ps -q -f name=go-geolocation-dev-container && docker stop go-geolocation-dev-container || true
             docker ps -a -q -f name=go-geolocation-dev-container && docker rm go-geolocation-dev-container || true
@@ -127,7 +127,7 @@ jobs:
             git pull origin homolog
           
             echo "Construindo imagem Docker..."
-            docker build -t go-geolocation-homolog .
+            docker build --progress=plain -t go-geolocation-homolog .
           
             echo "Parando container antigo..."
             docker ps -q -f name=homolog-go-geolocation-container && docker stop homolog-go-geolocation-container || true

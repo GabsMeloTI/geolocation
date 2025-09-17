@@ -129,14 +129,10 @@ func convertFallbackToFullResponse(fallbackResp FallbackAPIResponse) *FullAPIRes
 				TipoVeiculo: dataItem.TipoVeiculo,
 			},
 			Eixos: fmt.Sprintf("%d", dataItem.QuantidadeEixo),
-			Extra: struct {
-				AnoFabricacao   string `json:"ano_fabricacao"`
-				CapMaximaTracao string `json:"cap_maxima_tracao"`
-				Chassi          string `json:"chassi"`
-			}{
-				AnoFabricacao:   fmt.Sprintf("%d", dataItem.AnoFabricacao),
-				CapMaximaTracao: fmt.Sprintf("%d", dataItem.CapacidadeMaxTracao),
-				Chassi:          dataItem.Chassi,
+			Extra: map[string]interface{}{
+				"ano_fabricacao":    fmt.Sprintf("%d", dataItem.AnoFabricacao),
+				"cap_maxima_tracao": fmt.Sprintf("%d", dataItem.CapacidadeMaxTracao),
+				"chassi":            dataItem.Chassi,
 			},
 			Multas: struct {
 				Dados []Multa `json:"dados"`

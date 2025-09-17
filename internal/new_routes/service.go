@@ -3196,6 +3196,13 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 		return s.CalculateDistancesBetweenPointsFromCoordinates(ctx, data)
 	}
 
+	// Buscar balanças disponíveis
+	balancas, err := s.InterfaceService.GetBalanca(ctx)
+	if err != nil {
+		log.Printf("Erro ao obter balanças: %v", err)
+		balancas = nil
+	}
+
 	// Pool de clientes HTTP reutilizáveis para melhor performance
 	clientPool := &http.Client{
 		Timeout: 10 * time.Second, // Timeout ainda mais agressivo
@@ -3483,11 +3490,24 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 	// Calcular rota total com desvios - agora retorna múltiplas opções
 	totalRoute, allTotalRoutes := s.calculateTotalRouteWithAvoidanceFromCoordinates(ctx, *clientPool, riskZones, data.Coordinates, totalDistance, totalDuration, data)
 
+	// Filtrar balanças para a rota total se disponível
+	var routeBalancas interface{}
+	if balancas != nil && totalRoute.Polyline != "" {
+		filteredBalancas, err := s.findBalancaOnRoute(totalRoute.Polyline, balancas)
+		if err != nil {
+			log.Printf("Erro ao filtrar balanças: %v", err)
+			routeBalancas = nil
+		} else {
+			routeBalancas = filteredBalancas
+		}
+	}
+
 	// Retorna tanto a melhor rota quanto todas as opções
 	response := Response{
 		Routes:      resultRoutes,
 		TotalRoute:  totalRoute,
 		TotalRoutes: allTotalRoutes, // Sempre inclui todas as rotas disponíveis
+		Balances:    routeBalancas,
 	}
 
 	return response, nil

@@ -94,20 +94,16 @@ type Response struct {
 	CorVeiculo struct {
 		Cor string `json:"cor"`
 	} `json:"cor_veiculo"`
-	QuantidadePassageiro string     `json:"quantidade_passageiro"`
-	SituacaoChassi       string     `json:"situacao_chassi"`
-	Eixos                string     `json:"eixos"`
-	TipoMontagem         string     `json:"tipo_montagem"`
-	UltimaAtualizacao    string     `json:"ultima_atualizacao"`
-	Cilindradas          string     `json:"cilindradas"`
-	SituacaoVeiculo      string     `json:"situacao_veiculo"`
-	Listamodelo          [][]string `json:"listamodelo"`
-	Extra                struct {
-		AnoFabricacao   string `json:"ano_fabricacao"`
-		CapMaximaTracao string `json:"cap_maxima_tracao"`
-		Chassi          string `json:"chassi"`
-	} `json:"extra"`
-	Multas struct {
+	QuantidadePassageiro string      `json:"quantidade_passageiro"`
+	SituacaoChassi       string      `json:"situacao_chassi"`
+	Eixos                string      `json:"eixos"`
+	TipoMontagem         string      `json:"tipo_montagem"`
+	UltimaAtualizacao    string      `json:"ultima_atualizacao"`
+	Cilindradas          string      `json:"cilindradas"`
+	SituacaoVeiculo      string      `json:"situacao_veiculo"`
+	Listamodelo          [][]string  `json:"listamodelo"`
+	Extra                interface{} `json:"extra"`
+	Multas               struct {
 		Dados []Multa `json:"dados"`
 	} `json:"multas,omitempty"`
 }
