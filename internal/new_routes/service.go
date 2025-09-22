@@ -3502,12 +3502,24 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 		}
 	}
 
+	// Atualizar a rota total com as balanças filtradas
+	totalRoute.Balances = routeBalancas
+
+	// Atualizar todas as rotas com as balanças filtradas
+	for i := range allTotalRoutes {
+		if allTotalRoutes[i].Polyline != "" {
+			filteredBalancas, err := s.findBalancaOnRoute(allTotalRoutes[i].Polyline, balancas)
+			if err == nil {
+				allTotalRoutes[i].Balances = filteredBalancas
+			}
+		}
+	}
+
 	// Retorna tanto a melhor rota quanto todas as opções
 	response := Response{
 		Routes:      resultRoutes,
 		TotalRoute:  totalRoute,
 		TotalRoutes: allTotalRoutes, // Sempre inclui todas as rotas disponíveis
-		Balances:    routeBalancas,
 	}
 
 	return response, nil

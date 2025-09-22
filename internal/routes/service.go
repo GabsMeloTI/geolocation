@@ -807,7 +807,7 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 				}
 			}
 		}
-	}
+	} 
 
 	for _, point := range uniquePoints {
 		for _, dbBalanca := range tolls {

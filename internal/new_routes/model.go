@@ -56,7 +56,6 @@ type Response struct {
 	Routes      []DetailedRoute `json:"routes"`
 	TotalRoute  TotalSummary    `json:"total_route"`
 	TotalRoutes []TotalSummary  `json:"total_routes_all,omitempty"`
-	Balances    interface{}     `json:"balances"`
 }
 
 type DetailedRoute struct {
@@ -83,6 +82,7 @@ type TotalSummary struct {
 	TotalTolls          float64     `json:"total_tolls"`
 	TotalFuelCost       float64     `json:"total_fuel_cost"`
 	Tolls               []Toll      `json:"tolls"`
+	Balances            interface{} `json:"balances"`
 	Polyline            string      `json:"polyline"`
 	RouteType           string      `json:"route_type,omitempty"`
 }
