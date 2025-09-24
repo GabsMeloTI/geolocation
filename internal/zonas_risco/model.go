@@ -5,13 +5,14 @@ import (
 )
 
 type CreateZonaRiscoRequest struct {
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
-	Type   int64   `json:"type"`
-	OrgID  int64   `json:"organization_id"`
+	Name        string  `json:"name"`
+	Cep         string  `json:"cep"`
+	Lat         float64 `json:"lat"`
+	Lng         float64 `json:"lng"`
+	Radius      int64   `json:"radius"`
+	Type        int64   `json:"type"`
+	OrgID       int64   `json:"organization_id"`
+	ZonaAtencao bool    `json:"zona_atencao"`
 }
 
 type UpdateZonaRiscoRequest struct {
@@ -26,15 +27,16 @@ type UpdateZonaRiscoRequest struct {
 }
 
 type ZonaRiscoResponse struct {
-	ID     int64   `json:"id"`
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
-	Type   int64   `json:"type"`
-	Status bool    `json:"status"`
-	OrgID  int64   `json:"org_id"`
+	ID          int64   `json:"id"`
+	Name        string  `json:"name"`
+	Cep         string  `json:"cep"`
+	Lat         float64 `json:"lat"`
+	Lng         float64 `json:"lng"`
+	Radius      int64   `json:"radius"`
+	Type        int64   `json:"type"`
+	Status      bool    `json:"status"`
+	ZonaAtencao bool    `json:"zona_atencao"`
+	OrgID       int64   `json:"org_id"`
 }
 
 func (r *ZonaRiscoResponse) ParseFromDb(result db.ZonasRisco) {
@@ -46,5 +48,6 @@ func (r *ZonaRiscoResponse) ParseFromDb(result db.ZonasRisco) {
 	r.Radius = result.Radius
 	r.Type = result.Type.Int64
 	r.Status = result.Status
+	r.ZonaAtencao = result.ZonaAtencao
 	r.OrgID = result.OrganizationID.Int64
 }

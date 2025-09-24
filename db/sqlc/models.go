@@ -558,5 +558,6 @@ type ZonasRisco struct {
 	Radius         int64         `json:"radius"`
 	Type           sql.NullInt64 `json:"type"`
 	OrganizationID sql.NullInt64 `json:"organization_id"`
+	ZonaAtencao    bool          `json:"zona_atencao"`
 	Status         bool          `json:"status"`
 }

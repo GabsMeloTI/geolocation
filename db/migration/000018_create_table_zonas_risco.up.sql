@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS zonas_risco (
   radius      BIGINT      NOT NULL,
   type BIGINT null,
     organization_id bigint null,
+    zona_atencao bool default false not null,
   status      BOOLEAN      NOT NULL DEFAULT TRUE
 );

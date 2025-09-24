@@ -34,7 +34,8 @@ func (s *Service) CreateZonaRiscoService(ctx context.Context, data CreateZonaRis
 			Int64: data.OrgID,
 			Valid: true,
 		},
-		Type: sql.NullInt64{Int64: data.Type, Valid: true},
+		Type:        sql.NullInt64{Int64: data.Type, Valid: true},
+		ZonaAtencao: data.ZonaAtencao,
 	}
 
 	result, err := s.InterfaceService.CreateZonaRisco(ctx, arg)

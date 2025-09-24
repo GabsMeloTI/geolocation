@@ -11,9 +11,9 @@ import (
 )
 
 const createZonaRisco = `-- name: CreateZonaRisco :one
-INSERT INTO zonas_risco (name, cep, lat, lng, radius, type, organization_id, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-RETURNING id, name, cep, lat, lng, radius, type, organization_id, status
+INSERT INTO zonas_risco (name, cep, lat, lng, radius, type, organization_id, status, zona_atencao)
+VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8)
+RETURNING id, name, cep, lat, lng, radius, type, organization_id, zona_atencao, status
 `
 
 type CreateZonaRiscoParams struct {
@@ -24,6 +24,7 @@ type CreateZonaRiscoParams struct {
 	Radius         int64         `json:"radius"`
 	Type           sql.NullInt64 `json:"type"`
 	OrganizationID sql.NullInt64 `json:"organization_id"`
+	ZonaAtencao    bool          `json:"zona_atencao"`
 }
 
 func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams) (ZonasRisco, error) {
@@ -35,6 +36,7 @@ func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams
 		arg.Radius,
 		arg.Type,
 		arg.OrganizationID,
+		arg.ZonaAtencao,
 	)
 	var i ZonasRisco
 	err := row.Scan(
@@ -46,6 +48,7 @@ func (q *Queries) CreateZonaRisco(ctx context.Context, arg CreateZonaRiscoParams
 		&i.Radius,
 		&i.Type,
 		&i.OrganizationID,
+		&i.ZonaAtencao,
 		&i.Status,
 	)
 	return i, err
@@ -63,7 +66,7 @@ func (q *Queries) DeleteZonaRisco(ctx context.Context, id int64) error {
 }
 
 const getAllZonasRisco = `-- name: GetAllZonasRisco :many
-SELECT id, name, cep, lat, lng, radius, type, organization_id, status FROM zonas_risco WHERE status = true and organization_id=$1
+SELECT id, name, cep, lat, lng, radius, type, organization_id, zona_atencao, status FROM zonas_risco WHERE status = true and organization_id=$1
 `
 
 func (q *Queries) GetAllZonasRisco(ctx context.Context, organizationID sql.NullInt64) ([]ZonasRisco, error) {
@@ -84,6 +87,7 @@ func (q *Queries) GetAllZonasRisco(ctx context.Context, organizationID sql.NullI
 			&i.Radius,
 			&i.Type,
 			&i.OrganizationID,
+			&i.ZonaAtencao,
 			&i.Status,
 		); err != nil {
 			return nil, err
@@ -100,7 +104,7 @@ func (q *Queries) GetAllZonasRisco(ctx context.Context, organizationID sql.NullI
 }
 
 const getZonaRiscoById = `-- name: GetZonaRiscoById :one
-SELECT id, name, cep, lat, lng, radius, type, organization_id, status FROM zonas_risco WHERE id = $1 AND status = true
+SELECT id, name, cep, lat, lng, radius, type, organization_id, zona_atencao, status FROM zonas_risco WHERE id = $1 AND status = true
 `
 
 func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, error) {
@@ -115,6 +119,7 @@ func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, e
 		&i.Radius,
 		&i.Type,
 		&i.OrganizationID,
+		&i.ZonaAtencao,
 		&i.Status,
 	)
 	return i, err
@@ -122,9 +127,9 @@ func (q *Queries) GetZonaRiscoById(ctx context.Context, id int64) (ZonasRisco, e
 
 const updateZonaRisco = `-- name: UpdateZonaRisco :one
 UPDATE zonas_risco
-SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6, type= $7, organization_id=$8
+SET name = $2, cep = $3, lat = $4, lng = $5, radius = $6, type= $7, organization_id=$8, zona_atencao=$9
 WHERE id = $1 and status = true
-RETURNING id, name, cep, lat, lng, radius, type, organization_id, status
+RETURNING id, name, cep, lat, lng, radius, type, organization_id, zona_atencao, status
 `
 
 type UpdateZonaRiscoParams struct {
@@ -136,6 +141,7 @@ type UpdateZonaRiscoParams struct {
 	Radius         int64         `json:"radius"`
 	Type           sql.NullInt64 `json:"type"`
 	OrganizationID sql.NullInt64 `json:"organization_id"`
+	ZonaAtencao    bool          `json:"zona_atencao"`
 }
 
 func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams) (ZonasRisco, error) {
@@ -148,6 +154,7 @@ func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams
 		arg.Radius,
 		arg.Type,
 		arg.OrganizationID,
+		arg.ZonaAtencao,
 	)
 	var i ZonasRisco
 	err := row.Scan(
@@ -159,6 +166,7 @@ func (q *Queries) UpdateZonaRisco(ctx context.Context, arg UpdateZonaRiscoParams
 		&i.Radius,
 		&i.Type,
 		&i.OrganizationID,
+		&i.ZonaAtencao,
 		&i.Status,
 	)
 	return i, err
