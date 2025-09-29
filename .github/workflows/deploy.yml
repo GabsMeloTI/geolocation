@@ -69,9 +69,14 @@ jobs:
             git checkout develop
             git pull origin develop
 
-            echo "Recriando container do DEVELOP..."
-            docker compose up -d --build --force-recreate go-geolocation-dev
-
+            echo "Parando e removendo container antigo..."
+            docker compose stop go-geolocation-dev || true
+            docker compose rm -f go-geolocation-dev || true
+            
+            echo "Subindo container atualizado..."
+            docker compose up -d --build go-geolocation-dev
+  
+  
             docker image prune -f
             echo "Deploy concluído!"
           EOF
