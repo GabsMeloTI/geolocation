@@ -293,14 +293,19 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 	respMultas, err := client.Do(reqMultas)
 	if err != nil {
+		fmt.Printf("erro ao buscar multas da placa: ", placa)
 		// Erro ao consultar multas - continua sem multas
 	} else {
 		defer respMultas.Body.Close()
 
 		multasRespBody, _ := io.ReadAll(respMultas.Body)
 
+		fmt.Printf("[DEBUG] Resposta API Brasil (multas) - Placa %s: %s\n------------------------------\n", placa, string(multasRespBody))
+
 		// Verifica se é erro de saldo insuficiente
 		if strings.Contains(string(multasRespBody), "Saldo insuficiente") {
+			fmt.Printf("Saldo insuficiente")
+
 			// Saldo insuficiente - retorna array vazio
 			fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
 		} else {
@@ -320,6 +325,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 					fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
 				}
 			} else {
+				fmt.Printf("[ERROR] Falha ao decodificar multas JSON (placa %s): %v\n", placa, err)
 				// Se falhar, tenta decodificar como array vazio (caso raro)
 				var dataArray []interface{}
 				if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
