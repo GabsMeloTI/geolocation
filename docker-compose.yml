@@ -1,40 +1,36 @@
-version: '3.9'
+version: "3.9"
 
 services:
-  postgres:
-    image: postgres:12-alpine
-    container_name: login-postgres
+  go-geolocation:
+    build: .
+    container_name: go-geolocation-container
     restart: always
+    env_file:
+      - .env
     ports:
-      - "${DB_PORT:-5432}:5432"
-    environment:
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      POSTGRES_DB: "${DB_DATABASE}"
+      - "7777:8080"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - .:/app
 
-  app:
-      image: sua-imagem-da-aplicacao
-      ports:
-        - "8080:8080"
-      depends_on:
-        - redis
-      environment:
-        - REDIS_URL=redis://redis:6379
+  go-geolocation-dev:
+    build: .
+    container_name: go-geolocation-dev-container
+    restart: always
+    env_file:
+      - .env.dev
+    ports:
+      - "7070:8080"
+    volumes:
+      - .:/app
 
-      redis:
-        image: redis:6
-        ports:
-          - "6379:6379"
-        volumes:
-          - /var/lib/redis:/data
+  go-geolocation-homolog:
+    build: .
+    container_name: go-geolocation-homolog-container
+    restart: always
+    env_file:
+      - .env.homolog
+    ports:
+      - "9089:8080"
+    volumes:
+      - .:/app
 
-volumes:
-  postgres_data:
-  redis_data:
