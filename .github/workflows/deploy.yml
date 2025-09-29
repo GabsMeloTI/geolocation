@@ -35,8 +35,7 @@ jobs:
             git pull origin main
 
             echo "Recriando container do MAIN..."
-            docker compose build go-geolocation
-            docker compose up -d go-geolocation
+            docker compose up -d --build --force-recreate go-geolocation
 
             docker image prune -f
             echo "Deploy concluído!"
@@ -71,8 +70,7 @@ jobs:
             git pull origin develop
 
             echo "Recriando container do DEVELOP..."
-            docker compose build go-geolocation-dev
-            docker compose up -d go-geolocation-dev
+            docker compose up -d --build --force-recreate go-geolocation-dev
 
             docker image prune -f
             echo "Deploy concluído!"
@@ -107,8 +105,7 @@ jobs:
             git pull origin homolog
 
             echo "Recriando container do HOMOLOG..."
-            docker compose build go-geolocation-homolog
-            docker compose up -d go-geolocation-homolog
+            docker compose up -d --build --force-recreate go-geolocation-homolog
 
             docker image prune -f
             echo "Deploy concluído!"
