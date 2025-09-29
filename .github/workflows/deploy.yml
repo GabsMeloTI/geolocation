@@ -70,13 +70,12 @@ jobs:
             git pull origin develop
 
             echo "Parando e removendo container antigo..."
-            docker compose stop go-geolocation-dev || true
-            docker compose rm -f go-geolocation-dev || true
+            docker ps -aq -f name=go-geolocation-dev-container | xargs -r docker stop
+            docker ps -aq -f name=go-geolocation-dev-container | xargs -r docker rm -f
             
             echo "Subindo container atualizado..."
             docker compose up -d --build go-geolocation-dev
-  
-  
+
             docker image prune -f
             echo "Deploy concluído!"
           EOF
