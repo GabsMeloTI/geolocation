@@ -19,6 +19,38 @@ var (
 	ctx = context.Background()
 )
 
+// Estrutura para os dados do veículo
+type VeiculoData struct {
+	Placa               string `json:"placa"`
+	Chassi              string `json:"chassi"`
+	Fabricante          string `json:"fabricante"`
+	Modelo              string `json:"modelo"`
+	AnoFabricacao       int    `json:"ano_fabricacao"`
+	AnoModelo           int    `json:"ano_modelo"`
+	Combustivel         string `json:"combustivel"`
+	TipoVeiculo         string `json:"tipo_veiculo"`
+	Especie             string `json:"especie"`
+	Cor                 string `json:"cor"`
+	TipoCarroceria      string `json:"tipo_carroceria"`
+	Nacionalidade       string `json:"nacionalidade"`
+	NumeroMotor         string `json:"numero_motor"`
+	Potencia            int    `json:"potencia"`
+	Carga               *int   `json:"carga"`
+	NumeroCarroceria    *int   `json:"numero_carroceria"`
+	NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
+	NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
+	NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
+	QuantidadeEixo      int    `json:"quantidade_eixo"`
+	Cilindradas         string `json:"cilindradas"`
+	CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
+	PesoBrutoTotal      int    `json:"peso_bruto_total"`
+	QuantidadeLugares   int    `json:"quantidade_lugares"`
+	TipoMontagem        *int   `json:"tipo_montagem"`
+	UfJurisdicao        string `json:"uf_jurisdicao"`
+	UfFaturado          string `json:"uf_faturado"`
+	Cidade              string `json:"cidade"`
+}
+
 // Estrutura para a resposta da API alternativa (veiculos-dados-v1)
 type FallbackAPIResponse struct {
 	User struct {
@@ -27,78 +59,28 @@ type FallbackAPIResponse struct {
 		Cellphone    string `json:"cellphone"`
 		Notification string `json:"notification"`
 	} `json:"user"`
-	Balance string `json:"balance"`
-	Error   bool   `json:"error"`
-	Message string `json:"message"`
-	Homolog bool   `json:"homolog"`
-	Data    []struct {
-		Placa               string `json:"placa"`
-		Chassi              string `json:"chassi"`
-		Fabricante          string `json:"fabricante"`
-		Modelo              string `json:"modelo"`
-		AnoFabricacao       int    `json:"ano_fabricacao"`
-		AnoModelo           int    `json:"ano_modelo"`
-		Combustivel         string `json:"combustivel"`
-		TipoVeiculo         string `json:"tipo_veiculo"`
-		Especie             string `json:"especie"`
-		Cor                 string `json:"cor"`
-		TipoCarroceria      string `json:"tipo_carroceria"`
-		Nacionalidade       string `json:"nacionalidade"`
-		NumeroMotor         string `json:"numero_motor"`
-		Potencia            int    `json:"potencia"`
-		Carga               *int   `json:"carga"`
-		NumeroCarroceria    *int   `json:"numero_carroceria"`
-		NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
-		NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
-		NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
-		QuantidadeEixo      int    `json:"quantidade_eixo"`
-		Cilindradas         string `json:"cilindradas"`
-		CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
-		PesoBrutoTotal      int    `json:"peso_bruto_total"`
-		QuantidadeLugares   int    `json:"quantidade_lugares"`
-		TipoMontagem        *int   `json:"tipo_montagem"`
-		UfJurisdicao        string `json:"uf_jurisdicao"`
-		UfFaturado          string `json:"uf_faturado"`
-		Cidade              string `json:"cidade"`
-	} `json:"data"`
+	Balance string          `json:"balance"`
+	Error   bool            `json:"error"`
+	Message string          `json:"message"`
+	Homolog bool            `json:"homolog"`
+	Data    json.RawMessage `json:"data"` // Campo flexível para receber array ou objeto
 }
 
 // Converte a resposta da API alternativa para o formato FullAPIResponse
 func convertFallbackToFullResponse(fallbackResp FallbackAPIResponse) *FullAPIResponse {
-	// Pega o primeiro item do array (se existir)
-	var dataItem struct {
-		Placa               string `json:"placa"`
-		Chassi              string `json:"chassi"`
-		Fabricante          string `json:"fabricante"`
-		Modelo              string `json:"modelo"`
-		AnoFabricacao       int    `json:"ano_fabricacao"`
-		AnoModelo           int    `json:"ano_modelo"`
-		Combustivel         string `json:"combustivel"`
-		TipoVeiculo         string `json:"tipo_veiculo"`
-		Especie             string `json:"especie"`
-		Cor                 string `json:"cor"`
-		TipoCarroceria      string `json:"tipo_carroceria"`
-		Nacionalidade       string `json:"nacionalidade"`
-		NumeroMotor         string `json:"numero_motor"`
-		Potencia            int    `json:"potencia"`
-		Carga               *int   `json:"carga"`
-		NumeroCarroceria    *int   `json:"numero_carroceria"`
-		NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
-		NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
-		NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
-		QuantidadeEixo      int    `json:"quantidade_eixo"`
-		Cilindradas         string `json:"cilindradas"`
-		CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
-		PesoBrutoTotal      int    `json:"peso_bruto_total"`
-		QuantidadeLugares   int    `json:"quantidade_lugares"`
-		TipoMontagem        *int   `json:"tipo_montagem"`
-		UfJurisdicao        string `json:"uf_jurisdicao"`
-		UfFaturado          string `json:"uf_faturado"`
-		Cidade              string `json:"cidade"`
-	}
+	var dataItem VeiculoData
 
-	if len(fallbackResp.Data) > 0 {
-		dataItem = fallbackResp.Data[0]
+	// Tenta decodificar como array primeiro
+	var dataArray []VeiculoData
+	if err := json.Unmarshal(fallbackResp.Data, &dataArray); err == nil && len(dataArray) > 0 {
+		// Se for um array, pega o primeiro item
+		dataItem = dataArray[0]
+	} else {
+		// Se não for array, tenta decodificar como objeto único
+		if err := json.Unmarshal(fallbackResp.Data, &dataItem); err != nil {
+			// Se falhar, cria um objeto vazio
+			dataItem = VeiculoData{}
+		}
 	}
 
 	return &FullAPIResponse{
@@ -212,6 +194,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	placa = strings.ToUpper(strings.TrimSpace(placa))
 	placa = strings.ReplaceAll(placa, "-", "") // Remove hífens da placa
 	cacheKey := "placa:" + placa
+	fmt.Println(placa)
 
 	// 🔹 Verifica cache Redis apenas para dados da placa (sem multas)
 	var fullResp FullAPIResponse
@@ -293,7 +276,7 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 	respMultas, err := client.Do(reqMultas)
 	if err != nil {
-		fmt.Printf("erro ao buscar multas da placa: ", placa)
+		fmt.Printf("erro ao buscar multas da placa: %s", placa)
 		// Erro ao consultar multas - continua sem multas
 	} else {
 		defer respMultas.Body.Close()
