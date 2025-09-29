@@ -1,0 +1,683 @@
+definitions:
+  address.AddressCEPResponse:
+    properties:
+      cep:
+        type: string
+      city_name:
+        type: string
+      neighborhood_name:
+        type: string
+      state_uf:
+        type: string
+      street_name:
+        type: string
+      type:
+        type: string
+    type: object
+  address.AddressDetail:
+    properties:
+      cep:
+        type: string
+      id_address:
+        type: integer
+      is_exactly:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      number:
+        type: string
+    type: object
+  address.AddressResponse:
+    properties:
+      addresses:
+        items:
+          $ref: '#/definitions/address.AddressDetail'
+        type: array
+      city:
+        type: string
+      id_street:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      neighborhood:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+    type: object
+  address.CityResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  address.StateResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      uf:
+        type: string
+    type: object
+  login.RequestCreateUser:
+    properties:
+      confirm_password:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      telephone:
+        type: string
+      type_person:
+        type: integer
+    required:
+    - document
+    - email
+    - name
+    - telephone
+    - type_person
+    type: object
+  login.RequestLogin:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  login.ResponseCreateUser:
+    properties:
+      token:
+        type: string
+    type: object
+  login.ResponseLogin:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+    type: object
+  new_routes.AddressInfo:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+    type: object
+  new_routes.ArrivalResponse:
+    properties:
+      distance:
+        type: string
+      time:
+        type: string
+    type: object
+  new_routes.Costs:
+    properties:
+      axles:
+        type: integer
+      cash:
+        type: number
+      fuel_in_the_city:
+        type: number
+      fuel_in_the_hwy:
+        type: number
+      maximumTollCost:
+        type: number
+      minimumTollCost:
+        type: number
+      prepaidCard:
+        type: number
+      tag:
+        type: number
+      tagAndCash:
+        type: number
+    type: object
+  new_routes.Distance:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.Duration:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.FinalOutput:
+    properties:
+      routes:
+        items:
+          $ref: '#/definitions/new_routes.RouteOutput'
+        type: array
+      summary:
+        $ref: '#/definitions/new_routes.Summary'
+    type: object
+  new_routes.FrontInfo:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination:
+        type: string
+      favorite:
+        type: boolean
+      origin:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination
+    - origin
+    - type
+    type: object
+  new_routes.FuelEfficiency:
+    properties:
+      city:
+        type: number
+      fuel_unit:
+        type: string
+      hwy:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.FuelPrice:
+    properties:
+      currency:
+        type: string
+      fuel_unit:
+        type: string
+      price:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.GasStation:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+      name:
+        type: string
+    type: object
+  new_routes.Instruction:
+    properties:
+      img:
+        type: string
+      text:
+        type: string
+    type: object
+  new_routes.Location:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  new_routes.RouteOutput:
+    properties:
+      balances: {}
+      costs:
+        $ref: '#/definitions/new_routes.Costs'
+      freight_load:
+        additionalProperties: true
+        type: object
+      gas_stations:
+        items:
+          $ref: '#/definitions/new_routes.GasStation'
+        type: array
+      instructions:
+        items:
+          $ref: '#/definitions/new_routes.Instruction'
+        type: array
+      polyline:
+        type: string
+      summary:
+        $ref: '#/definitions/new_routes.RouteSummary'
+      tolls:
+        items:
+          $ref: '#/definitions/new_routes.Toll'
+        type: array
+    type: object
+  new_routes.RouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/new_routes.Distance'
+      duration:
+        $ref: '#/definitions/new_routes.Duration'
+      hasTolls:
+        type: boolean
+      route_type:
+        type: string
+      url:
+        type: string
+      url_waze:
+        type: string
+    type: object
+  new_routes.Summary:
+    properties:
+      all_stopping_points:
+        items: {}
+        type: array
+      fuel_efficiency:
+        $ref: '#/definitions/new_routes.FuelEfficiency'
+      fuel_price:
+        $ref: '#/definitions/new_routes.FuelPrice'
+      location_destination:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      route_hist_id:
+        type: integer
+    type: object
+  new_routes.Toll:
+    properties:
+      arrival:
+        $ref: '#/definitions/new_routes.ArrivalResponse'
+      cashCost:
+        type: number
+      concession:
+        type: string
+      concession_img:
+        type: string
+      country:
+        type: string
+      currency:
+        type: string
+      free_flow:
+        type: boolean
+      id:
+        type: integer
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      pay_free_flow:
+        type: string
+      prepaidCardCost:
+        type: number
+      road:
+        type: string
+      state:
+        type: string
+      tagCost:
+        type: number
+      tagImg:
+        items:
+          type: string
+        type: array
+      tagPrimary:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: https://simpplify.com.br/contact
+  description: Document API
+  title: GO-auth-service
+  version: "1.0"
+paths:
+  /address/city/{idState}:
+    get:
+      consumes:
+      - application/json
+      description: Retorna todas as cidades de um determinado estado pelo seu ID.
+      parameters:
+      - description: State ID
+        in: path
+        name: idState
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista das cidades.
+          schema:
+            $ref: '#/definitions/address.CityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Busca todas as cidades pelo ID do estado.
+      tags:
+      - Endereços
+  /address/find:
+    get:
+      consumes:
+      - application/json
+      description: 'Busca um endereço por pesquisa, que pode ser: 1. E, 2. Latitude
+        e Longitude ou 3. Endereço (Rua, bairro, número).'
+      parameters:
+      - description: Consulta de endereço
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informação do endereço
+          schema:
+            $ref: '#/definitions/address.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Endereço por Consulta
+      tags:
+      - Endereços
+  /address/find/{cep}:
+    get:
+      consumes:
+      - application/json
+      description: Encontra um endereço pelo CEP, retornando o tipo com base nas repetições
+        encontradas.
+      parameters:
+      - description: cep
+        in: path
+        name: CEP
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informação do endereço
+          schema:
+            $ref: '#/definitions/address.AddressCEPResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Busca um endereço pelo CEP
+      tags:
+      - Endereços
+  /address/state:
+    get:
+      consumes:
+      - application/json
+      description: Retorna todos os estados dísponíveis.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista dos estados
+          schema:
+            $ref: '#/definitions/address.StateResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Busca todos os estados.
+      tags:
+      - Endereços
+  /check-route-tolls-easy:
+    post:
+      consumes:
+      - application/json
+      description: Calcula as melhores opções de rota a partir de uma origem e destino.
+      parameters:
+      - description: Campos necessários
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcula as rotas disponível.
+      tags:
+      - Rotas
+  /create:
+    post:
+      consumes:
+      - application/json
+      description: Cria um usuário gerando um token para acessar as funcionalidades
+        do sistema.
+      parameters:
+      - description: Informações necessárias para a criação do usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created User Info
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Realiza a criação de um novo usuário no sistema.
+      tags:
+      - Usuários
+  /create/client:
+    post:
+      consumes:
+        - application/json
+      description: Cria um cliente gerando um token para acessar as funcionalidades
+      parameters:
+        - description: Informações necessárias para a criação do cliente
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Created User Info
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+        - ApiKeyAuth: [ ]
+      summary: Realiza a criação de um novo cliente no sistema.
+      tags:
+        - Usuários
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Realiza a autenticação do usuário com o sistema.
+      parameters:
+      - description: Campos necessários para o login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token de acesso ao sistema
+          schema:
+            $ref: '#/definitions/login.ResponseLogin'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Autenticação do usuário
+      tags:
+      - Usuários
+  /route/favorite/list:
+    get:
+      consumes:
+      - application/json
+      description: Retorna um array com todas as rotas favoritadas.
+      parameters:
+      - description: FavoriteRoute id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Retorna um array com as rotas favoritadas.
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Consulta as rotas favoritadas.
+      tags:
+      - Rotas Favoritas
+  /route/favorite/remove/:id:
+    put:
+      consumes:
+      - application/json
+      description: A rota favoritada no id informado da requisição é deletada.
+      parameters:
+      - description: FavoriteRoute id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Realiza a exclusão da rota favoritada.
+      tags:
+      - Rotas Favoritas
+schemes:
+- https
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

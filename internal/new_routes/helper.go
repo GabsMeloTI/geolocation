@@ -1,60 +1,19 @@
-package routes
+package new_routes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	db "geolocation/db/sqlc"
+	"geolocation/validation"
 	"math"
 	"net/http"
-	"net/url"
 	neturl "net/url"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 )
-
-func geocodeAddress(address string) (AddressInfo, error) {
-	baseURL := "https://nominatim.openstreetmap.org/search"
-	params := url.Values{}
-	params.Set("q", address)
-	params.Set("format", "json")
-	params.Set("limit", "1")
-	fullURL := baseURL + "?" + params.Encode()
-
-	req, err := http.NewRequest("GET", fullURL, nil)
-	if err != nil {
-		return AddressInfo{}, err
-	}
-	req.Header.Set("User-Agent", "GoGeocoder/1.0")
-	client := http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return AddressInfo{}, err
-	}
-	defer resp.Body.Close()
-
-	var results []NominatimResult
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
-		return AddressInfo{}, err
-	}
-	if len(results) == 0 {
-		return AddressInfo{}, fmt.Errorf("nenhum resultado para o endereço: %s", address)
-	}
-	lat, err := strconv.ParseFloat(results[0].Lat, 64)
-	if err != nil {
-		return AddressInfo{}, err
-	}
-	lon, err := strconv.ParseFloat(results[0].Lon, 64)
-	if err != nil {
-		return AddressInfo{}, err
-	}
-	return AddressInfo{
-		Location: Location{Latitude: lat, Longitude: lon},
-		Address:  results[0].DisplayName,
-	}, nil
-}
 
 func formatDuration(seconds float64) (string, float64) {
 	dur := time.Duration(seconds * float64(time.Second))
@@ -318,173 +277,6 @@ func distancePointToSegment(p, v, w LatLng) float64 {
 	return math.Sqrt(distX*distX + distY*distY)
 }
 
-func queryFuelStations(polyline string) ([]GasStation, error) {
-	points, err := decodePolyline(polyline)
-	if err != nil {
-		return nil, err
-	}
-	minLat, minLon := points[0].Lat, points[0].Lng
-	maxLat, maxLon := points[0].Lat, points[0].Lng
-	for _, p := range points[1:] {
-		if p.Lat < minLat {
-			minLat = p.Lat
-		}
-		if p.Lng < minLon {
-			minLon = p.Lng
-		}
-		if p.Lat > maxLat {
-			maxLat = p.Lat
-		}
-		if p.Lng > maxLon {
-			maxLon = p.Lng
-		}
-	}
-	padding := 1.0
-	minLat -= padding
-	minLon -= padding
-	maxLat += padding
-	maxLon += padding
-
-	overpassQuery := fmt.Sprintf(`
-		[out:json][timeout:25];
-		(
-		  node["amenity"="fuel"](%f,%f,%f,%f);
-		);
-		out body;
-		>;
-		out skel qt;
-	`, minLat, minLon, maxLat, maxLon)
-
-	overpassURL := "http://overpass-api.de/api/interpreter"
-	resp, err := http.PostForm(overpassURL, url.Values{"data": {overpassQuery}})
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var overpassResp struct {
-		Elements []struct {
-			ID   int64             `json:"id"`
-			Lat  float64           `json:"lat"`
-			Lon  float64           `json:"lon"`
-			Tags map[string]string `json:"tags"`
-		} `json:"elements"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&overpassResp); err != nil {
-		return nil, err
-	}
-
-	tolerance := 50.0
-	var stations []GasStation
-	for _, el := range overpassResp.Elements {
-		stationPos := LatLng{Lat: el.Lat, Lng: el.Lon}
-		minDist := math.MaxFloat64
-		for _, p := range points {
-			d := math.Hypot(stationPos.Lat-p.Lat, stationPos.Lng-p.Lng) * 111320.0
-			if d < minDist {
-				minDist = d
-			}
-		}
-		if minDist <= tolerance {
-			station := GasStation{
-				Name:    el.Tags["name"],
-				Address: el.Tags["addr:full"],
-				Location: Location{
-					Latitude:  el.Lat,
-					Longitude: el.Lon,
-				},
-			}
-			stations = append(stations, station)
-		}
-	}
-	return stations, nil
-}
-
-func StateToCapital(address string) string {
-	state := strings.ToLower(strings.TrimSpace(address))
-
-	if strings.Contains(state, ",") {
-		parts := strings.Split(state, ",")
-		state = strings.TrimSpace(parts[0])
-	}
-
-	switch state {
-	case "acre":
-		return "Rio Branco, Acre"
-	case "alagoas":
-		return "Maceió, Alagoas"
-	case "amapá", "amapa":
-		return "Macapá, Amapá"
-	case "amazonas":
-		return "Manaus, Amazonas"
-	case "bahia":
-		return "Salvador, Bahia"
-	case "ceará", "ceara":
-		return "Fortaleza, Ceará"
-	case "espírito santo", "espirito santo":
-		return "Vitória, Espírito Santo"
-	case "goiás", "goias":
-		return "Goiânia, Goiás"
-	case "maranhão", "maranhao":
-		return "São Luís, Maranhão"
-	case "mato grosso":
-		return "Cuiabá, Mato Grosso"
-	case "mato grosso do sul":
-		return "Campo Grande, Mato Grosso do Sul"
-	case "minas gerais":
-		return "Belo Horizonte, Minas Gerais"
-	case "pará", "para":
-		return "Belém, Pará"
-	case "paraíba", "paraiba":
-		return "João Pessoa, Paraíba"
-	case "paraná", "parana":
-		return "Curitiba, Paraná"
-	case "pernambuco":
-		return "Recife, Pernambuco"
-	case "piauí", "piaui":
-		return "Teresina, Piauí"
-	case "rio de janeiro":
-		return "Rio de Janeiro, Rio de Janeiro"
-	case "rio grande do norte":
-		return "Natal, Rio Grande do Norte"
-	case "rio grande do sul":
-		return "Porto Alegre, Rio Grande do Sul"
-	case "rondônia", "rondonia":
-		return "Porto Velho, Rondônia"
-	case "roraima":
-		return "Boa Vista, Roraima"
-	case "santa catarina":
-		return "Florianópolis, Santa Catarina"
-	case "são paulo", "sao paulo":
-		return "Praça da sé, São Paulo"
-	case "sergipe":
-		return "Aracaju, Sergipe"
-	case "tocantins":
-		return "Palmas, Tocantins"
-	case "distrito federal":
-		return "Brasília, Distrito Federal"
-	default:
-		return address
-	}
-}
-
-func IsNearby(lat1, lng1, lat2, lng2, radius float64) bool {
-	const earthRadius = 6371
-
-	dLat := (lat2 - lat1) * (math.Pi / 180)
-	dLng := (lng2 - lng1) * (math.Pi / 180)
-
-	lat1Rad := lat1 * (math.Pi / 180)
-	lat2Rad := lat2 * (math.Pi / 180)
-
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
-		math.Sin(dLng/2)*math.Sin(dLng/2)*math.Cos(lat1Rad)*math.Cos(lat2Rad)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	distance := earthRadius * c
-	return distance <= radius
-}
-
 func PriceTollsFromVehicle(vehicle string, price, axes float64) (float64, error) {
 	var calculation float64
 	switch os := vehicle; os {
@@ -510,37 +302,10 @@ func PriceTollsFromVehicle(vehicle string, price, axes float64) (float64, error)
 		calculation = price * axes
 		return calculation, nil
 	default:
-		fmt.Printf("incoorect value")
+		// Valor incorreto
 	}
 
 	return calculation, nil
-}
-
-func RoundCoord(coord float64) float64 {
-	return math.Round(coord*1000) / 1000
-}
-
-func sortByProximity[T any](origin Location, points []T, getLocation func(T) Location) []T {
-	sort.Slice(points, func(i, j int) bool {
-		locI := getLocation(points[i])
-		locJ := getLocation(points[j])
-		distI := haversineDistance(origin, locI)
-		distJ := haversineDistance(origin, locJ)
-		return distI < distJ
-	})
-	return points
-}
-
-func haversineDistance(loc1, loc2 Location) float64 {
-	const R = 6371
-	deltaLat := (loc2.Latitude - loc1.Latitude) * (math.Pi / 180)
-	deltaLon := (loc2.Longitude - loc1.Longitude) * (math.Pi / 180)
-	lat1 := loc1.Latitude * (math.Pi / 180)
-	lat2 := loc2.Latitude * (math.Pi / 180)
-	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
-		math.Sin(deltaLon/2)*math.Sin(deltaLon/2)*math.Cos(lat1)*math.Cos(lat2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return R * c
 }
 
 func haversineDistanceTolls(lat1, lng1, lat2, lng2 float64) float64 {
@@ -555,4 +320,259 @@ func haversineDistanceTolls(lat1, lng1, lat2, lng2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return R * c
+}
+
+func isAllRouteOptionsDisabled(options RouteOptions) bool {
+	return !options.IncludeFuelStations &&
+		!options.IncludeRouteMap &&
+		!options.IncludeTollCosts &&
+		!options.IncludeWeighStations &&
+		!options.IncludeFreightCalc &&
+		!options.IncludePolyline
+}
+
+func convertGasStation(row db.GetGasStationRow) GasStation {
+	latitude, _ := validation.ParseStringToFloat(row.Latitude)
+	longitude, _ := validation.ParseStringToFloat(row.Longitude)
+	return GasStation{
+		Name:    row.Name,
+		Address: row.AddressName,
+		Location: Location{
+			Latitude:  latitude,
+			Longitude: longitude,
+		},
+	}
+}
+
+func getConcessionImage(concession string) string {
+	switch concession {
+	case "VIAPAULISTA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viapaulista.png"
+	case "ROTA 116":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_116.png"
+	case "EPR VIAS DO CAFÉ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_vias_do_cafe.png"
+	case "VIARONDON":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viarondon.png"
+	case "ROTA DO OESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_oeste.png"
+	case "VIA ARAUCÁRIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_araucaria.png"
+	case "VIA BRASIL MT-163":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_163.png"
+	case "MUNICIPAL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/municipal.png"
+	case "ROTA DE SANTA MARIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_de_santa_maria.png"
+	case "RODOANEL OESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_rodoanel.png"
+	case "CSG":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
+	case "ROTA DAS BANDEIRAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_das_bandeiras.png"
+	case "CONCEF":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concef.png"
+	case "TRIUNFO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/triunfo.png"
+	case "ECO 050":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco50.png"
+	case "AB NASCENTES DAS GERAIS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_nascentes_das_gerais.png"
+	case "FLUMINENSE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fluminense.png"
+	case "Associação Gleba Barreiro":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/associacao_gleba_barreiro.png"
+	case "RODOVIA DO AÇO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_do_aco.png"
+	case "ECO RIOMINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_riominas.png"
+	case "CSG - Free Flow":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/csg.png"
+	case "RODOVIAS DO TIETÊ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovias_do_tietÃª.png"
+	case "ECO RODOVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_rodovias.png"
+	case "EPR TRIANGULO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-triangulo.png"
+	case "VIA RIO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_rio.png"
+	case "WAY - 306":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_306.png"
+	case "EPR SUL DE MINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_sul_de_minas.png"
+	case "ECO101":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco101.png"
+	case "ECO SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_sul.png"
+	case "ROTA DO ATLÂNTICO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_do_atlÃ¢ntico.png"
+	case "VIA BRASIL - MT-100":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil___mt_100.png"
+	case "ROTA DOS GRÃOS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_graos.png"
+	case "TRANSBRASILIANA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/transbrasiliana.png"
+	case "APASI":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/apasi.png"
+	case "RODOVIA DA MUDANÇA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rodovia_da_mudanca.png"
+	case "ENTREVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/entrevias.png"
+	case "AB COLINAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ab_colinas.png"
+	case "CCR ViaLagos":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_vialagos.png"
+	case "ROTA DOS COQUEIROS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/rota_dos_coqueiros.png"
+	case "CRP CONCESSIONARIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/crp_concessionaria.png"
+	case "WAY - 112":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/way_112.png"
+	case "EPR LITORAL PIONEIRO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr_litoral_pioneiro.png"
+	case "PLANALTO SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/planalto_sul.png"
+	case "CCR VIA COSTEIRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_via_costeira.png"
+	case "LITORAL SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/litoral_sul.png"
+	case "SPVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spvias.png"
+	case "AUTOBAN":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/autoban.png"
+	case "ECOVIAS DO CERRADO":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_cerrado.png"
+	case "EPR VIA MINEIRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epr-via-mineira.png"
+	case "SPMAR":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/spmar.png"
+	case "JOTEC":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/jotec.png"
+	case "VIA NORTE SUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_norte_sul.png"
+	case "CONCER":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/concer.png"
+	case "ECONOROESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/econoroeste.png"
+	case "ECOPONTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecoponte.png"
+	case "ECO 135":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eco_135.png"
+	case "VIA BRASIL MT-246":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_brasil_mt_246.png"
+	case "ECOVIAS DO ARAGUAIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecovias_do_araguaia.png"
+	case "VIABAHIA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viabahia.png"
+	case "GUARUJÁ":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/guaruja.png"
+	case "CONCEBRA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/truinfo_concebra.png"
+	case "DER":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/der.png"
+	case "EGR":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/egr.png"
+	case "PREFEITURA DE ITIRAPINA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/prefeitura_de_itirapina.png"
+	case "VIA PAULISTA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/via_paulista.png"
+	case "CCR VIASUL":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_viasul.png"
+	case "INTERVIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/intervias.png"
+	case "CCR MSVia":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr_msvia.png"
+	case "EIXO SP":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/eixo_sp.png"
+	case "RÉGIS BITTENCOURT":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/regis_bittencourt.png"
+	case "FERNÃO DIAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/fernao_dias.png"
+	case "CART":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/cart.png"
+	case "CCR RioSP":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ccr-riosp.png"
+	case "VIAOESTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/viaoeste.png"
+	case "MORRO DA MESA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/morro_da_mesa.png"
+	case "TOMOIOS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tomoios.png"
+	case "EPG Sul de Minas":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/epg_sul_de_minas.png"
+	case "ECOPISTAS":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/ecopistas.png"
+	case "LAMSA":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/lamsa.png"
+	case "TEBE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/tebe.png"
+	case "BAHIA NORTE":
+		return "https://dealership-routes.s3.us-east-1.amazonaws.com/bahia_norte.png"
+	default:
+		return ""
+	}
+}
+
+type GoogleDirectionsResponse struct {
+	Routes []struct {
+		Legs []struct {
+			Duration struct {
+				Text  string `json:"text"`
+				Value int64  `json:"value"`
+			} `json:"duration"`
+			DurationInTraffic struct {
+				Text  string `json:"text"`
+				Value int64  `json:"value"`
+			} `json:"duration_in_traffic"`
+			Distance struct {
+				Text  string `json:"text"`
+				Value int64  `json:"value"`
+			} `json:"distance"`
+		} `json:"legs"`
+	} `json:"routes"`
+	Status string `json:"status"`
+}
+
+func GetGoogleDurationWithTraffic(ctx context.Context, googleMapsAPIKey, origin, destination string, waypoints []string) (string, int64, error) {
+	baseURL := "https://maps.googleapis.com/maps/api/directions/json"
+
+	params := neturl.Values{}
+	params.Set("origin", origin)
+	params.Set("destination", destination)
+	if len(waypoints) > 0 {
+		params.Set("waypoints", strings.Join(waypoints, "|"))
+	}
+	params.Set("departure_time", "now")
+	params.Set("key", googleMapsAPIKey)
+
+	url := baseURL + "?" + params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", 0, err
+	}
+
+	client := http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", 0, err
+	}
+	defer resp.Body.Close()
+
+	var gdResp GoogleDirectionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&gdResp); err != nil {
+		return "", 0, err
+	}
+
+	if gdResp.Status != "OK" || len(gdResp.Routes) == 0 || len(gdResp.Routes[0].Legs) == 0 {
+		return "", 0, fmt.Errorf("Google Directions API retornou erro: %s", gdResp.Status)
+	}
+
+	leg := gdResp.Routes[0].Legs[0]
+	// Prioriza duration_in_traffic se disponível
+	if leg.DurationInTraffic.Value > 0 {
+		return leg.DurationInTraffic.Text, leg.DurationInTraffic.Value, nil
+	}
+
+	return leg.Duration.Text, leg.Duration.Value, nil
 }

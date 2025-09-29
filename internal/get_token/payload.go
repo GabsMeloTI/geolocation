@@ -51,3 +51,31 @@ func GetPublicPayloadToken(c echo.Context) PublicPayloadDTO {
 		ExpiredAt:      strExpiredAt,
 	}
 }
+
+func GetUserPayloadToken(c echo.Context) PayloadUserDTO {
+	strID, _ := c.Get("token_id").(int64)
+	strName, _ := c.Get("token_user_name").(string)
+	strEmail, _ := c.Get("token_user_email").(string)
+	strProfileID, _ := c.Get("token_profile_id").(int64)
+	strDocument, _ := c.Get("token_document").(string)
+	strGoogleID, _ := c.Get("token_google_id").(string)
+	strExpireAt, _ := c.Get("token_expire_at").(time.Time)
+
+	return PayloadUserDTO{
+		ID:        strID,
+		Name:      strName,
+		Email:     strEmail,
+		ProfileID: strProfileID,
+		Document:  strDocument,
+		GoogleID:  strGoogleID,
+		ExpireAt:  strExpireAt,
+	}
+}
+
+func GetUserIDPayloadToken(c echo.Context) PayloadUserIDDTO {
+	strUserID, _ := c.Get("token_user_id").(int64)
+
+	return PayloadUserIDDTO{
+		UserID: strUserID,
+	}
+}

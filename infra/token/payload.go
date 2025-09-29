@@ -33,12 +33,27 @@ type PayloadSimp struct {
 	UserName     string    `json:"user_name"`
 }
 
+type PayloadUser struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	ProfileID int64     `json:"profile_id"`
+	Document  string    `json:"document"`
+	GoogleID  string    `json:"google_id"`
+	ExpireAt  time.Time `json:"expire_at"`
+}
+
+type PayloadUserID struct {
+	UserID int64 `json:"user_id"`
+}
+
 func (payload *PayloadSimp) valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
 	}
 	return nil
 }
+
 func (payload *Payload) validPublic() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
@@ -46,6 +61,13 @@ func (payload *Payload) validPublic() error {
 		return ErrLimitRequests
 	} else if !payload.Valid {
 		return ErrInvalidToken
+	}
+	return nil
+}
+
+func (payload *PayloadUser) valid() error {
+	if time.Now().After(payload.ExpireAt) {
+		return ErrExpiredToken
 	}
 	return nil
 }
@@ -60,4 +82,22 @@ func NewPayload(tokenHistID int64, ip string, numberRequests int64, valid bool, 
 	}
 
 	return payload, nil
+}
+
+func NewPayloadUser(id int64, name string, email string, profileId int64, document string, googleId string, expireAt time.Time) (*PayloadUser, error) {
+	return &PayloadUser{
+		ID:        id,
+		Name:      name,
+		Email:     email,
+		ProfileID: profileId,
+		Document:  document,
+		GoogleID:  googleId,
+		ExpireAt:  expireAt,
+	}, nil
+}
+
+func NewPayloadUserID(userID int64) (*PayloadUserID, error) {
+	return &PayloadUserID{
+		UserID: userID,
+	}, nil
 }

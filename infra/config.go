@@ -1,8 +1,9 @@
 package infra
 
 import (
-	"github.com/joho/godotenv"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -16,6 +17,7 @@ type Config struct {
 	DBDatabase         string
 	DBSSLMode          string
 	DBDriver           string
+	DBDatabaseSP       string
 	SignatureToken     string
 	AwsAccessKeyID     string
 	AwsSecretAccessKey string
@@ -23,6 +25,15 @@ type Config struct {
 	GoogleMapsKey      string
 	SignatureTokenSimp string
 	RedisUrl           string
+	GoogleClientId     string
+	AwsBucketName      string
+	SendGridApiKey     string
+	EmailDomain        string
+	EmailPassword      string
+	EmailHost          string
+	EmailPort          string
+	MeiliHttp          string
+	MeiliKey           string
 }
 
 func NewConfig() Config {
@@ -43,12 +54,22 @@ func NewConfig() Config {
 		DBDatabase:         os.Getenv("DB_DATABASE"),
 		DBSSLMode:          os.Getenv("DB_SSL_MODE"),
 		DBDriver:           os.Getenv("DB_DRIVER"),
+		DBDatabaseSP:       os.Getenv("DB_DATABASE_SP"),
 		SignatureToken:     os.Getenv("SIGNATURE_STRING"),
 		SignatureTokenSimp: os.Getenv("SIGNATURE_STRING_SIMP"),
+		GoogleMapsKey:      os.Getenv("GOOGLE_MAPS_KEY"),
+		RedisUrl:           os.Getenv("REDIS_URL"),
+		GoogleClientId:     os.Getenv("GOOGLE_CLIENT_ID"),
+		SendGridApiKey:     os.Getenv("SENDGRID_API_KEY"),
+		EmailDomain:        os.Getenv("EMAIL_DOMAIN"),
+		EmailPassword:      os.Getenv("EMAIL_PASSWORD"),
+		EmailHost:          os.Getenv("EMAIL_HOST"),
+		EmailPort:          os.Getenv("EMAIL_PORT"),
 		AwsAccessKeyID:     os.Getenv("AWS_ACCESS_KEY"),
 		AwsSecretAccessKey: os.Getenv("AWS_SECRET_KEY"),
 		AwsRegion:          os.Getenv("AWS_REGION"),
-		GoogleMapsKey:      os.Getenv("GOOGLE_MAPS_KEY"),
-		RedisUrl:           os.Getenv("REDIS_URL"),
+		AwsBucketName:      os.Getenv("AWS_BUCKET_NAME"),
+		MeiliHttp:          os.Getenv("MEILI_HTTP_ADDR"),
+		MeiliKey:           os.Getenv("MEILI_MASTER_KEY"),
 	}
 }

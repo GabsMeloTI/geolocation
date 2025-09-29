@@ -1,0 +1,109 @@
+package zonas_risco
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	db "geolocation/db/sqlc"
+)
+
+type InterfaceService interface {
+	CreateZonaRiscoService(ctx context.Context, data CreateZonaRiscoRequest) (ZonaRiscoResponse, error)
+	UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRiscoRequest) (ZonaRiscoResponse, error)
+	DeleteZonaRiscoService(ctx context.Context, id int64) error
+	GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRiscoResponse, error)
+	GetAllZonasRiscoService(ctx context.Context, organization_id sql.NullInt64) ([]ZonaRiscoResponse, error)
+}
+
+type Service struct {
+	InterfaceService InterfaceRepository
+}
+
+func NewZonasRiscoService(InterfaceService InterfaceRepository) *Service {
+	return &Service{InterfaceService}
+}
+
+func (s *Service) CreateZonaRiscoService(ctx context.Context, data CreateZonaRiscoRequest) (ZonaRiscoResponse, error) {
+	arg := db.CreateZonaRiscoParams{
+		Name:   data.Name,
+		Cep:    data.Cep,
+		Lat:    data.Lat,
+		Lng:    data.Lng,
+		Radius: data.Radius,
+		OrganizationID: sql.NullInt64{
+			Int64: data.OrgID,
+			Valid: true,
+		},
+		Type:        sql.NullInt64{Int64: data.Type, Valid: true},
+		ZonaAtencao: data.ZonaAtencao,
+	}
+
+	result, err := s.InterfaceService.CreateZonaRisco(ctx, arg)
+	if err != nil {
+		return ZonaRiscoResponse{}, err
+	}
+	resp := ZonaRiscoResponse{}
+	resp.ParseFromDb(result)
+	return resp, nil
+}
+
+func (s *Service) UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRiscoRequest) (ZonaRiscoResponse, error) {
+	arg := db.UpdateZonaRiscoParams{
+		ID:     data.ID,
+		Name:   data.Name,
+		Cep:    data.Cep,
+		Lat:    data.Lat,
+		Lng:    data.Lng,
+		Radius: data.Radius,
+		OrganizationID: sql.NullInt64{
+			Int64: data.OrgID,
+			Valid: true,
+		},
+		Type: sql.NullInt64{Int64: data.Type, Valid: true},
+	}
+	result, err := s.InterfaceService.UpdateZonaRisco(ctx, arg)
+	if err != nil {
+		return ZonaRiscoResponse{}, err
+	}
+	resp := ZonaRiscoResponse{}
+	resp.ParseFromDb(result)
+	return resp, nil
+}
+
+func (s *Service) DeleteZonaRiscoService(ctx context.Context, id int64) error {
+	err := s.InterfaceService.DeleteZonaRisco(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("zona de risco não encontrada")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRiscoResponse, error) {
+	result, err := s.InterfaceService.GetZonaRiscoById(ctx, id)
+	if err != nil {
+		return ZonaRiscoResponse{}, err
+	}
+
+	resp := ZonaRiscoResponse{}
+	resp.ParseFromDb(result)
+
+	return resp, nil
+}
+
+func (s *Service) GetAllZonasRiscoService(ctx context.Context, organization_id sql.NullInt64) ([]ZonaRiscoResponse, error) {
+	results, err := s.InterfaceService.GetAllZonasRisco(ctx, organization_id)
+	if err != nil {
+		return nil, err
+	}
+	var respList []ZonaRiscoResponse
+	for _, r := range results {
+		resp := ZonaRiscoResponse{}
+		resp.ParseFromDb(r)
+		respList = append(respList, resp)
+	}
+	return respList, nil
+}

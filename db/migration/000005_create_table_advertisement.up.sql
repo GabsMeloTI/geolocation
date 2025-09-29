@@ -1,0 +1,93 @@
+CREATE TABLE advertisement (
+                              id BIGSERIAL PRIMARY KEY,
+                              user_id BIGINT not null,
+                              destination VARCHAR(255) NOT NULL,
+                              origin VARCHAR(255) NOT NULL,
+                              destination_lat FLOAT NULL,
+                              destination_lng FLOAT NULL,
+                              origin_lat FLOAT NULL,
+                              origin_lng FLOAT NULL,
+                              distance BIGINT NOT NULL,
+                              pickup_date TIMESTAMP NOT NULL,
+                              delivery_date TIMESTAMP NOT NULL,
+                              expiration_date TIMESTAMP NOT NULL,
+                              title VARCHAR NOT NULL,
+                              cargo_type VARCHAR(100) NOT NULL,
+                              cargo_species VARCHAR NOT NULL,
+                              cargo_volume VARCHAR NOT NULL,
+                              cargo_weight FLOAT NOT NULL,
+                              vehicles_accepted VARCHAR(100) NOT NULL,
+                              trailer VARCHAR NOT NULL,
+                              requires_tarp BOOLEAN NOT NULL,
+                              tracking BOOLEAN NOT NULL,
+                              agency BOOLEAN  NOT NULL,
+                              description TEXT NOT NULL,
+                              payment_type TEXT NOT NULL,
+                              advance VARCHAR NOT NULL,
+                              toll BOOLEAN NOT NULL,
+                              situation VARCHAR NOT NULL,
+                              price FLOAT NOT NULL,
+                              state_origin varchar(255) NOT NULL,
+                              city_origin varchar(255) NOT NULL,
+                              complement_origin VARCHAR(255) NOT NULL,
+                              neighborhood_origin varchar(255) NOT NULL,
+                              street_origin varchar(255) NOT NULL,
+                              street_number_origin varchar(255) NOT NULL,
+                              cep_origin VARCHAR(10) NOT NULL,
+                              state_destination varchar(255) NOT NULL,
+                              city_destination varchar(255) NOT NULL,
+                              complement_destination VARCHAR(255) NOT NULL,
+                              neighborhood_destination varchar(255) NOT NULL,
+                              street_destination varchar(255) NOT NULL,
+                              street_number_destination varchar(255) NOT NULL,
+                              cep_destination VARCHAR(10) NOT NULL,
+                              status BOOL NOT NULL,
+                              created_at TIMESTAMP NOT NULL,
+                              created_who VARCHAR NOT NULL,
+                              updated_at TIMESTAMP NULL,
+                              updated_who VARCHAR NULL
+);
+
+ALTER TABLE advertisement
+    ADD CONSTRAINT "fk_user"
+    FOREIGN KEY ("user_id")
+    REFERENCES users ("id");
+
+
+
+CREATE TABLE active_freights (
+                                 id BIGSERIAL NOT NULL,
+                                 advertisement_id BIGINT NOT NULL,
+                                 advertisement_user_id BIGINT NOT NULL,
+                                 latitude float NOT NULL,
+                                 longitude float NOT NULL,
+                                 duration VARCHAR(50) NOT NULL,
+                                 distance VARCHAR(50) NOT NULL,
+                                 driver_name VARCHAR(255) NOT NULL,
+                                 tractor_unit_license_plate VARCHAR(20),
+                                 trailer_license_plate VARCHAR(20),
+                                 updated_at TIMESTAMP NOT NULL
+);
+
+create table advertisement_route (
+                                     id BIGSERIAL primary key,
+                                     advertisement_id BIGINT NOT NULL,
+                                     route_hist_id BIGINT NOT NULL,
+                                     user_id BIGINT NOT NULL,
+                                     route_choose BIGINT NOT NULL,
+                                     created_at TIMESTAMP default now()
+);
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_user"
+    FOREIGN KEY ("user_id")
+    REFERENCES users ("id");
+
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_advertisement"
+    FOREIGN KEY ("advertisement_id")
+    REFERENCES advertisement ("id");
+
+ALTER TABLE advertisement_route
+    ADD CONSTRAINT "fk_route_hist"
+    FOREIGN KEY ("route_hist_id")
+    REFERENCES route_hist ("id");

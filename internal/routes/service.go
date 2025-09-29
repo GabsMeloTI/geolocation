@@ -9,10 +9,6 @@ import (
 	db "geolocation/db/sqlc"
 	cache "geolocation/pkg"
 	"geolocation/validation"
-	"github.com/go-redis/redis/v8"
-	"github.com/labstack/echo/v4"
-	"golang.org/x/net/html"
-	"googlemaps.github.io/maps"
 	"math"
 	neturl "net/url"
 	"sort"
@@ -20,6 +16,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/labstack/echo/v4"
+	"golang.org/x/net/html"
+	"googlemaps.github.io/maps"
 )
 
 type InterfaceService interface {
@@ -367,7 +368,6 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 
 	responseJSON, _ := json.Marshal(response)
 	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
-		fmt.Printf("Erro ao salvar cache do Redis (CheckRouteTolls): %v\n", err)
 		return Response{}, errors.New("erro ao salvar cache do Redis")
 	}
 
@@ -428,7 +428,6 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 	data, err := json.Marshal(arrival)
 	if err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache no Redis (timeWithClient): %v\n", err)
 		}
 	}
 	return arrival, nil
@@ -444,7 +443,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 			return result, nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		fmt.Printf("Erro ao recuperar cache do Redis (geocode): %v\n", err)
 	}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
@@ -463,7 +461,6 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
 		address = autoCompleteResp.Predictions[0].Description
 	} else if autoCompleteErr != nil {
-		fmt.Printf("Erro no Autocomplete: %v\n", autoCompleteErr)
 	}
 
 	req := &maps.GeocodingRequest{
@@ -483,14 +480,10 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 			Longitude: results[0].Geometry.Location.Lng,
 		},
 	}
-	fmt.Println(result)
-	fmt.Println(results[0].Geometry.Location.Lat)
-	fmt.Println(results[0].Geometry.Location.Lng)
 
 	data, err := json.Marshal(result)
 	if err == nil {
 		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			fmt.Printf("Erro ao salvar cache do Redis (geocode): %v\n", err)
 		}
 	}
 	return result, nil
@@ -814,7 +807,7 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 				}
 			}
 		}
-	}
+	} 
 
 	for _, point := range uniquePoints {
 		for _, dbBalanca := range tolls {
@@ -1037,7 +1030,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 						continue
 					}
 				} else if err != redis.Nil {
-					fmt.Printf("Erro ao recuperar cache Redis para gasStations: %v\n", err)
 				}
 
 				dbGasStations, err := s.InterfaceService.GetGasStation(ctx, db.GetGasStationParams{
@@ -1046,7 +1038,6 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					Column3: 0.05,
 				})
 				if err != nil {
-					fmt.Printf("Erro ao consultar o banco de dados: %v\n", err)
 					continue
 				}
 
@@ -1078,9 +1069,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					if len(cachedResult) > 0 {
 						data, err := json.Marshal(cachedResult)
 						if err == nil {
-							if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-								fmt.Printf("Erro ao salvar cache Redis para gasStations: %v\n", err)
-							}
+							cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 						}
 					}
 				}
@@ -1113,7 +1102,7 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info FrontInfo, response json.RawMessage) error {
 	waypoints := strings.ToLower(strings.Join(info.Waypoints, ","))
 	_, err := s.InterfaceService.CreateRouteHist(ctx, db.CreateRouteHistParams{
-		IDTokenHist: idTokenHist,
+		IDUser:      idTokenHist,
 		Origin:      info.Origin,
 		Destination: info.Destination,
 		Waypoints: sql.NullString{
@@ -1121,6 +1110,7 @@ func (s *Service) createRouteHist(ctx context.Context, idTokenHist int64, info F
 			Valid:  true,
 		},
 		Response: response,
+		IsPublic: false,
 	})
 	if err != nil {
 		return err

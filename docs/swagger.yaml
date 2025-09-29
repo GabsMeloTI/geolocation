@@ -1,0 +1,3576 @@
+definitions:
+  address.AddressCEPResponse:
+    properties:
+      cep:
+        type: string
+      city_name:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      neighborhood_name:
+        type: string
+      state_uf:
+        type: string
+      street_name:
+        type: string
+      type:
+        type: string
+    type: object
+  address.AddressDetail:
+    properties:
+      cep:
+        type: string
+      id_address:
+        type: integer
+      is_exactly:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      number:
+        type: string
+    type: object
+  address.AddressResponse:
+    properties:
+      addresses:
+        items:
+          $ref: '#/definitions/address.AddressDetail'
+        type: array
+      city:
+        type: string
+      id_street:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      neighborhood:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+    type: object
+  address.CityResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  address.StateResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      uf:
+        type: string
+    type: object
+  advertisement.AdvertisementResponse:
+    properties:
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep_destination:
+        type: string
+      cep_origin:
+        type: string
+      city_destination:
+        type: string
+      city_origin:
+        type: string
+      complement_destination:
+        type: string
+      complement_origin:
+        type: string
+      created_at:
+        type: string
+      created_who:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      distance:
+        type: integer
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      neighborhood_destination:
+        type: string
+      neighborhood_origin:
+        type: string
+      origin:
+        type: string
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      price:
+        type: number
+      requires_tarp:
+        type: boolean
+      situation:
+        type: string
+      state_destination:
+        type: string
+      state_origin:
+        type: string
+      status:
+        type: boolean
+      street_destination:
+        type: string
+      street_number_destination:
+        type: string
+      street_number_origin:
+        type: string
+      street_origin:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      updated_at:
+        type: string
+      updated_who:
+        type: string
+      user_id:
+        type: integer
+      vehicles_accepted:
+        type: string
+    type: object
+  advertisement.AdvertisementResponseAll:
+    properties:
+      active_duration:
+        type: string
+      active_freight:
+        type: integer
+      active_there:
+        type: string
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep_destination:
+        type: string
+      cep_origin:
+        type: string
+      city_destination:
+        type: string
+      city_origin:
+        type: string
+      complement_destination:
+        type: string
+      complement_origin:
+        type: string
+      created_at:
+        type: string
+      created_who:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      distance:
+        type: integer
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      neighborhood_destination:
+        type: string
+      neighborhood_origin:
+        type: string
+      origin:
+        type: string
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      price:
+        type: number
+      requires_tarp:
+        type: boolean
+      route_choose:
+        $ref: '#/definitions/new_routes.RouteOutput'
+      route_index_choose:
+        type: integer
+      situation:
+        type: string
+      state_destination:
+        type: string
+      state_origin:
+        type: string
+      street_destination:
+        type: string
+      street_number_destination:
+        type: string
+      street_number_origin:
+        type: string
+      street_origin:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      updated_at:
+        type: string
+      updated_who:
+        type: string
+      user_city:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+      user_phone:
+        type: string
+      user_state:
+        type: string
+      vehicles_accepted:
+        type: string
+    type: object
+  advertisement.AdvertisementResponseNoUser:
+    properties:
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep_destination:
+        type: string
+      cep_origin:
+        type: string
+      city_destination:
+        type: string
+      city_origin:
+        type: string
+      complement_destination:
+        type: string
+      complement_origin:
+        type: string
+      created_at:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      neighborhood_destination:
+        type: string
+      neighborhood_origin:
+        type: string
+      origin:
+        type: string
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      requires_tarp:
+        type: boolean
+      situation:
+        type: string
+      state_destination:
+        type: string
+      state_origin:
+        type: string
+      street_destination:
+        type: string
+      street_number_destination:
+        type: string
+      street_number_origin:
+        type: string
+      street_origin:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      user_id:
+        type: integer
+      vehicles_accepted:
+        type: string
+    type: object
+  advertisement.CreateAdvertisementRequest:
+    properties:
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep_destination:
+        type: string
+      cep_origin:
+        type: string
+      city_destination:
+        type: string
+      city_origin:
+        type: string
+      complement_destination:
+        type: string
+      complement_origin:
+        type: string
+      created_who:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      distance:
+        type: integer
+      expiration_date:
+        type: string
+      neighborhood_destination:
+        type: string
+      neighborhood_origin:
+        type: string
+      origin:
+        type: string
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      price:
+        type: number
+      requires_tarp:
+        type: boolean
+      state_destination:
+        type: string
+      state_origin:
+        type: string
+      street_destination:
+        type: string
+      street_number_destination:
+        type: string
+      street_number_origin:
+        type: string
+      street_origin:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      vehicles_accepted:
+        type: string
+    type: object
+  advertisement.UpdateAdsRouteChooseRequest:
+    properties:
+      advertisement_id:
+        type: integer
+      new_route:
+        type: integer
+    type: object
+  advertisement.UpdateAdvertisementRequest:
+    properties:
+      advance:
+        type: string
+      agency:
+        type: boolean
+      cargo_species:
+        type: string
+      cargo_type:
+        type: string
+      cargo_weight:
+        type: number
+      cep_destination:
+        type: string
+      cep_origin:
+        type: string
+      city_destination:
+        type: string
+      city_origin:
+        type: string
+      complement_destination:
+        type: string
+      complement_origin:
+        type: string
+      delivery_date:
+        type: string
+      description:
+        type: string
+      destination:
+        type: string
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      distance:
+        type: integer
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      neighborhood_destination:
+        type: string
+      neighborhood_origin:
+        type: string
+      origin:
+        type: string
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+      payment_type:
+        type: string
+      pickup_date:
+        type: string
+      price:
+        type: number
+      requires_tarp:
+        type: boolean
+      situation:
+        type: string
+      state_destination:
+        type: string
+      state_origin:
+        type: string
+      street_destination:
+        type: string
+      street_number_destination:
+        type: string
+      street_number_origin:
+        type: string
+      street_origin:
+        type: string
+      title:
+        type: string
+      toll:
+        type: boolean
+      tracking:
+        type: boolean
+      trailer:
+        type: string
+      vehicles_accepted:
+        type: string
+    type: object
+  appointments.AppointmentResponseList:
+    properties:
+      advertisement_id:
+        type: integer
+      created_at:
+        type: string
+      created_who:
+        type: string
+      id:
+        type: integer
+      status:
+        type: boolean
+      truck_id:
+        type: integer
+      updated_at:
+        type: string
+      updated_who:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  appointments.UpdateAppointmentRequest:
+    properties:
+      id:
+        type: integer
+      situation:
+        type: string
+    type: object
+  dashboard.Calendar:
+    properties:
+      date_pickup:
+        type: string
+      situation:
+        type: string
+      time_pickup:
+        type: string
+    type: object
+  dashboard.DriverEnterprise:
+    properties:
+      disponibilidade:
+        type: string
+      id:
+        type: integer
+      license_category:
+        type: string
+      license_number:
+        type: string
+      name:
+        type: string
+      reces_finished:
+        type: integer
+    type: object
+  dashboard.FreightHistory:
+    properties:
+      date_delivery:
+        type: string
+      freight:
+        type: integer
+      name_enterprise:
+        type: string
+      price:
+        type: number
+      time_delivery:
+        type: string
+    type: object
+  dashboard.FutureFreights:
+    properties:
+      advertisement_id:
+        type: integer
+      date_pickup:
+        type: string
+      destination:
+        type: string
+      origin:
+        type: string
+      time_pickup:
+        type: string
+    type: object
+  dashboard.MonthlyBilling:
+    properties:
+      month:
+        type: integer
+      total_billed:
+        type: number
+      year:
+        type: integer
+    type: object
+  dashboard.Response:
+    properties:
+      calendar:
+        items:
+          $ref: '#/definitions/dashboard.Calendar'
+        type: array
+      comparison_previous_month_customers_served:
+        type: number
+      comparison_previous_month_proposals:
+        type: number
+      comparison_previous_month_total_freight:
+        type: number
+      customers_served:
+        type: integer
+      driver_enterprise:
+        items:
+          $ref: '#/definitions/dashboard.DriverEnterprise'
+        type: array
+      driver_id:
+        type: integer
+      freight_history:
+        items:
+          $ref: '#/definitions/dashboard.FreightHistory'
+        type: array
+      future_freights:
+        items:
+          $ref: '#/definitions/dashboard.FutureFreights'
+        type: array
+      monthly_billing:
+        items:
+          $ref: '#/definitions/dashboard.MonthlyBilling'
+        type: array
+      proposals:
+        type: integer
+      total_freight_completed:
+        type: number
+      total_receivable:
+        type: number
+      tract_unit_enterprise:
+        items:
+          $ref: '#/definitions/dashboard.TractUnitEnterprise'
+        type: array
+      trailer_enterprise:
+        items:
+          $ref: '#/definitions/dashboard.TrailerEnterprise'
+        type: array
+      user_id:
+        type: integer
+    type: object
+  dashboard.TractUnitEnterprise:
+    properties:
+      capacity:
+        type: string
+      id:
+        type: integer
+      model:
+        type: string
+      unit_type:
+        type: string
+    type: object
+  dashboard.TrailerEnterprise:
+    properties:
+      body_type:
+        type: string
+      id:
+        type: integer
+      load_capacity:
+        type: number
+      model:
+        type: string
+    type: object
+  drivers.CreateDriverRequest:
+    properties:
+      birth_date:
+        type: string
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      cpf:
+        type: string
+      license_category:
+        enum:
+        - a
+        - b
+        - c
+        - d
+        - e
+        type: string
+      license_expiration_date:
+        type: string
+      license_number:
+        type: string
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+    type: object
+  drivers.DriverResponse:
+    properties:
+      birth_date:
+        type: string
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      cpf:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      license_category:
+        type: string
+      license_expiration_date:
+        type: string
+      license_number:
+        type: string
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      state:
+        type: string
+      status:
+        type: boolean
+      street:
+        type: string
+      street_number:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  drivers.UpdateDriverRequest:
+    properties:
+      birth_date:
+        type: string
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      cpf:
+        type: string
+      id:
+        type: integer
+      license_category:
+        enum:
+        - a
+        - b
+        - c
+        - d
+        - e
+        type: string
+      license_expiration_date:
+        type: string
+      license_number:
+        type: string
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+    type: object
+  login.RequestCreateUser:
+    properties:
+      confirm_password:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      telephone:
+        type: string
+      token:
+        type: string
+      type_person:
+        type: integer
+    required:
+    - document
+    - email
+    - name
+    - telephone
+    - type_person
+    type: object
+  login.RequestLogin:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  login.ResponseCreateUser:
+    properties:
+      token:
+        type: string
+    type: object
+  login.ResponseLogin:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+    type: object
+  new_routes.AddressInfo:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+    type: object
+  new_routes.ArrivalResponse:
+    properties:
+      distance:
+        type: string
+      time:
+        type: string
+    type: object
+  new_routes.Coordinate:
+    properties:
+      lat:
+        type: string
+      lng:
+        type: string
+    type: object
+  new_routes.Costs:
+    properties:
+      axles:
+        type: integer
+      cash:
+        type: number
+      fuel_in_the_city:
+        type: number
+      fuel_in_the_hwy:
+        type: number
+      maximumTollCost:
+        type: number
+      minimumTollCost:
+        type: number
+      prepaidCard:
+        type: number
+      tag:
+        type: number
+      tagAndCash:
+        type: number
+    type: object
+  new_routes.Distance:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.Duration:
+    properties:
+      text:
+        type: string
+      value:
+        type: number
+    type: object
+  new_routes.FinalOutput:
+    properties:
+      route_enterprise_id:
+        type: integer
+      routes:
+        items:
+          $ref: '#/definitions/new_routes.RouteOutput'
+        type: array
+      summary:
+        $ref: '#/definitions/new_routes.Summary'
+    type: object
+  new_routes.FrontInfo:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination:
+        type: string
+      favorite:
+        type: boolean
+      origin:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination
+    - origin
+    - type
+    type: object
+  new_routes.FrontInfoCEP:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination_cep:
+        type: string
+      enterprise:
+        type: boolean
+      favorite:
+        type: boolean
+      origin_cep:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          type: string
+        type: array
+    required:
+    - destination_cep
+    - origin_cep
+    - type
+    type: object
+  new_routes.FrontInfoCoordinate:
+    properties:
+      axles:
+        type: integer
+      consumptionCity:
+        type: number
+      consumptionHwy:
+        type: number
+      destination_lat:
+        type: string
+      destination_lng:
+        type: string
+      favorite:
+        type: boolean
+      origin_lat:
+        type: string
+      origin_lng:
+        type: string
+      price:
+        type: number
+      public_or_private:
+        type: string
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
+      type:
+        enum:
+        - Truck
+        - Bus
+        - Auto
+        - Motorcycle
+        - truck
+        - bus
+        - auto
+        - motorcycle
+        type: string
+      typeRoute:
+        type: string
+      waypoints:
+        items:
+          $ref: '#/definitions/new_routes.Coordinate'
+        type: array
+    required:
+    - destination_lat
+    - destination_lng
+    - origin_lat
+    - origin_lng
+    - type
+    type: object
+  new_routes.FuelEfficiency:
+    properties:
+      city:
+        type: number
+      fuel_unit:
+        type: string
+      hwy:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.FuelPrice:
+    properties:
+      currency:
+        type: string
+      fuel_unit:
+        type: string
+      price:
+        type: number
+      units:
+        type: string
+    type: object
+  new_routes.GasStation:
+    properties:
+      address:
+        type: string
+      location:
+        $ref: '#/definitions/new_routes.Location'
+      name:
+        type: string
+    type: object
+  new_routes.Instruction:
+    properties:
+      img:
+        type: string
+      text:
+        type: string
+    type: object
+  new_routes.Location:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  new_routes.RouteOptions:
+    properties:
+      include_freight_calc:
+        description: Se deve calcular frete
+        type: boolean
+      include_fuel_stations:
+        description: Se deve incluir postos de combustível
+        type: boolean
+      include_polyline:
+        description: Se deve retornar polyline
+        type: boolean
+      include_route_map:
+        description: Se deve incluir rotograma
+        type: boolean
+      include_toll_costs:
+        description: Se deve incluir pedágios
+        type: boolean
+      include_weigh_stations:
+        description: Se deve incluir balanças
+        type: boolean
+    type: object
+  new_routes.RouteOutput:
+    properties:
+      balances: {}
+      costs:
+        $ref: '#/definitions/new_routes.Costs'
+      freight_load:
+        additionalProperties: true
+        type: object
+      gas_stations:
+        items:
+          $ref: '#/definitions/new_routes.GasStation'
+        type: array
+      instructions:
+        items:
+          $ref: '#/definitions/new_routes.Instruction'
+        type: array
+      polyline:
+        type: string
+      summary:
+        $ref: '#/definitions/new_routes.RouteSummary'
+      tolls:
+        items:
+          $ref: '#/definitions/new_routes.Toll'
+        type: array
+    type: object
+  new_routes.RouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/new_routes.Distance'
+      duration:
+        $ref: '#/definitions/new_routes.Duration'
+      hasTolls:
+        type: boolean
+      polyline:
+        type: string
+      route_type:
+        type: string
+      tolls:
+        items:
+          $ref: '#/definitions/new_routes.Toll'
+        type: array
+      total_fuel_cost:
+        type: number
+      total_tolls:
+        type: number
+      url:
+        type: string
+      url_waze:
+        type: string
+    type: object
+  new_routes.SimpleRouteRequest:
+    properties:
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      origin_lat:
+        type: number
+      origin_lng:
+        type: number
+    type: object
+  new_routes.SimpleRouteResponse:
+    properties:
+      summary:
+        $ref: '#/definitions/new_routes.SimpleSummary'
+    type: object
+  new_routes.SimpleRouteSummary:
+    properties:
+      distance:
+        $ref: '#/definitions/new_routes.Distance'
+      duration:
+        $ref: '#/definitions/new_routes.Duration'
+    type: object
+  new_routes.SimpleSummary:
+    properties:
+      location_destination:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      routes:
+        $ref: '#/definitions/new_routes.SimpleRouteSummary'
+    type: object
+  new_routes.Summary:
+    properties:
+      all_stopping_points:
+        items: {}
+        type: array
+      fuel_efficiency:
+        $ref: '#/definitions/new_routes.FuelEfficiency'
+      fuel_price:
+        $ref: '#/definitions/new_routes.FuelPrice'
+      location_destination:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      location_origin:
+        $ref: '#/definitions/new_routes.AddressInfo'
+      route_hist_id:
+        type: integer
+      route_options:
+        $ref: '#/definitions/new_routes.RouteOptions'
+    type: object
+  new_routes.Toll:
+    properties:
+      arrival:
+        $ref: '#/definitions/new_routes.ArrivalResponse'
+      cashCost:
+        type: number
+      concession:
+        type: string
+      concession_img:
+        type: string
+      country:
+        type: string
+      currency:
+        type: string
+      free_flow:
+        type: boolean
+      id:
+        type: integer
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      pay_free_flow:
+        type: string
+      prepaidCardCost:
+        type: number
+      road:
+        type: string
+      state:
+        type: string
+      tagCost:
+        type: number
+      tagImg:
+        items:
+          type: string
+        type: array
+      tagPrimary:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+  payment.PaymentHistResponse:
+    properties:
+      automatic:
+        type: boolean
+      currency:
+        type: string
+      customer:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      interval:
+        type: string
+      invoice:
+        type: string
+      method:
+        type: string
+      name:
+        type: string
+      payment_date:
+        type: string
+      payment_expireted:
+        type: string
+      payment_status:
+        type: string
+      user_id:
+        type: string
+      value:
+        type: number
+    type: object
+  plans.UserPlanResponse:
+    properties:
+      active:
+        type: boolean
+      active_date:
+        type: string
+      annual:
+        type: boolean
+      expiration_date:
+        type: string
+      id:
+        type: integer
+      id_plan:
+        type: integer
+      id_user:
+        type: integer
+      price:
+        type: number
+    type: object
+  tractor_unit.CreateTractorUnitRequest:
+    properties:
+      axles:
+        type: integer
+      brand:
+        type: string
+      can_couple:
+        type: boolean
+      capacity:
+        type: string
+      chassis:
+        type: string
+      color:
+        type: string
+      driver_id:
+        type: integer
+      engine_power:
+        type: string
+      height:
+        type: number
+      length:
+        type: number
+      license_plate:
+        type: string
+      manufacture_year:
+        type: integer
+      model:
+        type: string
+      renavan:
+        type: string
+      state:
+        type: string
+      unit_type:
+        enum:
+        - stump
+        - truck
+        - tractor_unit
+        type: string
+      user_id:
+        type: integer
+      width:
+        type: number
+    type: object
+  tractor_unit.TractorUnitResponse:
+    properties:
+      axles:
+        type: integer
+      brand:
+        type: string
+      can_couple:
+        type: boolean
+      capacity:
+        type: string
+      chassis:
+        type: string
+      color:
+        type: string
+      created_at:
+        type: string
+      driver_id:
+        type: integer
+      engine_power:
+        type: string
+      height:
+        type: number
+      id:
+        type: integer
+      length:
+        type: number
+      license_plate:
+        type: string
+      manufacture_year:
+        type: integer
+      model:
+        type: string
+      renavan:
+        type: string
+      state:
+        type: string
+      status:
+        type: boolean
+      unit_type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      width:
+        type: number
+    type: object
+  tractor_unit.UpdateTractorUnitRequest:
+    properties:
+      axles:
+        type: integer
+      brand:
+        type: string
+      capacity:
+        type: string
+      chassis:
+        type: string
+      color:
+        type: string
+      driver_id:
+        type: integer
+      engine_power:
+        type: string
+      height:
+        type: number
+      id:
+        type: integer
+      length:
+        type: number
+      license_plate:
+        type: string
+      manufacture_year:
+        type: integer
+      model:
+        type: string
+      renavan:
+        type: string
+      state:
+        type: string
+      unit_type:
+        type: string
+      user_id:
+        type: integer
+      width:
+        type: number
+    type: object
+  trailer.CreateTrailerRequest:
+    properties:
+      axles:
+        type: integer
+      body_type:
+        type: string
+      chassis:
+        type: string
+      height:
+        type: number
+      length:
+        type: number
+      license_plate:
+        type: string
+      load_capacity:
+        type: number
+      renavan:
+        type: string
+      state:
+        type: string
+      width:
+        type: number
+    type: object
+  trailer.TrailerResponse:
+    properties:
+      axles:
+        type: integer
+      body_type:
+        type: string
+      chassis:
+        type: string
+      created_at:
+        type: string
+      height:
+        type: number
+      id:
+        type: integer
+      length:
+        type: number
+      license_plate:
+        type: string
+      load_capacity:
+        type: number
+      renavan:
+        type: string
+      state:
+        type: string
+      status:
+        type: boolean
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      width:
+        type: number
+    type: object
+  trailer.UpdateTrailerRequest:
+    properties:
+      axles:
+        type: integer
+      body_type:
+        enum:
+        - open
+        - chest
+        - bulk_carrier
+        - sider
+        type: string
+      chassis:
+        type: string
+      height:
+        type: number
+      id:
+        type: integer
+      length:
+        type: number
+      license_plate:
+        type: string
+      load_capacity:
+        type: number
+      renavan:
+        type: string
+      state:
+        type: string
+      width:
+        type: number
+    type: object
+  user.ConfirmRecoverPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      password:
+        type: string
+    type: object
+  user.GetUserResponse:
+    properties:
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      profile_id:
+        type: integer
+      profile_picture:
+        type: string
+      secondary_contact:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  user.RecoverPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  user.UpdatePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      old_password:
+        type: string
+      password:
+        type: string
+    type: object
+  user.UpdateUserAddressRequest:
+    properties:
+      cep:
+        type: string
+      city:
+        type: string
+      complement:
+        type: string
+      id:
+        type: integer
+      neighborhood:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+    type: object
+  user.UpdateUserPersonalInfoRequest:
+    properties:
+      date_of_birth:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      secondary_contact:
+        type: string
+    type: object
+  user.UpdateUserRequest:
+    properties:
+      city:
+        type: string
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      profile_picture:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+    type: object
+  user.UpdateUserResponse:
+    properties:
+      city:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      google_id:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      neighborhood:
+        type: string
+      phone:
+        type: string
+      profile_id:
+        type: integer
+      profile_picture:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      street_number:
+        type: string
+    type: object
+  user.UserExitsRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  ws.CreateChatRoomRequest:
+    properties:
+      advertisement_id:
+        type: integer
+    type: object
+  ws.CreateChatRoomResponse:
+    properties:
+      advertisement_id:
+        type: integer
+      advertisement_user_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      interested_user_id:
+        type: integer
+    type: object
+  ws.MessageResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      message_id:
+        type: integer
+      name:
+        type: string
+      profile_picture:
+        type: string
+      room_id:
+        type: integer
+      type_message:
+        type: string
+      user_id:
+        type: integer
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: https://simpplify.com.br/contact
+  description: Document API
+  title: Geolocation
+  version: "1.0"
+paths:
+  /address/city/{idState}:
+    get:
+      consumes:
+      - application/json
+      description: Retorna todas as cidades de um estado específico, utilizando o
+        ID do estado.
+      parameters:
+      - description: ID do Estado
+        in: path
+        name: idState
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de Cidades
+          schema:
+            items:
+              $ref: '#/definitions/address.CityResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Cidades por Estado
+      tags:
+      - Endereços
+  /address/find:
+    get:
+      consumes:
+      - application/json
+      description: 'Busca um endereço por pesquisa. Pode ser: 1. Nome de localidade,
+        2. Latitude e Longitude ou 3. Endereço completo (Rua, bairro, número).'
+      parameters:
+      - description: Consulta do Endereço
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Endereço
+          schema:
+            items:
+              $ref: '#/definitions/address.AddressResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Endereço por Consulta
+      tags:
+      - Endereços
+  /address/find/{cep}:
+    get:
+      consumes:
+      - application/json
+      description: Encontra um endereço pelo CEP, retornando o tipo baseado nas repetições
+        encontradas.
+      parameters:
+      - description: CEP
+        in: path
+        name: cep
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Endereço
+          schema:
+            items:
+              $ref: '#/definitions/address.AddressCEPResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Endereço por CEP
+      tags:
+      - Endereços
+  /address/find/v2:
+    get:
+      consumes:
+      - application/json
+      description: Busca um endereço por pesquisa. Endereço completo (Rua, bairro,
+        número).
+      parameters:
+      - description: Consulta do Endereço
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Endereço
+          schema:
+            items:
+              $ref: '#/definitions/address.AddressResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Endereço por Consulta
+      tags:
+      - Endereços
+  /address/state:
+    get:
+      consumes:
+      - application/json
+      description: Retorna todos os estados disponíveis.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de Estados
+          schema:
+            items:
+              $ref: '#/definitions/address.StateResponse'
+            type: array
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar Todos os Estados
+      tags:
+      - Endereços
+  /advertisement/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria um anúncio.
+      parameters:
+      - description: Requisição de Anúncio
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/advertisement.CreateAdvertisementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Anúncio
+          schema:
+            $ref: '#/definitions/advertisement.AdvertisementResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um Anúncio.
+      tags:
+      - Anúncio
+  /advertisement/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui um anúncio.
+      parameters:
+      - description: ID do Anúncio
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Anúncio.
+      tags:
+      - Anúncio
+  /advertisement/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera todos os anúncios.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de Anúncios
+          schema:
+            items:
+              $ref: '#/definitions/advertisement.AdvertisementResponseAll'
+            type: array
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Todos os Anúncios.
+      tags:
+      - Anúncio
+  /advertisement/route:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza a rota escolhida no anúncio.
+      parameters:
+      - description: Requisição para escolha de rota do anúncio
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/advertisement.UpdateAdsRouteChooseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Escolha de Rota do Anúncio.
+      tags:
+      - Anúncio
+  /advertisement/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um anúncio.
+      parameters:
+      - description: Requisição de Anúncio
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/advertisement.UpdateAdvertisementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Anúncio
+          schema:
+            $ref: '#/definitions/advertisement.AdvertisementResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar um Anúncio.
+      tags:
+      - Anúncio
+  /appointment/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Recupera a lista de agendamentos para um usuário.
+      parameters:
+      - description: ID do Usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações dos Agendamentos
+          schema:
+            $ref: '#/definitions/appointments.AppointmentResponseList'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter lista de Agendamentos.
+      tags:
+      - Agendamentos
+  /appointment/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui um agendamento.
+      parameters:
+      - description: ID do Agendamento
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Agendamento.
+      tags:
+      - Agendamentos
+  /appointment/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um agendamento.
+      parameters:
+      - description: Requisição de Agendamento
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/appointments.UpdateAppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar um Agendamento.
+      tags:
+      - Agendamentos
+  /attach/update:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Mark an existing attachment as inactive and create a new record
+        with the provided file.
+      parameters:
+      - description: Attachment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: formData
+        name: userId
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: New attachment file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Update Attachment (Logical Delete and Replace)
+      tags:
+      - Attach
+  /attach/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create Attach.
+      parameters:
+      - collectionFormat: csv
+        description: File to upload. Only accepts .jpg, .jpeg, .png, and .pdf files.
+        in: formData
+        items:
+          type: file
+        name: files_input
+        required: true
+        type: array
+      - description: CodeID
+        in: formData
+        name: code_id
+        required: true
+        type: string
+      - description: Origin
+        in: formData
+        name: origin
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create Attach.
+      tags:
+      - Attach
+  /attachment/list/{type}:
+    get:
+      consumes:
+      - application/json
+      description: Get Attachment.
+      parameters:
+      - description: Driver id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get Attachment.
+      tags:
+      - Attach
+  /chat/create-room:
+    post:
+      consumes:
+      - application/json
+      description: Creates a chat room associated with an advertisement.
+      parameters:
+      - description: Chat Room Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ws.CreateChatRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat Room Info
+          schema:
+            $ref: '#/definitions/ws.CreateChatRoomResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new chat room.
+      tags:
+      - WebSocket
+  /chat/messages/:room_id:
+    get:
+      consumes:
+      - application/json
+      description: Fetches chat messages by the specified room ID.
+      parameters:
+      - description: Chat Room ID
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chat messages
+          schema:
+            items:
+              $ref: '#/definitions/ws.MessageResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Retrieve messages from a chat room.
+      tags:
+      - WebSocket
+  /check-route-tolls-cep:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Calcula as melhores opções de rota a partir dos CEPs de origem e destino.
+
+        Campos esperados no body:
+        - origin_cep: \"01001000\" (CEP de origem)
+        - destination_cep: \"20040002\" (CEP de destino)
+        - consumptionCity: 20         (Consumo de combustível na cidade, em km/l)
+        - consumptionHwy: 22         (Consumo de combustível na estrada, em km/l)
+        - price: 6.20                (Preço do combustível em BRL)
+        - axles: 2                  (Quantidade de eixos: 2, 4, 6, 8, 9)
+        - waypoints: [\"01310940\",\"20050013\"] (Lista de CEPs para pontos de parada)
+        - public_or_private: \"public\" | \"private\" (Define se conta na cota pública ou privada)
+        - favorite: true             (Se deseja favoritar essa rota)
+        - type: \"Auto\"              (Tipo de veículo: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: \"eficiente\"    (Rota específica: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false,   (retorna postos de gasolina)
+        include_route_map: false,        (retorna rotograma da rota)
+        include_toll_costs: false,       (retorna pedágios e custos gerais)
+        include_weigh_stations: false,   (retorna balanças)
+        include_freight_calc: false,     (retorna cálculo de frete ANTT)
+        include_polyline: false          (retorna polyline para mapas)
+        } (Opções adicionais para a rota)
+      parameters:
+      - description: Requisição para cálculo de rota por CEP
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfoCEP'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações calculadas da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "404":
+          description: Não Encontrado
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcular rotas com base em CEP.
+      tags:
+      - Routes
+  /check-route-tolls-coordinate:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Calcula as melhores opções de rota a partir de uma latitude e longitude de origem e destino.
+
+        Campos esperados no body:
+        - origin_lat: \"-25.550520\" (Latitude do local de saída)
+        - origin_lng: \"-48.633309\" (Longitude do local de saída)
+        - destination_lat: \"-31.0368176\" (Latitude do local de chegada)
+        - destination_lng: \"-51.0368176\" (Longitude do local de chegada)
+        - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+        - consumptionCity: 20 (Consumo de combustível na cidade)
+        - consumptionHwy: 22 (Consumo de combustível na estrada)
+        - price: 6.20 (Preço da gasolina)
+        - waypoints: [{\"lat\": \"-23.223701\",\"lng\": \"-45.900907\"},{\"lat\": \"-22.755611\",\"lng\": \"-44.168869\"}] (Lista de pontos de parada, definida pelas coordenadas)
+        - favorite: true (Se deseja favoritar essa rota)
+        - type: \"Auto\" (Tipo do automóvel, possível: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: \"eficiente\" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false, (traz postos de gasolina)
+        include_route_map: false, (traz rotograma da rota)
+        include_toll_costs: false, (traz pedágios e os custos gerais)
+        include_weigh_stations: false, (traz balanças)
+        include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+        include_polyline: false (traz polyline para renderizar em mapas)
+        } (Opções adicionais para a rota)
+      parameters:
+      - description: Requisição para cálculo de rota por coordenadas
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfoCoordinate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações calculadas da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "404":
+          description: Não Encontrado
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcular rotas com base em coordenadas.
+      tags:
+      - Routes
+  /check-route-tolls-easy:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Calcula as melhores opções de rota a partir de uma origem e destino.
+
+        Campos esperados no body:
+        - origin: "São Paulo" (Local de chegada)
+        - destination: "Salvador" (Local de saída)
+        - axles: 2 (Quantidade de eixos, possível somente: 2, 4, 6, 8, 9)
+        - consumptionCity: 20 (Consumo de combustível na cidade)
+        - consumptionHwy: 22 (Consumo de combustível na estrada)
+        - price: 6.20 (Preço da gasolina)
+        - waypoints: ["Rio de Janeiro", "Vitória da Conquista"] (Lista de pontos de parada)
+        - favorite: true (Se deseja favoritar essa rota)
+        - type: "Auto" (Tipo do automóvel, possíveis: Truck, Bus, Auto, Motorcycle)
+        - typeRoute: "eficiente" (Caso queira apenas uma rota: eficiente, rápida ou barata)
+        - route_options: {
+        include_fuel_stations: false, (traz postos de gasolina)
+        include_route_map: false, (traz rotograma da rota)
+        include_toll_costs: false, (traz pedágios e os custos gerais)
+        include_weigh_stations: false, (traz balanças)
+        include_freight_calc: false, (traz frestes, segundo a ANTT calculados)
+        include_polyline: false (traz polyline para renderizar em mapas)
+        } (Opções adicionais para a rota)
+      parameters:
+      - description: Requisição para cálculo de rota
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.FrontInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações calculadas da rota
+          schema:
+            $ref: '#/definitions/new_routes.FinalOutput'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "404":
+          description: Não Encontrado
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Calcular rotas possíveis.
+      tags:
+      - Routes
+  /create:
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo usuário no sistema.
+      parameters:
+      - description: Requisição para criação de usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Criado
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Criar um novo usuário.
+      tags:
+      - Usuários
+  /create/client:
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo cliente usuário no sistema.
+      parameters:
+      - description: Requisição para criação de usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestCreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Criado
+          schema:
+            $ref: '#/definitions/login.ResponseCreateUser'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um novo cliente usuário.
+      tags:
+      - Usuários
+  /dashboard/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do Dashboard.
+      parameters:
+      - description: ID do Dashboard
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data de início (formato YYYY-MM-DD)
+        in: query
+        name: start
+        type: string
+      - description: Data de fim (formato YYYY-MM-DD)
+        in: query
+        name: end
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Dashboard
+          schema:
+            $ref: '#/definitions/dashboard.Response'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Dashboard.
+      tags:
+      - Dashboard
+  /driver/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria um motorista.
+      parameters:
+      - description: Requisição de Motorista
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/drivers.CreateDriverRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um Motorista.
+      tags:
+      - Motoristas
+  /driver/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui um motorista.
+      parameters:
+      - description: ID do Motorista
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Motorista.
+      tags:
+      - Motoristas
+  /driver/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do motorista.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Motorista.
+      tags:
+      - Motoristas
+  /driver/list/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do motorista a partir do ID.
+      parameters:
+      - description: ID do Motorista
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Motorista por ID.
+      tags:
+      - Motoristas
+  /driver/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados de um motorista.
+      parameters:
+      - description: Requisição de Motorista
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/drivers.UpdateDriverRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Motorista
+          schema:
+            $ref: '#/definitions/drivers.DriverResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar um Motorista.
+      tags:
+      - Motoristas
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica um usuário utilizando email e senha.
+      parameters:
+      - description: Requisição de Login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/login.RequestLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário Autenticado
+          schema:
+            $ref: '#/definitions/login.ResponseLogin'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Autenticar um usuário.
+      tags:
+      - Usuários
+  /payment-history:
+    get:
+      consumes:
+      - application/json
+      description: Recupera o histórico de pagamentos de um usuário.
+      parameters:
+      - description: ID do Usuário
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista do Histórico de Pagamentos
+          schema:
+            items:
+              $ref: '#/definitions/payment.PaymentHistResponse'
+            type: array
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Histórico de Pagamentos
+      tags:
+      - Pagamentos
+  /public/advertisement/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera um anúncio pelo seu ID (público).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Anúncio
+          schema:
+            items:
+              $ref: '#/definitions/advertisement.AdvertisementResponseNoUser'
+            type: array
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Obter Anúncio por ID (Público).
+      tags:
+      - Anúncio
+  /route/favorite/list:
+    get:
+      consumes:
+      - application/json
+      description: Get FavoriteRoute.
+      parameters:
+      - description: FavoriteRoute id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Favorite Route Info
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get FavoriteRoute.
+      tags:
+      - Rotas Favoritas
+  /route/favorite/remove/:id:
+    put:
+      consumes:
+      - application/json
+      description: Get FavoriteRoute.
+      parameters:
+      - description: FavoriteRoute id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get FavoriteRoute.
+      tags:
+      - Rotas Favoritas
+  /route/simple:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a simple route with distance and duration.
+      parameters:
+      - description: Route calculation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/new_routes.SimpleRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Route details
+          schema:
+            $ref: '#/definitions/new_routes.SimpleRouteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get simple route information.
+      tags:
+      - Routes
+  /tractor-unit/check-plate/{plate}:
+    get:
+      consumes:
+      - application/json
+      description: Verifica se a placa existe ou já está cadastrada.
+      parameters:
+      - description: Placa do Veículo
+        in: path
+        name: plate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resultado da verificação da placa
+          schema: {}
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Verificar Placa.
+      tags:
+      - Cavalo
+  /tractor-unit/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria uma unidade tratora.
+      parameters:
+      - description: Requisição de Unidade Tratora
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/tractor_unit.CreateTractorUnitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações da Unidade Tratora
+          schema:
+            $ref: '#/definitions/tractor_unit.TractorUnitResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar uma Unidade Tratora.
+      tags:
+      - Cavalo
+  /tractor-unit/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui uma unidade tratora.
+      parameters:
+      - description: ID da Unidade Tratora
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir uma Unidade Tratora.
+      tags:
+      - Cavalo
+  /tractor-unit/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações da unidade tratora.
+      parameters:
+      - description: ID da Unidade Tratora
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações da Unidade Tratora
+          schema:
+            $ref: '#/definitions/tractor_unit.TractorUnitResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Unidade Tratora.
+      tags:
+      - Cavalo
+  /tractor-unit/list/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do reboque a partir do ID.
+      parameters:
+      - description: ID do Carroceria
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Carroceria por ID.
+      tags:
+      - Carroceria
+  /tractor-unit/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados de uma unidade tratora.
+      parameters:
+      - description: Requisição de Unidade Tratora
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/tractor_unit.UpdateTractorUnitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações da Unidade Tratora
+          schema:
+            $ref: '#/definitions/tractor_unit.TractorUnitResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar uma Unidade Tratora.
+      tags:
+      - Cavalo
+  /trailer/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria um reboque.
+      parameters:
+      - description: Requisição de Carroceria
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/trailer.CreateTrailerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um Carroceria.
+      tags:
+      - Carroceria
+  /trailer/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Exclui um reboque.
+      parameters:
+      - description: ID do Carroceria
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Carroceria.
+      tags:
+      - Carroceria
+  /trailer/list:
+    get:
+      consumes:
+      - application/json
+      description: Recupera as informações do reboque.
+      parameters:
+      - description: ID do Carroceria
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Carroceria.
+      tags:
+      - Carroceria
+  /trailer/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza as informações de um reboque.
+      parameters:
+      - description: Requisição de Carroceria
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/trailer.UpdateTrailerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Carroceria
+          schema:
+            $ref: '#/definitions/trailer.TrailerResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar um Carroceria.
+      tags:
+      - Carroceria
+  /user/address/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os detalhes do endereço do usuário.
+      parameters:
+      - description: Requisição de Atualização de Endereço do Usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações Atualizadas do Endereço
+          schema:
+            $ref: '#/definitions/user.UpdateUserResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Endereço do Usuário.
+      tags:
+      - Usuários
+  /user/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Exclui a conta do usuário autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Mensagem de sucesso
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir um Usuário.
+      tags:
+      - Usuários
+  /user/exists:
+    post:
+      consumes:
+      - application/json
+      description: Verifica se o usuário existe a partir do e-mail fornecido.
+      parameters:
+      - description: Requisição para Verificar Existência do Usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UserExitsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dados do Usuário
+          schema:
+            $ref: '#/definitions/user.GetUserResponse'
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Verificar Existência do Usuário.
+      tags:
+      - Usuários
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: Recupera todos os dados do usuário.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Usuário
+          schema:
+            $ref: '#/definitions/user.GetUserResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter Informações do Usuário.
+      tags:
+      - Usuários
+  /user/password/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza a senha do usuário autenticado.
+      parameters:
+      - description: Requisição de Atualização de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdatePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Senha do Usuário.
+      tags:
+      - Usuários
+  /user/personal/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados pessoais do usuário.
+      parameters:
+      - description: Requisição de Atualização de Informações Pessoais do Usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserPersonalInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações Pessoais Atualizadas
+          schema:
+            $ref: '#/definitions/user.UpdateUserResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Informações Pessoais do Usuário.
+      tags:
+      - Usuários
+  /user/plan:
+    post:
+      consumes:
+      - application/json
+      description: Atribui um usuário a um plano selecionado.
+      parameters:
+      - description: ID do Plano
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do Plano do Usuário
+          schema:
+            $ref: '#/definitions/plans.UserPlanResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar um Plano de Usuário.
+      tags:
+      - Usuários
+  /user/recover:
+    post:
+      consumes:
+      - application/json
+      description: Inicia o processo de recuperação de senha para o usuário.
+      parameters:
+      - description: Requisição de Recuperação de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.RecoverPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      summary: Recuperar Senha.
+      tags:
+      - Usuários
+  /user/recover/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Confirma a recuperação de senha utilizando o token recebido.
+      parameters:
+      - description: Requisição de Confirmação de Recuperação de Senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.ConfirmRecoverPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Confirmar Recuperação de Senha.
+      tags:
+      - Usuários
+  /user/update:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza as informações do perfil do usuário autenticado.
+      parameters:
+      - description: Requisição de Atualização do Usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações Atualizadas do Usuário
+          schema:
+            $ref: '#/definitions/user.UpdateUserResponse'
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar Informações do Usuário.
+      tags:
+      - Usuários
+  /webhook/stripe:
+    post:
+      consumes:
+      - application/json
+      description: Recebe e processa os eventos do webhook do Stripe.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição Inválida
+          schema:
+            type: string
+        "500":
+          description: Erro Interno do Servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Processar Webhook do Stripe
+      tags:
+      - Pagamentos
+  /ws:
+    get:
+      consumes:
+      - application/json
+      description: Establishes a WebSocket connection for real-time communication.
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Handle WebSocket connection.
+      tags:
+      - WebSocket
+schemes:
+- https
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

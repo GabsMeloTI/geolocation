@@ -26,3 +26,17 @@ type PublicPayloadDTO struct {
 	Valid          bool      `json:"valid"`
 	ExpiredAt      time.Time `json:"expired_at"`
 }
+
+type PayloadUserDTO struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	ProfileID int64     `json:"profile_id"`
+	Document  string    `json:"document"`
+	GoogleID  string    `json:"google_id"`
+	ExpireAt  time.Time `json:"expire_at"`
+}
+
+type PayloadUserIDDTO struct {
+	UserID int64 `json:"user_id"`
+}

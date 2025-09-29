@@ -35,6 +35,32 @@ CREATE TABLE public.toll_tags (
                                   CONSTRAINT toll_tags_pkey PRIMARY KEY (id)
 );
 
+CREATE TABLE public.balanca (
+                                id bigint NOT NULL,
+                                concessionaria varchar(50) NOT NULL,
+                                km varchar(50) NOT NULL,
+                                lat varchar(50) NOT NULL,
+                                lng varchar(50) NOT NULL,
+                                nome varchar(50) NOT NULL,
+                                rodovia varchar(50) NOT NULL,
+                                sentido varchar(50) NOT NULL,
+                                uf varchar(50)NOT NULL
+);
+
+CREATE TABLE public.freight_load (
+                                     type_of_load varchar(50) NULL,
+                                     two_axes varchar(50) NULL,
+                                     three_axes varchar(50) NULL,
+                                     four_axes varchar(50) NULL,
+                                     five_axes varchar(50) NULL,
+                                     six_axes varchar(50) NULL,
+                                     seven_axes varchar(50) NULL,
+                                     nine_axes varchar(50) NULL,
+                                     "name" varchar(50) NULL,
+                                     description varchar(128) NULL
+);
+
+
 
 CREATE TABLE saved_routes (
                               id SERIAL PRIMARY KEY,
@@ -50,29 +76,6 @@ CREATE TABLE saved_routes (
 );
 CREATE UNIQUE INDEX idx_saved_routes_unique ON saved_routes(origin, destination, waypoints);
 
-create table favorite_route (
-                                id BIGSERIAL PRIMARY KEY,
-                                tolls_id bigint not null,
-                                response JSONB NOT NULL,
-                                user_organization varchar not null,
-                                created_who varchar not null,
-                                created_at timestamp not null default now(),
-                                updated_who varchar null,
-                                updated_at timestamp null
-);
-
-CREATE TABLE public.balanca (
-                                id bigint NOT NULL,
-                                concessionaria varchar(50) NOT NULL,
-                                km varchar(50) NOT NULL,
-                                lat varchar(50) NOT NULL,
-                                lng varchar(50) NOT NULL,
-                                nome varchar(50) NOT NULL,
-                                rodovia varchar(50) NOT NULL,
-                                sentido varchar(50) NOT NULL,
-                                uf varchar(50)NOT NULL
-);
-
 
 CREATE TABLE public.token_hist (
                                    id bigserial NOT NULL,
@@ -85,29 +88,25 @@ CREATE TABLE public.token_hist (
 
 CREATE TABLE public.route_hist (
                                    id bigserial PRIMARY KEY,
-                                   id_token_hist bigint not null,
+                                   id_user bigint not null,
                                    origin TEXT NOT NULL,
                                    destination TEXT NOT NULL,
                                    waypoints TEXT NULL,
                                    response JSONB NOT NULL,
+                                   is_public BOOL NOT NULL,
+                                   number_request bigint NOT NULL,
                                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE route_hist
-    ADD CONSTRAINT "fk_token_hist"
-    FOREIGN KEY ("id_token_hist")
-    REFERENCES token_hist ("id");
-
-
-CREATE TABLE public.freight_load (
-                                     type_of_load varchar(50) NULL,
-                                     two_axes varchar(50) NULL,
-                                     three_axes varchar(50) NULL,
-                                     four_axes varchar(50) NULL,
-                                     five_axes varchar(50) NULL,
-                                     six_axes varchar(50) NULL,
-                                     seven_axes varchar(50) NULL,
-                                     nine_axes varchar(50) NULL,
-                                     "name" varchar(50) NULL,
-                                     description varchar(128) NULL
+create table favorite_route (
+                                id BIGSERIAL PRIMARY KEY,
+                                id_user BIGSERIAL NOT NULL,
+                                origin TEXT NOT NULL,
+                                destination TEXT NOT NULL,
+                                waypoints TEXT NULL,
+                                response JSONB NOT NULL,
+                                status BOOLEAN NOT NULL,
+                                created_at timestamp not null default now(),
+                                updated_at timestamp null
 );
+

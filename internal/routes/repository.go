@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	db "geolocation/db/sqlc"
+	"strconv"
 )
 
 type InterfaceRepository interface {
@@ -21,6 +22,12 @@ type InterfaceRepository interface {
 	CreateRouteHist(ctx context.Context, arg db.CreateRouteHistParams) (db.RouteHist, error)
 	GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, error)
 	GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error)
+	GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error)
+	UpdateNumberOfRequestRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error
+	GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.FavoriteRoute, error)
+	RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error
+	FindAddressByCEP(ctx context.Context, arg string) (db.FindAddressByCEPRow, error)
+	FindAddressByCEPNew(ctx context.Context, argStr string) (db.FindAddressByCEPNewRow, error)
 }
 
 type Repository struct {
@@ -68,7 +75,7 @@ func (r *Repository) CreateFavoriteRoute(ctx context.Context, arg db.CreateFavor
 	return r.Queries.CreateFavoriteRoute(ctx, arg)
 }
 func (r *Repository) GetTokenHist(ctx context.Context, arg int64) (db.TokenHist, error) {
-	return r.Queries.GetTokenHist(ctx, arg)
+	return r.Queries.GetTokenHist(ctx, strconv.FormatInt(arg, 10))
 }
 func (r *Repository) UpdateNumberOfRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error {
 	return r.Queries.UpdateNumberOfRequest(ctx, arg)
@@ -81,4 +88,26 @@ func (r *Repository) GetFreightLoadAll(ctx context.Context) ([]db.FreightLoad, e
 }
 func (r *Repository) GetGasStationsByBoundingBox(ctx context.Context, arg db.GetGasStationsByBoundingBoxParams) ([]db.GetGasStationsByBoundingBoxRow, error) {
 	return r.Queries.GetGasStationsByBoundingBox(ctx, arg)
+}
+func (r *Repository) UpdateNumberOfRequestRequest(ctx context.Context, arg db.UpdateNumberOfRequestParams) error {
+	return r.Queries.UpdateNumberOfRequest(ctx, arg)
+}
+func (r *Repository) GetRouteHistByUnique(ctx context.Context, arg db.GetRouteHistByUniqueParams) (db.RouteHist, error) {
+	return r.Queries.GetRouteHistByUnique(ctx, arg)
+}
+func (r *Repository) GetFavoriteByUserId(ctx context.Context, arg int64) ([]db.FavoriteRoute, error) {
+	return r.Queries.GetFavoriteByUserId(ctx, arg)
+}
+func (r *Repository) RemoveFavorite(ctx context.Context, arg db.RemoveFavoriteParams) error {
+	return r.Queries.RemoveFavorite(ctx, arg)
+}
+func (r *Repository) FindAddressByCEP(ctx context.Context, arg string) (db.FindAddressByCEPRow, error) {
+	return r.Queries.FindAddressByCEP(ctx, arg)
+}
+func (r *Repository) FindAddressByCEPNew(ctx context.Context, argStr string) (db.FindAddressByCEPNewRow, error) {
+	arg := sql.NullString{
+		String: argStr,
+		Valid:  true,
+	}
+	return r.Queries.FindAddressByCEPNew(ctx, arg)
 }
