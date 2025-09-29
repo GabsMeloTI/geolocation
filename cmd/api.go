@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -29,6 +30,9 @@ import (
 
 func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e := echo.New()
+
+	// Configurar JSON serializer personalizado para não escapar barras
+	e.JSONSerializer = &CustomJSONSerializer{}
 
 	go func() {
 		for {
@@ -100,7 +104,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	zonasRisco.POST("/create", container.HandlerZonasRisco.CreateZonaRiscoHandler)
 	zonasRisco.PUT("/update", container.HandlerZonasRisco.UpdateZonaRiscoHandler)
 	zonasRisco.PUT("/delete/:id", container.HandlerZonasRisco.DeleteZonaRiscoHandler)
-	zonasRisco.GET("/list", container.HandlerZonasRisco.GetAllZonasRiscoHandler)
+	zonasRisco.GET("/list/all/:id", container.HandlerZonasRisco.GetAllZonasRiscoHandler)
 	zonasRisco.GET("/list/:id", container.HandlerZonasRisco.GetZonaRiscoByIdHandler)
 
 	e.POST("/recover-password", container.UserHandler.RecoverPassword)
@@ -115,8 +119,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	user.PUT("/personal/update", container.UserHandler.UpdateUserPersonalInfo)
 	user.POST("/plan", container.HandlerUserPlan.CreateUserPlanHandler)
 	e.GET("/user/email", container.UserHandler.UserExists)
-	e.GET("/caminhao/:modelo", container.UserHandler.InfoCaminhao)
+	e.POST("/caminhao/carbono", container.UserHandler.InfoCaminhao)
 	e.GET("/consulta/:placa", container.UserHandler.ConsultarPlaca)
+	e.POST("/consulta/multiplas", container.UserHandler.ConsultarMultiplasPlacas)
 
 	public := e.Group("/public")
 	public.GET("/:ip", container.HandlerHist.GetPublicToken)
@@ -139,8 +144,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	// simpplify
 	e.POST("/check-route-tolls-simpplify", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckAuthorization)
 	e.POST("/check-route-tolls-simpplify-cep", container.HandlerNewRoutes.CalculateRoutesWithCEP, _midlleware.CheckAuthorization)
-    e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
+	e.POST("/route-cep", container.HandlerNewRoutes.CalculateRoutesCEP)
 	e.POST("/route-cep-avoidance", container.HandlerNewRoutes.CalculateDistancesBetweenPointsWithRiskAvoidanceHandler)
+	e.POST("/route-coordinate-avoidance", container.HandlerNewRoutes.CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler)
 	e.POST("/nearby-location", container.HandlerNewRoutes.CalculateDistancesFromOrigin)
 
 	// easyfrete
@@ -158,6 +164,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.GET("/dashboard", container.HandlerDashboard.GetDashboardHandler, _midlleware.CheckUserAuthorization)
 	e.GET("/check/:plate", container.HandlerTractorUnit.CheckPlateHandler)
 	e.GET("/payment-history", container.HandlerPayment.GetPaymentHistHandler, _midlleware.CheckUserAuthorization)
+	e.GET("/address/coordinates", container.HandlerNewRoutes.GetCoordinatesFromAddress)
 
 	appointment := e.Group("/appointment")
 	appointment.PUT("/update", container.HandlerAppointment.UpdateAppointmentHandler)
@@ -179,4 +186,20 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	locations.GET("/list/:providerId", container.HandlerLocation.GetLocationHandler)
 
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
+}
+
+// CustomJSONSerializer é um serializer JSON personalizado que não escapa barras
+type CustomJSONSerializer struct{}
+
+func (j *CustomJSONSerializer) Serialize(c echo.Context, i interface{}, indent string) error {
+	enc := json.NewEncoder(c.Response())
+	if indent != "" {
+		enc.SetIndent("", indent)
+	}
+	enc.SetEscapeHTML(false)
+	return enc.Encode(i)
+}
+
+func (j *CustomJSONSerializer) Deserialize(c echo.Context, i interface{}) error {
+	return json.NewDecoder(c.Request().Body).Decode(i)
 }

@@ -17,6 +17,12 @@ type Location struct {
 	Longitude float64 `json:"longitude"`
 }
 
+type AddressCoordinatesResponse struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Address   string  `json:"address"`
+}
+
 type AddressInfo struct {
 	Location Location `json:"location"`
 	Address  string   `json:"address"`
@@ -47,10 +53,11 @@ type Summary struct {
 }
 
 type Response struct {
-	Routes     []DetailedRoute `json:"routes"`
-	TotalRoute TotalSummary    `json:"total_route"`
-	Front      string          `json:"front"`
+	Routes      []DetailedRoute `json:"routes"`
+	TotalRoute  TotalSummary    `json:"total_route"`
+	TotalRoutes []TotalSummary  `json:"total_routes_all,omitempty"`
 }
+
 type DetailedRoute struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
 	LocationDestination AddressInfo    `json:"location_destination"`
@@ -66,16 +73,20 @@ type LocationHisk struct {
 }
 
 type TotalSummary struct {
-	LocationOrigin      AddressInfo `json:"location_origin"`
-	LocationDestination AddressInfo `json:"location_destination"`
-	TotalDistance       Distance    `json:"distance"`
-	TotalDuration       Duration    `json:"duration"`
-	URL                 string      `json:"url"`
-	URLWaze             string      `json:"url_waze"`
-	TotalTolls          float64     `json:"total_tolls"`
-	TotalFuelCost       float64     `json:"total_fuel_cost"`
-	Tolls               []Toll      `json:"tolls"`
-	Polyline            string      `json:"polyline"`
+	LocationOrigin      AddressInfo        `json:"location_origin"`
+	LocationDestination AddressInfo        `json:"location_destination"`
+	TotalDistance       Distance           `json:"distance"`
+	TotalDuration       Duration           `json:"duration"`
+	URL                 string             `json:"url"`
+	URLWaze             string             `json:"url_waze"`
+	TotalTolls          float64            `json:"total_tolls"`
+	TotalFuelCost       float64            `json:"total_fuel_cost"`
+	Tolls               []Toll             `json:"tolls"`
+	Balances            interface{}        `json:"balances"`
+	Polyline            string             `json:"polyline"`
+	Instructions        []Instruction      `json:"instructions,omitempty"`
+	AttentionZones      *AttentionZoneInfo `json:"attention_zones"`
+	RouteType           string             `json:"route_type,omitempty"`
 }
 type SummaryResponse struct {
 	LocationOrigin      AddressInfo    `json:"location_origin"`
@@ -128,28 +139,32 @@ type Duration struct {
 }
 
 type RiskZone struct {
-	ID     int64   `json:"id"`
-	Name   string  `json:"name"`
-	Cep    string  `json:"cep"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Radius int64   `json:"radius"`
-	Status bool    `json:"status"`
+	ID             int64   `json:"id"`
+	Name           string  `json:"name"`
+	Cep            string  `json:"cep"`
+	Lat            float64 `json:"lat"`
+	Lng            float64 `json:"lng"`
+	Radius         int64   `json:"radius"`
+	Status         bool    `json:"status"`
+	ZonasAtencao   bool    `json:"zonas_atencao"`
+	OrganizationID int64   `json:"organization_id"`
 }
 
 type RouteSummary struct {
-	RouteType     string       `json:"route_type"`
-	HasTolls      bool         `json:"hasTolls"`
-	Distance      Distance     `json:"distance"`
-	Duration      Duration     `json:"duration"`
-	URL           string       `json:"url"`
-	URLWaze       string       `json:"url_waze"`
-	TotalFuelCost float64      `json:"total_fuel_cost,omitempty"`
-	Tolls         []Toll       `json:"tolls,omitempty"`
-	TotalTolls    float64      `json:"total_tolls,omitempty"`
-	Polyline      string       `json:"polyline,omitempty"`
-	RiskInfo      *RiskOffsets `json:"risk_info,omitempty"`
-	Detour        *DetourPlan  `json:"detour,omitempty"`
+	RouteType      string             `json:"route_type"`
+	HasTolls       bool               `json:"hasTolls"`
+	Distance       Distance           `json:"distance"`
+	Duration       Duration           `json:"duration"`
+	URL            string             `json:"url"`
+	URLWaze        string             `json:"url_waze"`
+	TotalFuelCost  float64            `json:"total_fuel_cost,omitempty"`
+	Tolls          []Toll             `json:"tolls,omitempty"`
+	TotalTolls     float64            `json:"total_tolls,omitempty"`
+	Polyline       string             `json:"polyline,omitempty"`
+	Instructions   []Instruction      `json:"instructions,omitempty"`
+	AttentionZones *AttentionZoneInfo `json:"attention_zones"`
+	RiskInfo       *RiskOffsets       `json:"risk_info,omitempty"`
+	Detour         *DetourPlan        `json:"detour,omitempty"`
 }
 type DetourPlan struct {
 	Source string        `json:"source"`
@@ -294,6 +309,7 @@ type FrontInfoCEPRequest struct {
 	TypeRoute       string       `json:"typeRoute"`
 	RouteOptions    RouteOptions `json:"route_options"`
 	Waypoints       []Coordinate `json:"waypoints"`
+	OrganizationID  int64        `json:"organization_id" validate:"required"`
 }
 
 type FrontInfoCoordinate struct {
@@ -311,6 +327,19 @@ type FrontInfoCoordinate struct {
 	PublicOrPrivate string       `json:"public_or_private"`
 	Favorite        bool         `json:"favorite"`
 	RouteOptions    RouteOptions `json:"route_options"`
+}
+
+type FrontInfoCoordinatesRequest struct {
+	Coordinates     []Coordinate `json:"coordinates" validate:"required,min=2"`
+	ConsumptionCity float64      `json:"consumptionCity"`
+	ConsumptionHwy  float64      `json:"consumptionHwy"`
+	Price           float64      `json:"price"`
+	Axles           int64        `json:"axles"`
+	Type            string       `json:"type" validate:"required,oneof=Truck Bus Auto Motorcycle truck bus auto motorcycle"`
+	TypeRoute       string       `json:"typeRoute"`
+	RouteOptions    RouteOptions `json:"route_options"`
+	Waypoints       []Coordinate `json:"waypoints"`
+	OrganizationID  int64        `json:"organization_id" validate:"required"`
 }
 
 type Coordinate struct {
@@ -425,4 +454,24 @@ func (p *FavoriteRouteResponse) ParseFromFavoriteRouteObject(result db.FavoriteR
 	p.Waypoints = result.Waypoints.String
 	p.Response = result.Response
 	p.CreatedAt = result.CreatedAt
+}
+
+// Ponto de entrada/saída da zona de atenção
+type AttentionZoneEvent struct {
+	Type          string   `json:"type"`           // "entry" ou "exit"
+	ZoneName      string   `json:"zone_name"`      // Nome da zona
+	ZoneID        int64    `json:"zone_id"`        // ID da zona
+	Distance      float64  `json:"distance"`       // Distância do início da rota até este ponto
+	Coordinates   Location `json:"coordinates"`    // Coordenadas onde acontece a entrada/saída
+	Message       string   `json:"message"`        // Mensagem a ser exibida
+	DetectionType string   `json:"detection_type"` // "area" ou "street" - como foi detectada
+	StreetName    string   `json:"street_name"`    // Nome da rua (se detectada por rua)
+}
+
+// Informações sobre zonas de atenção encontradas na rota
+type AttentionZoneInfo struct {
+	HasAttentionZones bool                 `json:"has_attention_zones"`
+	Events            []AttentionZoneEvent `json:"events"`
+	TotalDistance     float64              `json:"total_distance_in_zones"`
+	ZoneNames         []string             `json:"zone_names"`
 }

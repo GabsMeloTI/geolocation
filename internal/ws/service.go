@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	db "geolocation/db/sqlc"
@@ -457,7 +456,6 @@ func (s *Service) CreateOfferService(ctx context.Context, msg *Message, cl *Clie
 	var offerContent OfferContent
 
 	if err := json.Unmarshal([]byte(msg.Content), &offerContent); err != nil {
-		fmt.Println("deu erro no Unmarshal")
 		return err
 	}
 

@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"geolocation/pkg/gpt"
 	"geolocation/pkg/plate"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"geolocation/internal/get_token"
 	"geolocation/validation"
+	"regexp"
 )
 
 type Handler struct {
@@ -280,12 +282,12 @@ func (h *Handler) UpdateUserPassword(c echo.Context) error {
 }
 
 func (h *Handler) InfoCaminhao(c echo.Context) error {
-	modelo := c.Param("modelo")
-	if modelo == "" {
-		return errors.New("modelo invalido")
+	var request gpt.RequisicaoCaminhao
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := gpt.PerguntarAoGptEstruturado(modelo)
+	result, err := gpt.PerguntarAoGptEstruturado(request)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -299,10 +301,60 @@ func (h *Handler) ConsultarPlaca(c echo.Context) error {
 		return errors.New("placa invalido")
 	}
 
-	result, err := plate.ConsultarMultas(placa)
+	result, err := plate.ConsultarPlaca(placa)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+// ConsultarMultiplasPlacas consulta múltiplas placas via POST
+func (h *Handler) ConsultarMultiplasPlacas(c echo.Context) error {
+	var request struct {
+		Placas []string `json:"placas" validate:"required,min=1,max=10"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Formato de requisição inválido",
+		})
+	}
+
+	// Valida se todas as placas são válidas
+	for _, placa := range request.Placas {
+		placa = strings.ToUpper(strings.TrimSpace(placa))
+		if !isValidPlate(placa) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("Placa inválida: %s. Formato deve ser ABC1234 ou ABC1D23", placa),
+			})
+		}
+	}
+
+	results, err := plate.ConsultarMultiplasPlacas(request.Placas)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Erro interno do servidor",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    results,
+		"total":   len(results),
+	})
+}
+
+// isValidPlate valida se a placa está no formato correto (antigo ou novo)
+func isValidPlate(placa string) bool {
+	if len(placa) != 7 {
+		return false
+	}
+
+	// Formato antigo: ABC1234 (3 letras + 4 números)
+	oldFormat := regexp.MustCompile(`^[A-Z]{3}[0-9]{4}$`)
+	// Formato novo: ABC1D23 (3 letras + 1 número + 1 letra + 2 números)
+	newFormat := regexp.MustCompile(`^[A-Z]{3}[0-9]{1}[A-Z]{1}[0-9]{2}$`)
+
+	return oldFormat.MatchString(placa) || newFormat.MatchString(placa)
 }

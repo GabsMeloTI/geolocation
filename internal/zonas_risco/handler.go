@@ -1,7 +1,9 @@
 package zonas_risco
 
 import (
+	"database/sql"
 	"fmt"
+	"geolocation/validation"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -117,7 +119,12 @@ func (h *Handler) GetZonaRiscoByIdHandler(c echo.Context) error {
 // @Failure 500 {string} string "Erro Interno do Servidor"
 // @Router /zonas-risco/list [get]
 func (h *Handler) GetAllZonasRiscoHandler(c echo.Context) error {
-	result, err := h.InterfaceService.GetAllZonasRiscoService(c.Request().Context())
+	idStr := c.Param("id")
+	id, err := validation.ParseStringToInt64(idStr)
+	result, err := h.InterfaceService.GetAllZonasRiscoService(c.Request().Context(), sql.NullInt64{
+		Int64: id,
+		Valid: true,
+	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

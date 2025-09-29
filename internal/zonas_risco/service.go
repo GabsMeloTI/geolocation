@@ -12,7 +12,7 @@ type InterfaceService interface {
 	UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRiscoRequest) (ZonaRiscoResponse, error)
 	DeleteZonaRiscoService(ctx context.Context, id int64) error
 	GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRiscoResponse, error)
-	GetAllZonasRiscoService(ctx context.Context) ([]ZonaRiscoResponse, error)
+	GetAllZonasRiscoService(ctx context.Context, organization_id sql.NullInt64) ([]ZonaRiscoResponse, error)
 }
 
 type Service struct {
@@ -30,7 +30,12 @@ func (s *Service) CreateZonaRiscoService(ctx context.Context, data CreateZonaRis
 		Lat:    data.Lat,
 		Lng:    data.Lng,
 		Radius: data.Radius,
-		Type:   sql.NullInt64{Int64: data.Type, Valid: true},
+		OrganizationID: sql.NullInt64{
+			Int64: data.OrgID,
+			Valid: true,
+		},
+		Type:        sql.NullInt64{Int64: data.Type, Valid: true},
+		ZonaAtencao: data.ZonaAtencao,
 	}
 
 	result, err := s.InterfaceService.CreateZonaRisco(ctx, arg)
@@ -50,7 +55,11 @@ func (s *Service) UpdateZonaRiscoService(ctx context.Context, data UpdateZonaRis
 		Lat:    data.Lat,
 		Lng:    data.Lng,
 		Radius: data.Radius,
-		Type:   sql.NullInt64{Int64: data.Type, Valid: true},
+		OrganizationID: sql.NullInt64{
+			Int64: data.OrgID,
+			Valid: true,
+		},
+		Type: sql.NullInt64{Int64: data.Type, Valid: true},
 	}
 	result, err := s.InterfaceService.UpdateZonaRisco(ctx, arg)
 	if err != nil {
@@ -85,8 +94,8 @@ func (s *Service) GetZonaRiscoByIdService(ctx context.Context, id int64) (ZonaRi
 	return resp, nil
 }
 
-func (s *Service) GetAllZonasRiscoService(ctx context.Context) ([]ZonaRiscoResponse, error) {
-	results, err := s.InterfaceService.GetAllZonasRisco(ctx)
+func (s *Service) GetAllZonasRiscoService(ctx context.Context, organization_id sql.NullInt64) ([]ZonaRiscoResponse, error) {
+	results, err := s.InterfaceService.GetAllZonasRisco(ctx, organization_id)
 	if err != nil {
 		return nil, err
 	}

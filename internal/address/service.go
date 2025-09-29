@@ -9,15 +9,15 @@ import (
 	"fmt"
 	db "geolocation/db/sqlc"
 	meiliaddress "geolocation/internal/meili_address"
-	"golang.org/x/text/unicode/norm"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 type InterfaceService interface {
@@ -49,10 +49,8 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 
 	addr, err := s.InterfaceService.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
-		log.Println("buscando cep pelo API Brasil")
 		address, apiErr := FindCEPByAPIBrasil(ctx, normalizedQuery)
 		if apiErr != nil {
-			log.Println("erro ao buscar CEP em ambas base de dados:", apiErr)
 			return AddressCEPResponse{}, nil
 		}
 		return address, nil
@@ -105,7 +103,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
-		log.Println("searching by latitude and longitude")
 		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
@@ -127,7 +124,6 @@ func (s *Service) FindAddressesByQueryService(ctx context.Context, query string)
 	}
 
 	if isCEP {
-		log.Println("searching by cep")
 		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err
@@ -264,7 +260,6 @@ func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query strin
 		lat, _ := strconv.ParseFloat(strings.TrimSpace(coords[0]), 64)
 		lng, _ := strconv.ParseFloat(strings.TrimSpace(coords[1]), 64)
 
-		log.Println("searching by latitude and longitude")
 		addressLatLon, err := s.InterfaceService.FindAddressesByLatLonRepository(ctx, db.FindAddressesByLatLonParams{
 			Lat: sql.NullFloat64{
 				Float64: lat,
@@ -286,7 +281,6 @@ func (s *Service) FindAddressesByQueryV2Service(ctx context.Context, query strin
 	}
 
 	if isCEP {
-		log.Println("searching by cep")
 		addressCEP, err := s.InterfaceService.FindAddressesByCEPRepository(ctx, normalizedQuery)
 		if err != nil {
 			return nil, err

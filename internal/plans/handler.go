@@ -1,11 +1,11 @@
 package plans
 
 import (
-	"fmt"
 	"geolocation/infra/token"
 	"geolocation/internal/get_token"
-	"github.com/labstack/echo/v4"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -50,7 +50,6 @@ func (p *Handler) CreateUserPlanHandler(c echo.Context) error {
 
 func (p *Handler) GetTokenUserHandler(c echo.Context) error {
 	payload := get_token.GetUserPayloadToken(c)
-	fmt.Println(payload.ID)
 
 	newToken, err := p.InterfaceService.GenerateUserToken(payload.ID)
 	if err != nil {

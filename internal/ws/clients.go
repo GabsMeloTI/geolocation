@@ -3,8 +3,6 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -112,7 +110,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 
 		err = json.Unmarshal(m, &msg)
 		if err != nil {
-			log.Println("error to unmarshal message")
 			continue
 		}
 
@@ -132,7 +129,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 		if msg.TypeMessage == "count" {
 			readAt, err := s.ReadMessagesService(context.Background(), msg, c)
 			if err != nil {
-				log.Println("error to read msg")
 				continue
 			}
 
@@ -145,9 +141,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 						ReadAt:      readAt,
 					}
 					err = hub.Clients[id].Conn.WriteJSON(notification)
-					if err != nil {
-						log.Println("error to write read notification message")
-					}
 				}
 			}
 			continue
@@ -158,7 +151,6 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 				if id != c.UserId {
 					home, err := s.GetHomeService(context.Background(), hub.Clients[id].Payload)
 					if err != nil {
-						log.Println("error to get user home")
 						continue
 					}
 					err = hub.Clients[id].Conn.WriteJSON(home)
@@ -171,15 +163,12 @@ func (c *Client) readMessage(hub *Hub, s InterfaceService) {
 
 		data, err := s.CreateChatMessageService(context.Background(), msg, c)
 		if err != nil {
-			log.Println("error in create chat message service")
 			continue
 		}
 
 		if msg.TypeMessage == "offer" {
 			err := s.CreateOfferService(context.Background(), msg, c)
 			if err != nil {
-				fmt.Println(err)
-				log.Println("error to create offer")
 				continue
 			}
 		}
