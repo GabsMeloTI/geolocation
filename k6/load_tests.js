@@ -112,7 +112,7 @@ export function testCalculateRoute() {
         },
     };
 
-    const routeRes = http.post('http://localhost:8080/check-route-tolls-easy', calculateRoute, params)
+    const routeRes = http.post('http://3.238.87.0:7070/check-route-tolls-easy', calculateRoute, params)
     check(routeRes, {
         'calculate route status 200': (r) => r.status === 200,
     })
@@ -152,7 +152,7 @@ export function testCalculateCep() {
         }
     };
 
-    const cepRes = http.post('http://localhost:8080/check-route-tolls-cep', calculateCep, params)
+    const cepRes = http.post('http://3.238.87.0:7070/check-route-tolls-cep', calculateCep, params)
     check(cepRes, {
         'calculate cep status 200': (r) => r.status === 200,
     });
@@ -193,10 +193,10 @@ export function testCalculateCoordinates() {
         }
     };
 
-    const coordinatesRes = http.post('http://localhost:8080/check-route-tolls-coordinate', calculateCoordinates, params)
+    const coordinatesRes = http.post('http://3.238.87.0:7070/check-route-tolls-coordinate', calculateCoordinates, params)
     check(coordinatesRes, {
         'calculate coordinates status 200': (r) => r.status === 200,
     });
 
     sleep(1);
-};
+}
