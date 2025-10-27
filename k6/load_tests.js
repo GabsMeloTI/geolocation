@@ -5,42 +5,77 @@ export const options = {
     scenarios: {
         cep: {
             executor: 'constant-vus',
-            vus: 25,
+            vus: 30,
             duration: '30s',
             exec: 'testCep',
         },
         endereco: {
             executor: 'constant-vus',
-            vus: 25,
+            vus: 30,
             duration: '30s',
             exec: 'testEndereco',
         },
         state: {
             executor: 'constant-vus',
-            vus: 25,
+            vus: 30,
             duration: '30s',
             exec: 'testState',
         },
         calculateRoute: {
-            executor: 'constant-vus',
-            vus: 25,
-            duration: '30s',
+            executor: 'per-vu-iterations',
+            iterations: 5,
+             vus: 5,
+             maxDuration: '30s',
             exec: 'testCalculateRoute',
         },
         calculateCep: {
-            executor: 'constant-vus',
-            vus: 10,
-            duration: '15s',
+            executor: 'per-vu-iterations',
+            iterations: 5,
+             vus: 5,
+             maxDuration: '30s',
             exec: 'testCalculateCep',
         },
          calculateCoordinates: {
-             executor: 'constant-vus',
-             vus: 10,
-             duration: '15s',
+             executor: 'per-vu-iterations',
+             iterations: 5,
+             vus: 5,
+             maxDuration: '30s',
              exec: 'testCalculateCoordinates',
          },
-        }
-};
+    },
+    thresholds: {
+        http_req_failed: ['rate<0.9'],        // <1% errors
+        http_req_duration: ['p(95)<200'],      // 95% of requests <200ms
+  },
+}
+
+export function login(username, password) {
+    const url = 'http://3.238.87.0:7070/login';
+    const payload = JSON.stringify({
+        username: username,
+        password: password,
+    });
+
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    const res = http.post(url, payload, { headers });
+    
+    let data = res.json();
+
+    if (res.status !== 200) {
+        throw new Error(`Login failed: ${data.message}`);
+    }
+
+    return data.token;
+}
+
+export function setup() {
+    const token = login("renan.gamero1313@gmail.com", "Guinho@01");
+
+    return { token };
+}
 
 export function testCep() {
     const ceps = ["01001000", "20040002", "30140071"];
@@ -48,6 +83,11 @@ export function testCep() {
     const url = `http://3.238.87.0:7070/address/find/${cep}`
 
     let res = http.get(url)
+
+    if (res.status !== 200) {
+        console.log(`Status: {${routeRes.status}}`)
+        console.log(`Body: {${routeRes.body}}`)
+    }
 
     check(res, {
         "cep status 200": (r) => r.status === 200,
@@ -68,6 +108,13 @@ export function testEndereco() {
     const enderecoRes = http.get(
         `http://3.238.87.0:7070/address/find/v2?q=${query}`
     )
+
+    if (enderecoRes.status !== 200) {
+        console.log(`Status: {${enderecoRes.status}}`)
+        console.log(`Body: {${enderecoRes.body}}`)
+    }
+    
+
     check(enderecoRes, {
         "endereco status 200": (r) => r.status === 200,
     });
@@ -83,7 +130,7 @@ export function testState() {
     sleep(1);
 }
 
-export function testCalculateRoute() {
+export function testCalculateRoute(data) {
     const calculateRoute = JSON.stringify({
         origin: "São Paulo, SP, Brasil",
         destination: "Rio de Janeiro, RJ, Brasil",
@@ -109,10 +156,18 @@ export function testCalculateRoute() {
     const params = {
         headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`
         },
     };
 
     const routeRes = http.post('http://3.238.87.0:7070/check-route-tolls-easy', calculateRoute, params)
+
+    if (routeRes.status !== 200) {
+        console.log(`Status Calculate Route: {${routeRes.status}}`)
+        console.log(`Body Calculate Route: {${routeRes.body}}`)
+    }
+    
+
     check(routeRes, {
         'calculate route status 200': (r) => r.status === 200,
     })
@@ -120,7 +175,7 @@ export function testCalculateRoute() {
     sleep(1);
 }
 
-export function testCalculateCep() {
+export function testCalculateCep(data) {
     const calculateCep = JSON.stringify({
             origin_cep: "01001-000",
             destination_cep: "90010-320",
@@ -149,10 +204,19 @@ export function testCalculateCep() {
     const params = {
         headers:{
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`
         }
     };
 
     const cepRes = http.post('http://3.238.87.0:7070/check-route-tolls-cep', calculateCep, params)
+
+
+    if (cepRes.status !== 200) {
+        console.log(`Status Calculate Cep: {${cepRes.status}}`)
+        console.log(`Body Calculate Cep: {${cepRes.body}}`)
+    }
+    
+
     check(cepRes, {
         'calculate cep status 200': (r) => r.status === 200,
     });
@@ -160,7 +224,7 @@ export function testCalculateCep() {
     sleep(1);
 }
 
-export function testCalculateCoordinates() {
+export function testCalculateCoordinates(data) {
     const calculateCoordinates = JSON.stringify({
         "origin_lat": "-23.451806",
         "origin_lng": "-46.712757",
@@ -189,11 +253,18 @@ export function testCalculateCoordinates() {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${data.token}`
         }
     };
 
     const coordinatesRes = http.post('http://3.238.87.0:7070/check-route-tolls-coordinate', calculateCoordinates, params)
+
+    if (coordinatesRes.status !== 200) {
+        console.log(`Status Coordinate: {${coordinatesRes.status}}`)
+        console.log(`Body Coordinate: {${coordinatesRes.body}}`)
+    }
+
     check(coordinatesRes, {
         'calculate coordinates status 200': (r) => r.status === 200,
     });
