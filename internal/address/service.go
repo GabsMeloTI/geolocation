@@ -27,6 +27,7 @@ type InterfaceService interface {
 	FindAddressesByCEPService(ctx context.Context, query string) (AddressCEPResponse, error)
 	FindStateAll(context.Context) ([]StateResponse, error)
 	FindCityAll(context.Context, int32) ([]CityResponse, error)
+	FindTwoRandomCEPsService(ctx context.Context) ([]CepResponse, error)
 }
 
 type Service struct {
@@ -68,6 +69,24 @@ func (s *Service) FindAddressesByCEPService(ctx context.Context, query string) (
 	}
 
 	return response, nil
+}
+
+func (s *Service) FindTwoRandomCEPsService(ctx context.Context) ([]CepResponse, error) {
+	ceps, err := s.InterfaceService.FindFindTwoRandomCEPsRepository(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar CEPs aleatórios: %w", err)
+	}
+
+	if len(ceps) != 2 {
+		return nil, fmt.Errorf("quantidade insuficiente de CEPs encontrados: %w", err)
+	}
+
+	var result []CepResponse
+	for _, c := range ceps {
+		result = append(result, CepResponse{Cep: c})
+	}
+
+	return result, nil
 }
 
 func (s *Service) FindUniqueAddressesByCEPService(ctx context.Context, query string) ([]AddressResponse, error) {
