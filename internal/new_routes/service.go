@@ -14,6 +14,7 @@ import (
 	"geolocation/internal/zonas_risco"
 	cache "geolocation/pkg"
 	"geolocation/validation"
+	"golang.org/x/sync/singleflight"
 	"log"
 	"math"
 	"net/http"
@@ -51,6 +52,8 @@ type Service struct {
 	GoogleMapsAPIKey         string
 	RiskZonesRepository      zonas_risco.InterfaceService
 	CEPRepository            address.InterfaceRepository
+	ReverseGeocodeGroup      singleflight.Group //CONCORRENCIA/SIMULTANEO
+	RateLimiter              <-chan time.Time   // limita a 1 requisição/s globalmente USAR APENAS COM O CLIENT NOMINATIM POR ENQUANTO
 }
 
 func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceRouteEnterprise route_enterprise.InterfaceRepository, googleMapsAPIKey string, RiskZonesRepository zonas_risco.InterfaceService, CEPRepository address.InterfaceRepository) *Service {
@@ -60,6 +63,7 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceR
 		GoogleMapsAPIKey:         googleMapsAPIKey,
 		RiskZonesRepository:      RiskZonesRepository,
 		CEPRepository:            CEPRepository,
+		RateLimiter:              time.Tick(1 * time.Second),
 	}
 }
 
@@ -2277,34 +2281,41 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 		log.Printf("Erro ao recuperar cache do Redis (reverse_geocode): %v", err)
 	}
 
-	geocodeURL := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, lng)
-	client := http.Client{Timeout: 5 * time.Second}
+	v, err, _ := s.ReverseGeocodeGroup.Do(cacheKey, func() (interface{}, error) {
+		<-s.RateLimiter
 
-	resp, err := client.Get(geocodeURL)
+		geocodeURL := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, lng)
+		client := http.Client{Timeout: 15 * time.Second}
+
+		resp, errN := client.Get(geocodeURL)
+		if errN != nil {
+			return "", fmt.Errorf("erro na requisição de geocodificação reversa: %w", errN)
+		}
+		defer resp.Body.Close()
+
+		var result struct {
+			DisplayName string `json:"display_name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return "", fmt.Errorf("erro ao decodificar resposta de geocodificação reversa: %w\"", err)
+		}
+
+		// Verificar se obtivemos um resultado válido
+		if result.DisplayName == "" {
+			return "", fmt.Errorf("nenhum endereço encontrado para as coordenadas %.6f, %.6f", lat, lng)
+		}
+
+		// Salvar no cache para futuras consultas
+		errR := cache.Rdb.Set(cache.Ctx, cacheKey, result.DisplayName, 7*24*time.Hour).Err()
+		if errR != nil {
+			log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", errR)
+		}
+		return normalizeAddress(result.DisplayName), nil
+	})
 	if err != nil {
-		return "", fmt.Errorf("erro na requisição de geocodificação reversa: %w", err)
+		return "", err
 	}
-	defer resp.Body.Close()
-
-	var result struct {
-		DisplayName string `json:"display_name"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("erro ao decodificar resposta de geocodificação reversa: %w", err)
-	}
-
-	// Verificar se obtivemos um resultado válido
-	if result.DisplayName == "" {
-		return "", fmt.Errorf("nenhum endereço encontrado para as coordenadas %.6f, %.6f", lat, lng)
-	}
-
-	// Salvar no cache para futuras consultas
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, result.DisplayName, 7*24*time.Hour).Err(); err != nil {
-		log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", err)
-	}
-
-	normalized := normalizeAddress(result.DisplayName)
-	return normalized, nil
+	return v.(string), nil
 }
 
 // reverseGeocodeWithGoogle tenta geocodificação reversa usando Google Maps API como fallback
