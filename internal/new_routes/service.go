@@ -696,22 +696,22 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		// Erro ao recuperar cache do Redis
 	}
 
-	originLat, originLon, err := s.getCoordByCEP(ctx, cepOrigin)
+	originLat, originLon, originAddress, err := s.getCoordByCEP(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	destLat, destLon, err := s.getCoordByCEP(ctx, frontInfo.DestinationCEP)
+	destLat, destLon, destinationAddress, err := s.getCoordByCEP(ctx, frontInfo.DestinationCEP)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	originAddress, err := s.reverseGeocode(originLat, originLon)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
-	}
-	destinationAddress, err := s.reverseGeocode(destLat, destLon)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
-	}
+	//originAddress, err := s.reverseGeocode(originLat, originLon)
+	//if err != nil {
+	//	return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
+	//}
+	//destinationAddress, err := s.reverseGeocode(destLat, destLon)
+	//if err != nil {
+	//	return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
+	//}
 
 	originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
 	if err != nil {
@@ -729,7 +729,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+		wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
@@ -849,7 +849,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	if len(frontInfo.WaypointsCEP) > 0 {
 		var googleWp []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+			wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
@@ -1111,7 +1111,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		requestJSON, _ := json.Marshal(frontInfo)
 		var wpStrings []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+			wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
@@ -1194,7 +1194,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	var wpStringsResponse []string
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+		wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
@@ -1253,16 +1253,16 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		originCEP := data.CEPs[i]
 		destCEP := data.CEPs[i+1]
 
-		originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
+		originLat, originLon, originAddress, err := s.getCoordByCEP(ctx, originCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 		}
-		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
+		destLat, destLon, destAddress, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
 		}
-		originAddress, _ := s.reverseGeocode(originLat, originLon)
-		destAddress, _ := s.reverseGeocode(destLat, destLon)
+		//originAddress, _ := s.reverseGeocode(originLat, originLon)
+		//destAddress, _ := s.reverseGeocode(destLat, destLon)
 
 		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
@@ -1424,7 +1424,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 	var waypoints []string
 	var originLocation, destinationLocation Location
 	for idx, cep := range data.CEPs {
-		coordLat, coordLon, err := s.getCoordByCEP(ctx, cep)
+		coordLat, coordLon, _, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas para total_route no CEP %s: %w", cep, err)
 		}
@@ -1531,21 +1531,19 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 	client := http.Client{Timeout: 30 * time.Second}
 	originCEP := data.CEPs[0]
 
-	originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
+	originLat, originLon, originAddressRaw, err := s.getCoordByCEP(ctx, originCEP)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 	}
-	originAddressRaw, _ := s.reverseGeocode(originLat, originLon)
 	originGeocode, _ := s.getGeocodeAddress(ctx, originAddressRaw)
 
 	var results []DetailedRoute
 
 	for _, destCEP := range data.CEPs[1:] {
-		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
+		destLat, destLon, destAddressRaw, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			continue
 		}
-		destAddressRaw, _ := s.reverseGeocode(destLat, destLon)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddressRaw)
 
 		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
@@ -2833,17 +2831,17 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
 
-	autoCompleteReq := &maps.PlaceAutocompleteRequest{
-		Input:    address,
-		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-		Radius:   1000000,
-		Language: "pt-BR",
-		Types:    "geocode",
-	}
-	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-		address = autoCompleteResp.Predictions[0].Description
-	}
+	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
+	//	Input:    address,
+	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+	//	Radius:   1000000,
+	//	Language: "pt-BR",
+	//	Types:    "geocode",
+	//}
+	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+	//	address = autoCompleteResp.Predictions[0].Description
+	//}
 
 	req := &maps.GeocodingRequest{
 		Address: address,
@@ -2896,12 +2894,12 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, error error) {
+func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, end string, error error) {
 	cepRegex := regexp.MustCompile(`^\d{8}$`)
 	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(cep, "-", ""), " ", "")
 	isCEP := cepRegex.MatchString(normalizedQuery)
 	if !isCEP {
-		return 0, 0, errors.New("CEP inválido")
+		return 0, 0, "", errors.New("CEP inválido")
 	}
 
 	// Implementar cache para CEPs
@@ -2913,7 +2911,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 			Lon float64 `json:"lon"`
 		}
 		if json.Unmarshal([]byte(cached), &coords) == nil {
-			return coords.Lat, coords.Lon, nil
+			return coords.Lat, coords.Lon, "", nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
 		log.Printf("Erro ao recuperar cache do Redis (cep_coords): %v", err)
@@ -2924,7 +2922,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		address, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
 		if apiErr != nil {
 			log.Printf("erro ao buscar CEP em ambas base de dados: %v", apiErr)
-			return 0, 0, err
+			return 0, 0, "", err
 		}
 
 		// Salvar no cache
@@ -2937,8 +2935,10 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 		}
 
-		return address.Latitude, address.Longitude, nil
+		return address.Latitude, address.Longitude, "", nil
 	}
+
+	address := fmt.Sprintf("%s, %s, %s - %s", infoCep.StreetName.String, infoCep.NeighborhoodName.String, infoCep.CityName.String, infoCep.StateUf.String)
 
 	// Salvar no cache
 	coords := struct {
@@ -2950,7 +2950,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
-	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, nil
+	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, address, nil
 }
 
 // -- new function
@@ -3016,7 +3016,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		go func(cep string) {
 			defer wgCEP.Done()
 
-			lat, lon, err := s.getCoordByCEP(ctx, cep)
+			lat, lon, _, err := s.getCoordByCEP(ctx, cep)
 			if err != nil {
 				cepChan <- struct {
 					cep     string
@@ -5643,7 +5643,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	var originLocation, destinationLocation Location
 
 	for idx, cep := range ceps {
-		lat, lon, err := s.getCoordByCEP(ctx, cep)
+		lat, lon, _, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
 			continue
 		}
