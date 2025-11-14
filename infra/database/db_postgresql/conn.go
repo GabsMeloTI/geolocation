@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/lib/pq"
 
@@ -46,6 +47,10 @@ func NewConnectionSP(config *database.Config) *sql.DB {
 	if err != nil {
 		errConnectionSP(config.Environment, err)
 	}
+
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(time.Hour)
 
 	if err := db.Ping(); err != nil {
 		errConnectionSP(config.Environment, err)
