@@ -17,7 +17,12 @@ type Config struct {
 	DBDatabase         string
 	DBSSLMode          string
 	DBDriver           string
+	DBHostSP           string
+	DBPortSP           string
+	DBUserSP           string
+	DBPasswordSP       string
 	DBDatabaseSP       string
+	DBSSLModeSP        string
 	SignatureToken     string
 	AwsAccessKeyID     string
 	AwsSecretAccessKey string
@@ -54,6 +59,11 @@ func NewConfig() Config {
 		DBDatabase:         os.Getenv("DB_DATABASE"),
 		DBSSLMode:          os.Getenv("DB_SSL_MODE"),
 		DBDriver:           os.Getenv("DB_DRIVER"),
+		DBHostSP:           os.Getenv("DB_HOST_SP"),
+		DBPortSP:           os.Getenv("DB_PORT_SP"),
+		DBUserSP:           os.Getenv("DB_USER_SP"),
+		DBPasswordSP:       os.Getenv("DB_PASSWORD_SP"),
+		DBSSLModeSP:        os.Getenv("DB_SSL_MODE_SP"),
 		DBDatabaseSP:       os.Getenv("DB_DATABASE_SP"),
 		SignatureToken:     os.Getenv("SIGNATURE_STRING"),
 		SignatureTokenSimp: os.Getenv("SIGNATURE_STRING_SIMP"),

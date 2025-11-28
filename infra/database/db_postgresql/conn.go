@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"geolocation/infra/database"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,7 +20,7 @@ import (
 
 func NewConnection(config *database.Config) *sql.DB {
 	driver := config.Driver
-	dsn := config.Driver + "://" + config.User + ":" + config.Password + "@" +
+	dsn := config.Driver + "://" + config.User + ":" + url.QueryEscape(config.Password) + "@" +
 		config.Host + ":" + config.Port + "/" + config.Database + config.SSLMode
 
 	db, err := sql.Open(driver, dsn)
@@ -40,8 +41,8 @@ func NewConnection(config *database.Config) *sql.DB {
 
 func NewConnectionSP(config *database.Config) *sql.DB {
 	driver := config.Driver
-	dsn := config.Driver + "://" + config.User + ":" + config.Password + "@" +
-		config.Host + ":" + config.Port + "/" + "simpplify-homologacao" + config.SSLMode
+	dsn := config.Driver + "://" + config.User + ":" + url.QueryEscape(config.Password) + "@" +
+		config.Host + ":" + config.Port + "/" + config.Database + config.SSLMode
 
 	db, err := sql.Open(driver, dsn)
 	if err != nil {

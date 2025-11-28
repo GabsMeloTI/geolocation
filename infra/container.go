@@ -117,12 +117,12 @@ func (c *ContainerDI) db() {
 		Environment: c.Config.Environment,
 	}
 	dbConfigSP := database.Config{
-		Host:        c.Config.DBHost,
-		Port:        c.Config.DBPort,
-		User:        c.Config.DBUser,
-		Password:    c.Config.DBPassword,
+		Host:        c.Config.DBHostSP,
+		Port:        c.Config.DBPortSP,
+		User:        c.Config.DBUserSP,
+		Password:    c.Config.DBPasswordSP,
 		Database:    c.Config.DBDatabaseSP,
-		SSLMode:     c.Config.DBSSLMode,
+		SSLMode:     c.Config.DBSSLModeSP,
 		Driver:      c.Config.DBDriver,
 		Environment: c.Config.Environment,
 	}
