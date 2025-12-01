@@ -3821,7 +3821,14 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 				resp, err = fastClient.Get(u)
 			}
 
-			defer resp.Body.Close()
+			if err != nil || resp == nil {
+				log.Printf("ERRO: requisição OSRM falhou nas duas tentativas - err=%v", err)
+				return OSRMRoute{}, false
+			}
+
+			if resp.Body != nil {
+				defer resp.Body.Close()
+			}
 			var r OSRMResponse
 			if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
 				return OSRMRoute{}, false
