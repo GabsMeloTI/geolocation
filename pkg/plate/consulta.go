@@ -1,7 +1,6 @@
 package plate
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -19,111 +18,112 @@ var (
 	ctx = context.Background()
 )
 
-// Estrutura para os dados do veículo
-type VeiculoData struct {
-	Placa               string `json:"placa"`
-	Chassi              string `json:"chassi"`
-	Fabricante          string `json:"fabricante"`
-	Modelo              string `json:"modelo"`
-	AnoFabricacao       int    `json:"ano_fabricacao"`
-	AnoModelo           int    `json:"ano_modelo"`
-	Combustivel         string `json:"combustivel"`
-	TipoVeiculo         string `json:"tipo_veiculo"`
-	Especie             string `json:"especie"`
-	Cor                 string `json:"cor"`
-	TipoCarroceria      string `json:"tipo_carroceria"`
-	Nacionalidade       string `json:"nacionalidade"`
-	NumeroMotor         string `json:"numero_motor"`
-	Potencia            int    `json:"potencia"`
-	Carga               *int   `json:"carga"`
-	NumeroCarroceria    *int   `json:"numero_carroceria"`
-	NumeroCaixaCambio   *int   `json:"numero_caixa_cambio"`
-	NumeroEixoTraseiro  *int   `json:"numero_eixo_traseiro"`
-	NumeroTerceiroEixo  *int   `json:"numero_terceiro_eixo"`
-	QuantidadeEixo      int    `json:"quantidade_eixo"`
-	Cilindradas         string `json:"cilindradas"`
-	CapacidadeMaxTracao int    `json:"capacidade_max_tracao"`
-	PesoBrutoTotal      int    `json:"peso_bruto_total"`
-	QuantidadeLugares   int    `json:"quantidade_lugares"`
-	TipoMontagem        *int   `json:"tipo_montagem"`
-	UfJurisdicao        string `json:"uf_jurisdicao"`
-	UfFaturado          string `json:"uf_faturado"`
-	Cidade              string `json:"cidade"`
+func init() {
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     "3.238.87.0:6379",
+		Password: "",
+		DB:       0,
+	})
 }
 
-// Estrutura para a resposta da API alternativa (veiculos-dados-v1)
-type FallbackAPIResponse struct {
-	User struct {
-		FirstName    string `json:"first_name"`
-		Email        string `json:"email"`
-		Cellphone    string `json:"cellphone"`
-		Notification string `json:"notification"`
-	} `json:"user"`
-	Balance string          `json:"balance"`
-	Error   bool            `json:"error"`
-	Message string          `json:"message"`
-	Homolog bool            `json:"homolog"`
-	Data    json.RawMessage `json:"data"` // Campo flexível para receber array ou objeto
+// ─── Estruturas internas (resposta da nova API de placa) ─────────────────────
+
+type consultarPlacaAPIResponse struct {
+	Status          string `json:"status"`
+	Mensagem        string `json:"mensagem"`
+	DataSolicitacao string `json:"data_solicitacao"`
+	Dados           struct {
+		InformacoesVeiculo struct {
+			DadosVeiculo struct {
+				Placa         string `json:"placa"`
+				Chassi        string `json:"chassi"`
+				AnoFabricacao string `json:"ano_fabricacao"`
+				AnoModelo     string `json:"ano_modelo"`
+				Marca         string `json:"marca"`
+				Modelo        string `json:"modelo"`
+				Cor           string `json:"cor"`
+				Segmento      string `json:"segmento"`
+				Combustivel   string `json:"combustivel"`
+				Procedencia   string `json:"procedencia"`
+				Municipio     string `json:"municipio"`
+				UFMunicipio   string `json:"uf_municipio"`
+			} `json:"dados_veiculo"`
+			DadosTecnicos struct {
+				TipoVeiculo       string `json:"tipo_veiculo"`
+				SubSegmento       string `json:"sub_segmento"`
+				NumeroMotor       string `json:"numero_motor"`
+				NumeroCaixaCambio string `json:"numero_caixa_cambio"`
+				Potencia          string `json:"potencia"`
+				Cilindradas       string `json:"cilindradas"`
+			} `json:"dados_tecnicos"`
+			DadosCarga struct {
+				NumeroEixos          string `json:"numero_eixos"`
+				CapacidadeMaxTraccao string `json:"capacidade_maxima_tracao"`
+				CapacidadePassageiro string `json:"capacidade_passageiro"`
+			} `json:"dados_carga"`
+		} `json:"informacoes_veiculo"`
+	} `json:"dados"`
+	Request struct {
+		Placa string `json:"placa"`
+	} `json:"request"`
 }
 
-// Converte a resposta da API alternativa para o formato FullAPIResponse
-func convertFallbackToFullResponse(fallbackResp FallbackAPIResponse) *FullAPIResponse {
-	var dataItem VeiculoData
+// ─── Estruturas internas (resposta da nova API de multas/renainf) ─────────────
 
-	// Tenta decodificar como array primeiro
-	var dataArray []VeiculoData
-	if err := json.Unmarshal(fallbackResp.Data, &dataArray); err == nil && len(dataArray) > 0 {
-		// Se for um array, pega o primeiro item
-		dataItem = dataArray[0]
-	} else {
-		// Se não for array, tenta decodificar como objeto único
-		if err := json.Unmarshal(fallbackResp.Data, &dataItem); err != nil {
-			// Se falhar, cria um objeto vazio
-			dataItem = VeiculoData{}
-		}
+type consultarInfracoesAPIResponse struct {
+	Status          string `json:"status"`
+	Mensagem        string `json:"mensagem"`
+	DataSolicitacao string `json:"data_solicitacao"`
+	Dados           struct {
+		RegistroDebitosPorInfracoes struct {
+			InfracoesRenainf struct {
+				PossuiInfracoes string `json:"possui_infracoes"`
+				Infracoes       []struct {
+					DadosInfracao struct {
+						Infracao           string `json:"infracao"`
+						NumeroAutoInfracao string `json:"numero_auto_infracao"`
+						ValorAplicado      string `json:"valor_aplicado"`
+						OrgaoAutuador      string `json:"orgao_autuador"`
+						TipoAutoInfracao   string `json:"tipo_auto_infracao"`
+						LocalInfracao      string `json:"local_infracao"`
+						Municipio          string `json:"municipio"`
+					} `json:"dados_infracao"`
+					Aplicacao struct {
+						UnidadeMedida      string `json:"unidade_medida"`
+						LimitePermitido    string `json:"limite_permitido"`
+						MedicaoConsiderada string `json:"medicao_considerada"`
+						MedicaoReal        string `json:"medicao_real"`
+					} `json:"aplicacao"`
+					Eventos struct {
+						DataHoraInfracao      string `json:"data_hora_infracao"`
+						DataCadastramento     string `json:"data_cadastramento"`
+						DataNotificacao       string `json:"data_notificacao"`
+						DataEmissaoPenalidade string `json:"data_emissao_penalidade"`
+					} `json:"eventos"`
+				} `json:"infracoes"`
+			} `json:"infracoes_renainf"`
+		} `json:"registro_debitos_por_infracoes_renainf"`
+	} `json:"dados"`
+	Request struct {
+		Placa string `json:"placa"`
+	} `json:"request"`
+}
+
+// ─── Credenciais Basic Auth ───────────────────────────────────────────────────
+
+func getBasicAuthCredentials() (string, string) {
+	username := os.Getenv("CONSULTAR_PLACA_USERNAME")
+	password := os.Getenv("CONSULTAR_PLACA_PASSWORD")
+	if username == "" {
+		username = "gabrielmelodsantos@gmail.com"
 	}
-
-	return &FullAPIResponse{
-		Error:   fallbackResp.Error,
-		Message: fallbackResp.Message,
-		Data: Response{
-			Placa:           dataItem.Placa,
-			Chassi:          dataItem.Chassi,
-			Modelo:          dataItem.Modelo,
-			Marca:           dataItem.Fabricante,
-			Ano:             fmt.Sprintf("%d", dataItem.AnoFabricacao),
-			AnoModelo:       fmt.Sprintf("%d", dataItem.AnoModelo),
-			Cor:             dataItem.Cor,
-			Uf:              dataItem.UfJurisdicao,
-			UfPlaca:         dataItem.UfFaturado,
-			Municipio:       dataItem.Cidade,
-			Combustivel:     dataItem.Combustivel,
-			Potencia:        fmt.Sprintf("%d", dataItem.Potencia),
-			CapacidadeCarga: getIntPointerValue(dataItem.Carga),
-			Nacionalidade: struct {
-				Nacionalidade string `json:"nacionalidade"`
-			}{
-				Nacionalidade: dataItem.Nacionalidade,
-			},
-			TipoVeiculo: struct {
-				TipoVeiculo string `json:"tipo_veiculo"`
-			}{
-				TipoVeiculo: dataItem.TipoVeiculo,
-			},
-			Eixos: fmt.Sprintf("%d", dataItem.QuantidadeEixo),
-			Extra: map[string]interface{}{
-				"ano_fabricacao":    fmt.Sprintf("%d", dataItem.AnoFabricacao),
-				"cap_maxima_tracao": fmt.Sprintf("%d", dataItem.CapacidadeMaxTracao),
-				"chassi":            dataItem.Chassi,
-			},
-			Multas: struct {
-				Dados []Multa `json:"dados"`
-			}{
-				Dados: []Multa{}, // API alternativa não retorna multas
-			},
-		},
+	if password == "" {
+		password = "f905cd6a53d3e76485e8cb6d67c3e0f7"
 	}
+	return username, password
 }
+
+// ─── Funções auxiliares ───────────────────────────────────────────────────────
 
 // Função auxiliar para converter interface{} para string
 func getStringValue(value interface{}) string {
@@ -141,54 +141,7 @@ func getIntPointerValue(value *int) string {
 	return fmt.Sprintf("%d", *value)
 }
 
-func init() {
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "3.238.87.0:6379",
-		Password: "",
-		DB:       0,
-	})
-}
-
-// consultarAPIAlternativa consulta a API alternativa para veiculos-dados-v1
-func consultarAPIAlternativa(placa, bearer, device string, client *http.Client) (*FullAPIResponse, error) {
-	fallbackURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
-	fallbackPayload := fmt.Sprintf(`{"tipo":"agregados-basica","placa":"%s","homolog":false}`, placa)
-
-	req, err := http.NewRequest("POST", fallbackURL, strings.NewReader(fallbackPayload))
-	if err != nil {
-		return nil, fmt.Errorf("erro ao criar requisição da API alternativa: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	req.Header.Set("DeviceToken", device)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao enviar requisição da API alternativa: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao ler resposta da API alternativa: %w", err)
-	}
-
-	// Decodifica a resposta da API alternativa
-	var fallbackResp FallbackAPIResponse
-	if err := json.Unmarshal(respBody, &fallbackResp); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar JSON da API alternativa: %w", err)
-	}
-
-	// Verifica se a resposta indica erro
-	if fallbackResp.Error {
-		return nil, fmt.Errorf("API alternativa retornou erro: %s", fallbackResp.Message)
-	}
-
-	// Converte para o formato esperado
-	fullResp := convertFallbackToFullResponse(fallbackResp)
-
-	return fullResp, nil
-}
+// ─── ConsultarPlaca ───────────────────────────────────────────────────────────
 
 func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	placa = strings.ToUpper(strings.TrimSpace(placa))
@@ -208,25 +161,21 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 		}
 	}
 
-	bearer := os.Getenv("BEARER_TOKEN")
-	device := os.Getenv("DEVICE_TOKEN")
+	username, password := getBasicAuthCredentials()
 
 	client := &http.Client{
-		Timeout: 60 * time.Second, // evita ficar travado muito tempo
+		Timeout: 60 * time.Second,
 	}
 
 	// 1. Consulta dados do veículo (apenas se não estiver em cache)
 	if !dadosPlacaCached {
-		veiculoURL := "https://gateway.apibrasil.io/api/v2/vehicles/dados"
-		body := fmt.Sprintf(`{"placa":"%s", "homolog":%t}`, placa, false)
+		veiculoURL := fmt.Sprintf("https://api.consultarplaca.com.br/v2/consultarPlaca?placa=%s", placa)
 
-		req, err := http.NewRequest("POST", veiculoURL, strings.NewReader(body))
+		req, err := http.NewRequest("GET", veiculoURL, nil)
 		if err != nil {
 			return nil, fmt.Errorf("erro ao criar requisição do veículo: %w", err)
 		}
-		req.Header.Set("Authorization", "Bearer "+bearer)
-		req.Header.Set("DeviceToken", device)
-		req.Header.Set("Content-Type", "application/json")
+		req.SetBasicAuth(username, password)
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -239,21 +188,68 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 			return nil, fmt.Errorf("erro ao ler resposta do veículo: %w", err)
 		}
 
-		// Verifica se precisa fazer fallback (status 400)
-		if resp.StatusCode == 400 {
+		var apiResp consultarPlacaAPIResponse
+		if err := json.Unmarshal(respBody, &apiResp); err != nil {
+			return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
+		}
 
-			// Chama a API alternativa
-			fallbackResp, fallbackErr := consultarAPIAlternativa(placa, bearer, device, client)
-			if fallbackErr != nil {
-				return nil, fmt.Errorf("erro na API alternativa: %w", fallbackErr)
-			}
+		if apiResp.Status != "ok" {
+			return nil, fmt.Errorf("API de placa retornou erro: %s", apiResp.Mensagem)
+		}
 
-			fullResp = *fallbackResp
-		} else {
-			// Processa resposta normal
-			if err := json.Unmarshal(respBody, &fullResp); err != nil {
-				return nil, fmt.Errorf("erro ao decodificar JSON do veículo: %w", err)
-			}
+		dv := apiResp.Dados.InformacoesVeiculo.DadosVeiculo
+		dt := apiResp.Dados.InformacoesVeiculo.DadosTecnicos
+		dc := apiResp.Dados.InformacoesVeiculo.DadosCarga
+
+		fullResp = FullAPIResponse{
+			Error:   false,
+			Message: apiResp.Mensagem,
+			Data: Response{
+				Placa:                dv.Placa,
+				Chassi:               dv.Chassi,
+				Modelo:               dv.Modelo,
+				Marca:                dv.Marca,
+				Ano:                  dv.AnoFabricacao,
+				AnoModelo:            dv.AnoModelo,
+				AnoModelo1:           dv.AnoModelo,
+				Cor:                  dv.Cor,
+				Municipio:            dv.Municipio,
+				Uf:                   dv.UFMunicipio,
+				UfPlaca:              dv.UFMunicipio,
+				Combustivel:          dv.Combustivel,
+				Potencia:             dt.Potencia,
+				Cilindradas:          dt.Cilindradas,
+				Eixos:                dc.NumeroEixos,
+				QuantidadePassageiro: dc.CapacidadePassageiro,
+				TipoVeiculo: struct {
+					TipoVeiculo string `json:"tipo_veiculo"`
+				}{
+					TipoVeiculo: dt.TipoVeiculo,
+				},
+				MarcaModelo: struct {
+					Modelo   string `json:"modelo"`
+					Marca    string `json:"marca"`
+					Segmento string `json:"segmento"`
+					Versao   string `json:"versao"`
+				}{
+					Modelo:   dv.Modelo,
+					Marca:    dv.Marca,
+					Segmento: dv.Segmento,
+				},
+				Extra: map[string]interface{}{
+					"ano_fabricacao":    dv.AnoFabricacao,
+					"chassi":            dv.Chassi,
+					"numero_motor":      dt.NumeroMotor,
+					"caixa_cambio":      dt.NumeroCaixaCambio,
+					"cap_maxima_tracao": dc.CapacidadeMaxTraccao,
+					"procedencia":       dv.Procedencia,
+				},
+				Multas: struct {
+					Dados []Multa `json:"dados"`
+				}{
+					Dados: []Multa{},
+				},
+			},
 		}
 
 		// Cache apenas os dados da placa (sem multas)
@@ -263,16 +259,13 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 	}
 
 	// 2. Consulta multas (SEMPRE consulta, nunca usa cache)
-	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
-	multaPayload := fmt.Sprintf(`{"placa":"%s", "tipo": "%s"}`, placa, "renainf")
+	multasURL := fmt.Sprintf("https://api.consultarplaca.com.br/v2/consultarRegistrosInfracoesRenainf?placa=%s", placa)
 
-	reqMultas, err := http.NewRequest("POST", multasURL, strings.NewReader(multaPayload))
+	reqMultas, err := http.NewRequest("GET", multasURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao criar requisição de multas: %w", err)
 	}
-	reqMultas.Header.Set("Authorization", "Bearer "+bearer)
-	reqMultas.Header.Set("DeviceToken", device)
-	reqMultas.Header.Set("Content-Type", "application/json")
+	reqMultas.SetBasicAuth(username, password)
 
 	respMultas, err := client.Do(reqMultas)
 	if err != nil {
@@ -283,46 +276,44 @@ func ConsultarPlaca(placa string) (*FullAPIResponse, error) {
 
 		multasRespBody, _ := io.ReadAll(respMultas.Body)
 
-		fmt.Printf("[DEBUG] Resposta API Brasil (multas) - Placa %s: %s\n------------------------------\n", placa, string(multasRespBody))
+		fmt.Printf("[DEBUG] Resposta API consultarplaca (multas) - Placa %s: %s\n------------------------------\n", placa, string(multasRespBody))
 
-		// Verifica se é erro de saldo insuficiente
-		if strings.Contains(string(multasRespBody), "Saldo insuficiente") {
-			fmt.Printf("Saldo insuficiente")
-
-			// Saldo insuficiente - retorna array vazio
-			fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
+		var infracoesResp consultarInfracoesAPIResponse
+		if err := json.Unmarshal(multasRespBody, &infracoesResp); err != nil {
+			fmt.Printf("[ERROR] Falha ao decodificar multas JSON (placa %s): %v\n", placa, err)
+			fullResp.Data.Multas.Dados = []Multa{}
+		} else if infracoesResp.Status != "ok" {
+			fmt.Printf("[WARN] Status não ok nas multas (placa %s): %s\n", placa, infracoesResp.Mensagem)
+			fullResp.Data.Multas.Dados = []Multa{}
 		} else {
-			// Tenta decodificar como objeto com estrutura normal
-			var multaAPIResponse struct {
-				Error   bool   `json:"error"`
-				Message string `json:"message"`
-				Data    struct {
-					Registros []Multa `json:"registros"`
-				} `json:"data"`
+			infracoes := infracoesResp.Dados.RegistroDebitosPorInfracoes.InfracoesRenainf.Infracoes
+			multas := make([]Multa, 0, len(infracoes))
+			for _, inf := range infracoes {
+				multas = append(multas, Multa{
+					NumeroAutoInfracao:           inf.DadosInfracao.NumeroAutoInfracao,
+					Infracao:                     inf.DadosInfracao.Infracao,
+					DetalheOrgaoAutuador:         inf.DadosInfracao.OrgaoAutuador,
+					DetalheValorInfracao:         inf.DadosInfracao.ValorAplicado,
+					DetalheTipoAutoInfracao:      inf.DadosInfracao.TipoAutoInfracao,
+					DetalheLocalInfracao:         inf.DadosInfracao.LocalInfracao,
+					DetalheUnidadeMedida:         inf.Aplicacao.UnidadeMedida,
+					DetalheLimitePermitido:       inf.Aplicacao.LimitePermitido,
+					DetalheMedicaoConsiderada:    inf.Aplicacao.MedicaoConsiderada,
+					DetalheMedicaoReal:           inf.Aplicacao.MedicaoReal,
+					DetalheHoraInfracao:          inf.Eventos.DataHoraInfracao,
+					DetalheDataCadastramento:     inf.Eventos.DataCadastramento,
+					DetalheDataNotificacao:       inf.Eventos.DataNotificacao,
+					DetalheDataEmissaoPenalidade: inf.Eventos.DataEmissaoPenalidade,
+				})
 			}
-
-			if err := json.Unmarshal(multasRespBody, &multaAPIResponse); err == nil {
-				if multaAPIResponse.Error {
-					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
-				} else {
-					fullResp.Data.Multas.Dados = multaAPIResponse.Data.Registros
-				}
-			} else {
-				fmt.Printf("[ERROR] Falha ao decodificar multas JSON (placa %s): %v\n", placa, err)
-				// Se falhar, tenta decodificar como array vazio (caso raro)
-				var dataArray []interface{}
-				if err := json.Unmarshal(multasRespBody, &dataArray); err == nil {
-					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas
-				} else {
-					// Erro ao decodificar JSON - retorna array vazio
-					fullResp.Data.Multas.Dados = []Multa{} // Array vazio de multas em caso de erro
-				}
-			}
+			fullResp.Data.Multas.Dados = multas
 		}
 	}
 
 	return &fullResp, nil
 }
+
+// ─── ConsultarMultas ──────────────────────────────────────────────────────────
 
 type MultaA struct {
 	NumeroAutoInfracao           string `json:"numeroautoinfracao"`
@@ -381,21 +372,17 @@ func ConsultarMultas(placa string) (MultasResponse, error) {
 	placa = strings.ToUpper(strings.TrimSpace(placa))
 	placa = strings.ReplaceAll(placa, "-", "") // Remove hífens da placa
 
-	bearer := os.Getenv("BEARER_TOKEN")
-	device := os.Getenv("DEVICE_TOKEN")
+	username, password := getBasicAuthCredentials()
 
-	multasURL := "https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta"
-	payload := []byte(fmt.Sprintf(`{"placa":"%s", "tipo":"renainf"}`, placa))
+	multasURL := fmt.Sprintf("https://api.consultarplaca.com.br/v2/consultarRegistrosInfracoesRenainf?placa=%s", placa)
 
-	req, err := http.NewRequest("POST", multasURL, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("GET", multasURL, nil)
 	if err != nil {
 		return MultasResponse{}, fmt.Errorf("erro ao criar requisição de multas: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	req.Header.Set("DeviceToken", device)
-	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(username, password)
 
-	client := &http.Client{Timeout: 20 * time.Second} // evita travar
+	client := &http.Client{Timeout: 20 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return MultasResponse{}, fmt.Errorf("erro ao enviar requisição de multas: %w", err)
@@ -407,35 +394,50 @@ func ConsultarMultas(placa string) (MultasResponse, error) {
 		return MultasResponse{}, fmt.Errorf("erro ao ler resposta de multas: %w", err)
 	}
 
-	// Verifica se é erro de saldo insuficiente
-	if strings.Contains(string(body), "Saldo insuficiente") {
-		// Saldo insuficiente - retorna array vazio
-
-		// Retorna resposta com array vazio de multas
-		multaResp := MultasResponse{
-			Data: struct {
-				Alerta                   string   `json:"alerta"`
-				Placa                    string   `json:"placa"`
-				QuantidadeOcorrencias    string   `json:"quantidade_ocorrencias"`
-				QuantidadeOcorrenciasTot string   `json:"quantidade_ocorrencias_total"`
-				Registros                []MultaA `json:"registros"`
-			}{
-				Placa:     placa,
-				Registros: []MultaA{}, // Array vazio
-			},
-		}
-
-		return multaResp, nil
-	}
-
-	// Parse normal
-	var multaResp MultasResponse
-	if err := json.Unmarshal(body, &multaResp); err != nil {
+	var infracoesResp consultarInfracoesAPIResponse
+	if err := json.Unmarshal(body, &infracoesResp); err != nil {
 		return MultasResponse{}, fmt.Errorf("erro ao decodificar JSON de multas: %w", err)
 	}
 
+	if infracoesResp.Status != "ok" {
+		// Retorna resposta com array vazio de multas
+		multaResp := MultasResponse{}
+		multaResp.Data.Placa = placa
+		multaResp.Data.Registros = []MultaA{}
+		return multaResp, nil
+	}
+
+	infracoes := infracoesResp.Dados.RegistroDebitosPorInfracoes.InfracoesRenainf.Infracoes
+	registros := make([]MultaA, 0, len(infracoes))
+	for _, inf := range infracoes {
+		registros = append(registros, MultaA{
+			NumeroAutoInfracao:           inf.DadosInfracao.NumeroAutoInfracao,
+			Infracao:                     inf.DadosInfracao.Infracao,
+			DetalheOrgaoAutuador:         inf.DadosInfracao.OrgaoAutuador,
+			DetalheValorInfracao:         inf.DadosInfracao.ValorAplicado,
+			DetalheTipoAutoInfracao:      inf.DadosInfracao.TipoAutoInfracao,
+			DetalheLocalInfracao:         inf.DadosInfracao.LocalInfracao,
+			DetalheUnidadeMedida:         inf.Aplicacao.UnidadeMedida,
+			DetalheLimitePermitido:       inf.Aplicacao.LimitePermitido,
+			DetalheMedicaoConsiderada:    inf.Aplicacao.MedicaoConsiderada,
+			DetalheMedicaoReal:           inf.Aplicacao.MedicaoReal,
+			DetalheHrInfracao:            inf.Eventos.DataHoraInfracao,
+			DetalheCadastramentoInfracao: inf.Eventos.DataCadastramento,
+			DetalheDtNotificacaoInfracao: inf.Eventos.DataNotificacao,
+			DetalheDtEmissaoPenalidade:   inf.Eventos.DataEmissaoPenalidade,
+		})
+	}
+
+	var multaResp MultasResponse
+	multaResp.Data.Placa = placa
+	multaResp.Data.QuantidadeOcorrencias = fmt.Sprintf("%d", len(registros))
+	multaResp.Data.QuantidadeOcorrenciasTot = fmt.Sprintf("%d", len(registros))
+	multaResp.Data.Registros = registros
+
 	return multaResp, nil
 }
+
+// ─── ConsultarMultiplasPlacas ─────────────────────────────────────────────────
 
 // ConsultarMultiplasPlacas consulta múltiplas placas e retorna um mapa com os resultados
 func ConsultarMultiplasPlacas(placas []string) (map[string]*FullAPIResponse, error) {
