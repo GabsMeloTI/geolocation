@@ -657,7 +657,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	}
 
 	waypointsStr := strings.ToLower(strings.Join(frontInfo.WaypointsCEP, ","))
-	cacheKey := fmt.Sprintf("route:%s:%s:waypoints:%s:axles:%d:type:%s",
+	cacheKey := fmt.Sprintf("route_v2:%s:%s:waypoints:%s:axles:%d:type:%s",
 		strings.ToLower(cepOrigin),
 		strings.ToLower(frontInfo.DestinationCEP),
 		waypointsStr,
@@ -2958,7 +2958,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	}
 
 	// Implementar cache para CEPs
-	cacheKey := fmt.Sprintf("cep_coords_v3:%s", normalizedQuery)
+	cacheKey := fmt.Sprintf("cep_coords_v4:%s", normalizedQuery)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var coords struct {
