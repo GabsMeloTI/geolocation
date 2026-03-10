@@ -65,10 +65,11 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceR
 }
 
 type LocationPrecision struct {
-	Latitude  float64 `json:"lat"`
-	Longitude float64 `json:"lng"`
-	Address   string  `json:"address"`
-	IsPrecise bool    `json:"is_preciso"`
+	Latitude    float64 `json:"lat"`
+	Longitude   float64 `json:"lng"`
+	Address     string  `json:"address"`
+	AddressText string  `json:"address_text"`
+	IsPrecise   bool    `json:"is_preciso"`
 }
 
 type FuelCosts struct {
@@ -3236,16 +3237,18 @@ func (s *Service) CalculateRoutesWithCEPOnly(ctx context.Context, frontInfo Fron
 	return FinalOutputPrecision{
 		Summary: SummaryPrecision{
 			LocationOrigin: LocationPrecision{
-				Latitude:  originLat,
-				Longitude: originLon,
-				Address:   originAddress,
-				IsPrecise: isOriginPrecise,
+				Latitude:    originLat,
+				Longitude:   originLon,
+				Address:     originAddress,
+				AddressText: originAddress,
+				IsPrecise:   isOriginPrecise,
 			},
 			LocationDestination: LocationPrecision{
-				Latitude:  destLat,
-				Longitude: destLon,
-				Address:   destinationAddress,
-				IsPrecise: isDestPrecise,
+				Latitude:    destLat,
+				Longitude:   destLon,
+				Address:     destinationAddress,
+				AddressText: destinationAddress,
+				IsPrecise:   isDestPrecise,
 			},
 		},
 		Routes: routes,
