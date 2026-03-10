@@ -668,28 +668,30 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
-			routeOptionsChanged := cachedOutput.Summary.RouteOptions.IncludeFuelStations != frontInfo.RouteOptions.IncludeFuelStations ||
-				cachedOutput.Summary.RouteOptions.IncludeRouteMap != frontInfo.RouteOptions.IncludeRouteMap ||
-				cachedOutput.Summary.RouteOptions.IncludeTollCosts != frontInfo.RouteOptions.IncludeTollCosts ||
-				cachedOutput.Summary.RouteOptions.IncludeWeighStations != frontInfo.RouteOptions.IncludeWeighStations ||
-				cachedOutput.Summary.RouteOptions.IncludeFreightCalc != frontInfo.RouteOptions.IncludeFreightCalc ||
-				cachedOutput.Summary.RouteOptions.IncludePolyline != frontInfo.RouteOptions.IncludePolyline
+			if cachedOutput.Summary.LocationOrigin.Address != "" && cachedOutput.Summary.LocationDestination.Address != "" {
+				routeOptionsChanged := cachedOutput.Summary.RouteOptions.IncludeFuelStations != frontInfo.RouteOptions.IncludeFuelStations ||
+					cachedOutput.Summary.RouteOptions.IncludeRouteMap != frontInfo.RouteOptions.IncludeRouteMap ||
+					cachedOutput.Summary.RouteOptions.IncludeTollCosts != frontInfo.RouteOptions.IncludeTollCosts ||
+					cachedOutput.Summary.RouteOptions.IncludeWeighStations != frontInfo.RouteOptions.IncludeWeighStations ||
+					cachedOutput.Summary.RouteOptions.IncludeFreightCalc != frontInfo.RouteOptions.IncludeFreightCalc ||
+					cachedOutput.Summary.RouteOptions.IncludePolyline != frontInfo.RouteOptions.IncludePolyline
 
-			if !routeOptionsChanged {
-				responseJSON, _ := json.Marshal(cachedOutput)
-				requestJSON, _ := json.Marshal(frontInfo)
+				if !routeOptionsChanged {
+					responseJSON, _ := json.Marshal(cachedOutput)
+					requestJSON, _ := json.Marshal(frontInfo)
 
-				routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
-					cachedOutput.Summary.LocationOrigin.Address,
-					cachedOutput.Summary.LocationDestination.Address,
-					waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
+					routeHistID, errSavedRoutes := s.savedRoutes(ctx, frontInfo.PublicOrPrivate,
+						cachedOutput.Summary.LocationOrigin.Address,
+						cachedOutput.Summary.LocationDestination.Address,
+						waypointsStr, idPublicToken, idSimp, responseJSON, requestJSON, frontInfo.Favorite)
 
-				if errSavedRoutes != nil {
-					// Erro ao salvar rota/favorita (cache)
+					if errSavedRoutes != nil {
+						// Erro ao salvar rota/favorita (cache)
+					}
+
+					cachedOutput.Summary.RouteHistID = routeHistID
+					return cachedOutput, nil
 				}
-
-				cachedOutput.Summary.RouteHistID = routeHistID
-				return cachedOutput, nil
 			}
 		}
 	} else if !errors.Is(err, redis.Nil) {
@@ -2815,49 +2817,102 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
 	// Implementar cache para evitar chamadas repetidas
-	cacheKey := fmt.Sprintf("geocode:%s", address)
+	cacheKey := fmt.Sprintf("geocode_nominatim:%s", address)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var result GeocodeResult
 		if json.Unmarshal([]byte(cached), &result) == nil {
-			return result, nil
+			if result.PlaceID != "" && result.Location.Latitude != 0 {
+				return result, nil
+			}
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
+		log.Printf("Erro ao recuperar cache do Redis (geocode_nominatim): %v", err)
 	}
 
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	var nominatimResults []NominatimResult
+
+	fetchFromNominatim := func(searchQuery string) ([]NominatimResult, error) {
+		url := fmt.Sprintf("https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1", neturl.QueryEscape(searchQuery))
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", "Geolocation-App/1.0 (Integration)")
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("a API do Nominatim retornou status: %d", resp.StatusCode)
+		}
+
+		var results []NominatimResult
+		if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+			return nil, err
+		}
+		return results, nil
+	}
+
+	nominatimResults, err = fetchFromNominatim(address)
 	if err != nil {
-		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+		return GeocodeResult{}, err
 	}
 
-	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
-	//	Input:    address,
-	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-	//	Radius:   1000000,
-	//	Language: "pt-BR",
-	//	Types:    "geocode",
-	//}
-	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-	//	address = autoCompleteResp.Predictions[0].Description
-	//}
+	if len(nominatimResults) == 0 {
+		// Fallback: Remove highly specific parts like numbers or neighborhood
+		// A common format from BrasilAPI is: Street, Neighborhood, City, State
+		parts := strings.Split(address, ",")
+		if len(parts) >= 3 {
+			// Try Street, City, State (skip neighborhood)
+			var fallbackParts []string
+			fallbackParts = append(fallbackParts, strings.TrimSpace(parts[0]))
+			if len(parts) >= 4 {
+				fallbackParts = append(fallbackParts, strings.TrimSpace(parts[len(parts)-2]))
+				fallbackParts = append(fallbackParts, strings.TrimSpace(parts[len(parts)-1]))
+			} else {
+				fallbackParts = append(fallbackParts, strings.TrimSpace(parts[len(parts)-1]))
+			}
+			fallbackQuery := strings.Join(fallbackParts, ", ")
 
-	req := &maps.GeocodingRequest{
-		Address: address,
-		Region:  "br",
+			// Remove number from street if present (e.g., "Rua X 1089" -> "Rua X")
+			re := regexp.MustCompile(`\s\d+$|,\s*\d+$|^\d+\s`)
+			fallbackQueryWithoutNumber := re.ReplaceAllString(fallbackQuery, "")
+
+			log.Printf("Fallback Nominatim 1: %s", fallbackQueryWithoutNumber)
+			nominatimResults, _ = fetchFromNominatim(fallbackQueryWithoutNumber)
+
+			if len(nominatimResults) == 0 {
+				// Final Fallback: City, State
+				finalFallback := ""
+				if len(parts) >= 2 {
+					finalFallback = fmt.Sprintf("%s, %s", strings.TrimSpace(parts[len(parts)-2]), strings.TrimSpace(parts[len(parts)-1]))
+				} else {
+					finalFallback = strings.TrimSpace(parts[len(parts)-1])
+				}
+				log.Printf("Fallback Nominatim 2: %s", finalFallback)
+				nominatimResults, _ = fetchFromNominatim(finalFallback)
+			}
+		}
 	}
-	results, err := client.Geocode(ctx, req)
-	if err != nil || len(results) == 0 {
-		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo)", address, address)
+
+	if len(nominatimResults) == 0 {
+		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente", address)
 	}
+
+	lat, _ := strconv.ParseFloat(nominatimResults[0].Lat, 64)
+	lon, _ := strconv.ParseFloat(nominatimResults[0].Lon, 64)
 
 	result := GeocodeResult{
-		FormattedAddress: normalizeAddress(results[0].FormattedAddress),
-		PlaceID:          results[0].PlaceID,
+		FormattedAddress: normalizeAddress(nominatimResults[0].DisplayName),
+		PlaceID:          fmt.Sprintf("%f,%f", lat, lon), // Nominatim não tem PlaceID igual ao Google, usando coordenadas como ID único
 		Location: Location{
-			Latitude:  results[0].Geometry.Location.Lat,
-			Longitude: results[0].Geometry.Location.Lng,
+			Latitude:  lat,
+			Longitude: lon,
 		},
 	}
 
@@ -2865,7 +2920,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	data, err := json.Marshal(result)
 	if err == nil {
 		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
+			log.Printf("Erro ao salvar cache do Redis (geocode_nominatim): %v", err)
 		}
 	}
 	return result, nil
@@ -2903,54 +2958,75 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	}
 
 	// Implementar cache para CEPs
-	cacheKey := fmt.Sprintf("cep_coords:%s", normalizedQuery)
+	cacheKey := fmt.Sprintf("cep_coords_v3:%s", normalizedQuery)
 	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		var coords struct {
-			Lat float64 `json:"lat"`
-			Lon float64 `json:"lon"`
+			Lat     float64 `json:"lat"`
+			Lon     float64 `json:"lon"`
+			Address string  `json:"address"`
 		}
 		if json.Unmarshal([]byte(cached), &coords) == nil {
-			return coords.Lat, coords.Lon, "", nil
+			// If we have lat, lon and we have an address that's not empty, return it.
+			// Otherwise fallback to querying.
+			if coords.Lat != 0 && coords.Lon != 0 && coords.Address != "" {
+				return coords.Lat, coords.Lon, coords.Address, nil
+			}
 		}
 	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (cep_coords): %v", err)
+		log.Printf("Erro ao recuperar cache do Redis (cep_coords_v2): %v", err)
 	}
 
 	infoCep, err := s.CEPRepository.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
 	if err != nil {
-		address, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
+		addressApi, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
 		if apiErr != nil {
 			log.Printf("erro ao buscar CEP em ambas base de dados: %v", apiErr)
-			return 0, 0, "", err
+			return 0, 0, "", apiErr
+		}
+
+		formattedCEP := fmt.Sprintf("%s-%s, Brazil", normalizedQuery[:5], normalizedQuery[5:])
+		fullAddressApi := formattedCEP
+		if addressApi.StreetName != "" {
+			fullAddressApi = fmt.Sprintf("%s, %s, %s, %s", addressApi.StreetName, addressApi.NeighborhoodName, addressApi.CityName, addressApi.StateUf)
+		}
+
+		lat, lon := addressApi.Latitude, addressApi.Longitude
+		if lat == 0 && lon == 0 {
+			geocode, errGeo := s.getGeocodeAddress(ctx, fullAddressApi)
+			if errGeo == nil && geocode.Location.Latitude != 0 {
+				lat, lon = geocode.Location.Latitude, geocode.Location.Longitude
+			}
 		}
 
 		// Salvar no cache
 		coords := struct {
-			Lat float64 `json:"lat"`
-			Lon float64 `json:"lon"`
-		}{address.Latitude, address.Longitude}
+			Lat     float64 `json:"lat"`
+			Lon     float64 `json:"lon"`
+			Address string  `json:"address"`
+		}{lat, lon, fullAddressApi}
 
-		if data, err := json.Marshal(coords); err == nil {
+		if data, errCache := json.Marshal(coords); errCache == nil {
 			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 		}
 
-		return address.Latitude, address.Longitude, "", nil
+		return lat, lon, fullAddressApi, nil
 	}
-
-	address := fmt.Sprintf("%s, %s, %s - %s", infoCep.StreetName.String, infoCep.NeighborhoodName.String, infoCep.CityName.String, infoCep.StateUf.String)
+	formattedCEP := fmt.Sprintf("%s-%s, Brazil", normalizedQuery[:5], normalizedQuery[5:])
+	addressStr := formattedCEP
 
 	// Salvar no cache
 	coords := struct {
-		Lat float64 `json:"lat"`
-		Lon float64 `json:"lon"`
-	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64}
+		Lat     float64 `json:"lat"`
+		Lon     float64 `json:"lon"`
+		Address string  `json:"address"`
+	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr}
 
 	if data, err := json.Marshal(coords); err == nil {
 		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
-	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, address, nil
+	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, nil
 }
 
 // -- new function

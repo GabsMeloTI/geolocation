@@ -1,7 +1,6 @@
 package address
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -11,7 +10,6 @@ import (
 	meiliaddress "geolocation/internal/meili_address"
 	"io"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -400,20 +398,22 @@ func (s *Service) FindCityAll(ctx context.Context, idState int32) ([]CityRespons
 	return cityResponse, nil
 }
 
-func FindCEPByAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, error) {
-	url := "https://gateway.apibrasil.io/api/v2/cep/cep"
-	bodyData := map[string]string{"cep": cep}
-	bodyJSON, _ := json.Marshal(bodyData)
+type BrasilAPIResponse struct {
+	Cep          string `json:"cep"`
+	State        string `json:"state"`
+	City         string `json:"city"`
+	Neighborhood string `json:"neighborhood"`
+	Street       string `json:"street"`
+	Service      string `json:"service"`
+}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyJSON))
+func FindCEPByAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, error) {
+	url := fmt.Sprintf("https://brasilapi.com.br/api/cep/v1/%s", cep)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return AddressCEPResponse{}, err
 	}
-	bearer := os.Getenv("BEARER_TOKEN")
-	device := os.Getenv("DEVICE_TOKEN_CEP")
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	req.Header.Set("DeviceToken", device)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -421,37 +421,29 @@ func FindCEPByAPIBrasil(ctx context.Context, cep string) (AddressCEPResponse, er
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return AddressCEPResponse{}, fmt.Errorf("erro na BrasilAPI: status %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return AddressCEPResponse{}, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return AddressCEPResponse{}, fmt.Errorf("erro na APIBrasil: %s", string(body))
-	}
-
-	var apiResp APIBrasilResponse
+	var apiResp BrasilAPIResponse
 	err = json.Unmarshal(body, &apiResp)
 	if err != nil {
 		return AddressCEPResponse{}, err
 	}
 
-	if apiResp.Error {
-		return AddressCEPResponse{}, errors.New(apiResp.Message)
-	}
-
-	cepResp := apiResp.Response.CEP
-	lat, _ := strconv.ParseFloat(cepResp.Latitude, 64)
-	long, _ := strconv.ParseFloat(cepResp.Longitude, 64)
-
 	return AddressCEPResponse{
-		CEP:              apiResp.Response.CEP.CEP,
-		Type:             strings.ToUpper(apiResp.Response.CEP.Tipo),
-		CityName:         strings.ToUpper(apiResp.Response.CEP.Cidade.Cidade),
-		StateUf:          strings.ToUpper(apiResp.Response.CEP.Estado),
-		NeighborhoodName: strings.ToUpper(apiResp.Response.CEP.Bairro.Bairro),
-		StreetName:       strings.ToUpper(apiResp.Response.CEP.Logradouro),
-		Latitude:         lat,
-		Longitude:        long,
+		CEP:              apiResp.Cep,
+		Type:             "STREET",
+		CityName:         strings.ToUpper(apiResp.City),
+		StateUf:          strings.ToUpper(apiResp.State),
+		NeighborhoodName: strings.ToUpper(apiResp.Neighborhood),
+		StreetName:       strings.ToUpper(apiResp.Street),
+		Latitude:         0,
+		Longitude:        0,
 	}, nil
 }
