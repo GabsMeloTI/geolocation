@@ -71,6 +71,12 @@ type LocationPrecision struct {
 	IsPrecise bool    `json:"is_preciso"`
 }
 
+type FuelCosts struct {
+	TotalFuelCost float64 `json:"total_fuel_cost"`
+	FuelInTheCity float64 `json:"fuel_in_the_city"`
+	FuelInTheHwy  float64 `json:"fuel_in_the_hwy"`
+}
+
 type SummaryPrecision struct {
 	LocationOrigin      LocationPrecision `json:"location_origin"`
 	LocationDestination LocationPrecision `json:"location_destination"`
@@ -3194,12 +3200,36 @@ func (s *Service) CalculateRoutesWithCEPOnly(ctx context.Context, frontInfo Fron
 
 	var routes []interface{}
 	for _, route := range osrmResp.Routes {
+		kmValue := route.Distance / 1000.0
+
+		var fuelCostCity, fuelCostHwy, totalFuelCost float64
+		if frontInfo.ConsumptionCity > 0 {
+			fuelCostCity = math.Round((frontInfo.Price / frontInfo.ConsumptionCity) * kmValue)
+		}
+		if frontInfo.ConsumptionHwy > 0 {
+			fuelCostHwy = math.Round((frontInfo.Price / frontInfo.ConsumptionHwy) * kmValue)
+		}
+
+		if frontInfo.ConsumptionCity > 0 && frontInfo.ConsumptionHwy > 0 {
+			avgConsumption := (frontInfo.ConsumptionCity + frontInfo.ConsumptionHwy) / 2
+			totalFuelCost = math.Round((frontInfo.Price / avgConsumption) * kmValue)
+		} else if frontInfo.ConsumptionCity > 0 {
+			totalFuelCost = fuelCostCity
+		} else if frontInfo.ConsumptionHwy > 0 {
+			totalFuelCost = fuelCostHwy
+		}
+
 		routes = append(routes, map[string]interface{}{
 			"distance":      route.Distance,
 			"distance_text": fmt.Sprintf("%.2f km", route.Distance/1000.0),
 			"duration":      route.Duration,
 			"duration_text": fmt.Sprintf("%s", time.Duration(route.Duration)*time.Second),
 			"geometry":      route.Geometry,
+			"fuel_costs": FuelCosts{
+				TotalFuelCost: totalFuelCost,
+				FuelInTheCity: fuelCostCity,
+				FuelInTheHwy:  fuelCostHwy,
+			},
 		})
 	}
 
