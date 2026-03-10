@@ -72,8 +72,6 @@ type LocationPrecision struct {
 }
 
 type SummaryPrecision struct {
-	TotalDistance       string            `json:"total_distance"`
-	TotalTime           string            `json:"total_time"`
 	LocationOrigin      LocationPrecision `json:"location_origin"`
 	LocationDestination LocationPrecision `json:"location_destination"`
 }
@@ -3197,16 +3195,16 @@ func (s *Service) CalculateRoutesWithCEPOnly(ctx context.Context, frontInfo Fron
 	var routes []interface{}
 	for _, route := range osrmResp.Routes {
 		routes = append(routes, map[string]interface{}{
-			"distance": route.Distance,
-			"duration": route.Duration,
-			"geometry": route.Geometry,
+			"distance":      route.Distance,
+			"distance_text": fmt.Sprintf("%.2f km", route.Distance/1000.0),
+			"duration":      route.Duration,
+			"duration_text": fmt.Sprintf("%s", time.Duration(route.Duration)*time.Second),
+			"geometry":      route.Geometry,
 		})
 	}
 
 	return FinalOutputPrecision{
 		Summary: SummaryPrecision{
-			TotalDistance: fmt.Sprintf("%.2f km", osrmResp.Routes[0].Distance/1000.0),
-			TotalTime:     fmt.Sprintf("%s", time.Duration(osrmResp.Routes[0].Duration)*time.Second),
 			LocationOrigin: LocationPrecision{
 				Latitude:  originLat,
 				Longitude: originLon,
