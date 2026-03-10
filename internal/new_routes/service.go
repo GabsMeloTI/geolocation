@@ -696,22 +696,22 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		// Erro ao recuperar cache do Redis
 	}
 
-	originLat, originLon, err := s.getCoordByCEP(ctx, cepOrigin)
+	originLat, originLon, originAddress, err := s.getCoordByCEP(ctx, cepOrigin)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	destLat, destLon, err := s.getCoordByCEP(ctx, frontInfo.DestinationCEP)
+	destLat, destLon, destinationAddress, err := s.getCoordByCEP(ctx, frontInfo.DestinationCEP)
 	if err != nil {
 		return FinalOutput{}, err
 	}
-	originAddress, err := s.reverseGeocode(originLat, originLon)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
-	}
-	destinationAddress, err := s.reverseGeocode(destLat, destLon)
-	if err != nil {
-		return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
-	}
+	//originAddress, err := s.reverseGeocode(originLat, originLon)
+	//if err != nil {
+	//	return FinalOutput{}, fmt.Errorf("erro ao obter endereço reverso da origem: %w", err)
+	//}
+	//destinationAddress, err := s.reverseGeocode(destLat, destLon)
+	//if err != nil {
+	//	return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
+	//}
 
 	originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
 	if err != nil {
@@ -729,7 +729,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	var waypointResults []GeocodeResult
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+		wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
@@ -849,7 +849,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	if len(frontInfo.WaypointsCEP) > 0 {
 		var googleWp []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+			wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
@@ -1111,7 +1111,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		requestJSON, _ := json.Marshal(frontInfo)
 		var wpStrings []string
 		for _, wp := range frontInfo.WaypointsCEP {
-			wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+			wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 			if err != nil {
 				return FinalOutput{}, err
 			}
@@ -1194,7 +1194,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	var wpStringsResponse []string
 	for _, wp := range frontInfo.WaypointsCEP {
-		wpCordLat, wpCordLon, err := s.getCoordByCEP(ctx, wp)
+		wpCordLat, wpCordLon, _, err := s.getCoordByCEP(ctx, wp)
 		if err != nil {
 			return FinalOutput{}, err
 		}
@@ -1253,16 +1253,16 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		originCEP := data.CEPs[i]
 		destCEP := data.CEPs[i+1]
 
-		originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
+		originLat, originLon, originAddress, err := s.getCoordByCEP(ctx, originCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 		}
-		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
+		destLat, destLon, destAddress, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
 		}
-		originAddress, _ := s.reverseGeocode(originLat, originLon)
-		destAddress, _ := s.reverseGeocode(destLat, destLon)
+		//originAddress, _ := s.reverseGeocode(originLat, originLon)
+		//destAddress, _ := s.reverseGeocode(destLat, destLon)
 
 		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
@@ -1424,7 +1424,7 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 	var waypoints []string
 	var originLocation, destinationLocation Location
 	for idx, cep := range data.CEPs {
-		coordLat, coordLon, err := s.getCoordByCEP(ctx, cep)
+		coordLat, coordLon, _, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
 			return Response{}, fmt.Errorf("erro ao buscar coordenadas para total_route no CEP %s: %w", cep, err)
 		}
@@ -1531,21 +1531,19 @@ func (s *Service) CalculateDistancesFromOrigin(ctx context.Context, data FrontIn
 	client := http.Client{Timeout: 30 * time.Second}
 	originCEP := data.CEPs[0]
 
-	originLat, originLon, err := s.getCoordByCEP(ctx, originCEP)
+	originLat, originLon, originAddressRaw, err := s.getCoordByCEP(ctx, originCEP)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
 	}
-	originAddressRaw, _ := s.reverseGeocode(originLat, originLon)
 	originGeocode, _ := s.getGeocodeAddress(ctx, originAddressRaw)
 
 	var results []DetailedRoute
 
 	for _, destCEP := range data.CEPs[1:] {
-		destLat, destLon, err := s.getCoordByCEP(ctx, destCEP)
+		destLat, destLon, destAddressRaw, err := s.getCoordByCEP(ctx, destCEP)
 		if err != nil {
 			continue
 		}
-		destAddressRaw, _ := s.reverseGeocode(destLat, destLon)
 		destGeocode, _ := s.getGeocodeAddress(ctx, destAddressRaw)
 
 		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
@@ -2307,6 +2305,59 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	return normalized, nil
 }
 
+// reverseGeocodeWithGoogle tenta geocodificação reversa usando Google Maps API como fallback
+func (s *Service) reverseGeocodeWithGoogle(lat, lng float64) (string, error) {
+	if s.GoogleMapsAPIKey == "" {
+		return "", fmt.Errorf("google Maps API key não configurada")
+	}
+
+	url := fmt.Sprintf("https://maps.googleapis.com/maps/api/geocode/json?latlng=%f,%f&key=%s&language=pt-BR",
+		lat, lng, s.GoogleMapsAPIKey)
+
+	client := http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("erro na requisição Google Maps: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Results []struct {
+			FormattedAddress string `json:"formatted_address"`
+		} `json:"results"`
+		Status string `json:"status"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("erro ao decodificar resposta Google Maps: %w", err)
+	}
+
+	if result.Status != "OK" || len(result.Results) == 0 {
+		return "", fmt.Errorf("google Maps retornou status: %s", result.Status)
+	}
+
+	return result.Results[0].FormattedAddress, nil
+}
+
+// createDescriptiveAddress cria um endereço descritivo baseado nas coordenadas
+func (s *Service) createDescriptiveAddress(lat, lng float64) string {
+	// Determinar região baseada nas coordenadas
+	var region string
+	if lat >= -5 && lat <= 5 && lng >= -60 && lng <= -30 {
+		region = "Brasil"
+	} else if lat >= -25 && lat <= -20 && lng >= -50 && lng <= -40 {
+		region = "São Paulo, Brasil"
+	} else if lat >= -23 && lat <= -22 && lng >= -47 && lng <= -46 {
+		region = "São Paulo, SP, Brasil"
+	} else if lat >= -23.5 && lat <= -23.4 && lng >= -46.5 && lng <= -46.3 {
+		region = "São Paulo, SP, Brasil"
+	} else {
+		region = "Brasil"
+	}
+
+	return fmt.Sprintf("Localização %.6f, %.6f - %s", lat, lng, region)
+}
+
 func (s *Service) savedRoutes(ctx context.Context, PublicOrPrivate, origin, destination, waypoints string, idPublicToken, IdUser int64, responseJSON, requestJSON json.RawMessage, favorite bool) (int64, error) {
 	var idTokenHist int64
 	if strings.ToLower(PublicOrPrivate) == "public" {
@@ -2780,17 +2831,17 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
 
-	autoCompleteReq := &maps.PlaceAutocompleteRequest{
-		Input:    address,
-		Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-		Radius:   1000000,
-		Language: "pt-BR",
-		Types:    "geocode",
-	}
-	autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-		address = autoCompleteResp.Predictions[0].Description
-	}
+	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
+	//	Input:    address,
+	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
+	//	Radius:   1000000,
+	//	Language: "pt-BR",
+	//	Types:    "geocode",
+	//}
+	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
+	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
+	//	address = autoCompleteResp.Predictions[0].Description
+	//}
 
 	req := &maps.GeocodingRequest{
 		Address: address,
@@ -2843,12 +2894,12 @@ func (s *Service) updateNumberOfRequest(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, error error) {
+func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, lon float64, end string, error error) {
 	cepRegex := regexp.MustCompile(`^\d{8}$`)
 	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(cep, "-", ""), " ", "")
 	isCEP := cepRegex.MatchString(normalizedQuery)
 	if !isCEP {
-		return 0, 0, errors.New("CEP inválido")
+		return 0, 0, "", errors.New("CEP inválido")
 	}
 
 	// Implementar cache para CEPs
@@ -2860,7 +2911,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 			Lon float64 `json:"lon"`
 		}
 		if json.Unmarshal([]byte(cached), &coords) == nil {
-			return coords.Lat, coords.Lon, nil
+			return coords.Lat, coords.Lon, "", nil
 		}
 	} else if !errors.Is(err, redis.Nil) {
 		log.Printf("Erro ao recuperar cache do Redis (cep_coords): %v", err)
@@ -2871,7 +2922,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		address, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
 		if apiErr != nil {
 			log.Printf("erro ao buscar CEP em ambas base de dados: %v", apiErr)
-			return 0, 0, err
+			return 0, 0, "", err
 		}
 
 		// Salvar no cache
@@ -2884,8 +2935,10 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 		}
 
-		return address.Latitude, address.Longitude, nil
+		return address.Latitude, address.Longitude, "", nil
 	}
+
+	address := fmt.Sprintf("%s, %s, %s - %s", infoCep.StreetName.String, infoCep.NeighborhoodName.String, infoCep.CityName.String, infoCep.StateUf.String)
 
 	// Salvar no cache
 	coords := struct {
@@ -2897,7 +2950,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
-	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, nil
+	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, address, nil
 }
 
 // -- new function
@@ -2963,7 +3016,7 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 		go func(cep string) {
 			defer wgCEP.Done()
 
-			lat, lon, err := s.getCoordByCEP(ctx, cep)
+			lat, lon, _, err := s.getCoordByCEP(ctx, cep)
 			if err != nil {
 				cepChan <- struct {
 					cep     string
@@ -3131,8 +3184,8 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 				segmentChan <- segmentResult{
 					index: i,
 					route: DetailedRoute{
-						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
-						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.address},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.address},
 						HasRisk:             false,
 						LocationHisk:        locations,
 						Summaries:           summaries,
@@ -3205,8 +3258,8 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.C
 				segmentChan <- segmentResult{
 					index: i,
 					route: DetailedRoute{
-						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
-						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.address},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.address},
 						HasRisk:             hasRisk,
 						LocationHisk:        locations,
 						Summaries:           summaries,
@@ -3333,80 +3386,28 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 				return
 			}
 
-			// Geocodificação reversa e geocodificação em paralelo
-			addressChan := make(chan string, 1)
-			geocodeChan := make(chan GeocodeResult, 1)
-			errorChan := make(chan error, 2)
-
-			go func(lat, lon float64) {
-				address, err := s.reverseGeocode(lat, lon)
-				if err != nil {
-					errorChan <- err
-					return
-				}
-				addressChan <- address
-			}(lat, lon)
-
-			go func() {
-				geocode, err := s.getGeocodeAddress(ctx, fmt.Sprintf("%f,%f", lat, lon))
-				if err != nil {
-					errorChan <- err
-					return
-				}
-				geocodeChan <- geocode
-			}()
-
-			// Aguardar resultados com timeout
-			select {
-			case address := <-addressChan:
-				select {
-				case geocode := <-geocodeChan:
-					coordChan <- struct {
-						coord   string
-						lat     float64
-						lon     float64
-						address string
-						geocode GeocodeResult
-						err     error
-					}{coordKey, lat, lon, address, geocode, nil}
-				case err := <-errorChan:
-					coordChan <- struct {
-						coord   string
-						lat     float64
-						lon     float64
-						address string
-						geocode GeocodeResult
-						err     error
-					}{coordKey, lat, lon, "", GeocodeResult{}, err}
-				case <-time.After(5 * time.Second):
-					coordChan <- struct {
-						coord   string
-						lat     float64
-						lon     float64
-						address string
-						geocode GeocodeResult
-						err     error
-					}{coordKey, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
-				}
-			case err := <-errorChan:
-				coordChan <- struct {
-					coord   string
-					lat     float64
-					lon     float64
-					address string
-					geocode GeocodeResult
-					err     error
-				}{coordKey, lat, lon, "", GeocodeResult{}, err}
-			case <-time.After(5 * time.Second):
-				coordChan <- struct {
-					coord   string
-					lat     float64
-					lon     float64
-					address string
-					geocode GeocodeResult
-					err     error
-				}{coordKey, lat, lon, "", GeocodeResult{}, fmt.Errorf("timeout geocodificação")}
+			// Usar o mesmo padrão do total_route: reverseGeocode + getGeocodeAddress
+			reverse, err := s.reverseGeocode(lat, lon)
+			if err != nil || reverse == "" {
+				// Fallback para coordenadas se reverse geocoding falhar
+				reverse = fmt.Sprintf("%.6f,%.6f", lat, lon)
 			}
+
+			geocode, err := s.getGeocodeAddress(ctx, reverse)
+			address := geocode.FormattedAddress
+			if err != nil || address == "" {
+				// Se geocoding também falhou, usa o endereço do reverse geocoding ou coordenadas
+				address = reverse
+			}
+
+			coordChan <- struct {
+				coord   string
+				lat     float64
+				lon     float64
+				address string
+				geocode GeocodeResult
+				err     error
+			}{coordKey, lat, lon, address, geocode, nil}
 		}(coord)
 	}
 
@@ -3456,6 +3457,40 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 				originData := coordinateData[originKey]
 				destData := coordinateData[destKey]
 
+				// Verificar se as coordenadas foram processadas corretamente
+				if originData.lat == 0 && originData.lon == 0 {
+					// Fallback: usar as coordenadas originais se não foram processadas
+					lat, err1 := strconv.ParseFloat(strings.ReplaceAll(originCoord.Lat, ",", "."), 64)
+					lon, err2 := strconv.ParseFloat(strings.ReplaceAll(originCoord.Lng, ",", "."), 64)
+					if err1 == nil && err2 == nil {
+						originData.lat = lat
+						originData.lon = lon
+						// Tentar geocodificação com Google Maps como fallback
+						if address, err := s.reverseGeocodeWithGoogle(lat, lon); err == nil && address != "" {
+							originData.geocode = GeocodeResult{FormattedAddress: address}
+						} else {
+							// Fallback final: endereço descritivo baseado nas coordenadas
+							originData.geocode = GeocodeResult{FormattedAddress: s.createDescriptiveAddress(lat, lon)}
+						}
+					}
+				}
+				if destData.lat == 0 && destData.lon == 0 {
+					// Fallback: usar as coordenadas originais se não foram processadas
+					lat, err1 := strconv.ParseFloat(strings.ReplaceAll(destCoord.Lat, ",", "."), 64)
+					lon, err2 := strconv.ParseFloat(strings.ReplaceAll(destCoord.Lng, ",", "."), 64)
+					if err1 == nil && err2 == nil {
+						destData.lat = lat
+						destData.lon = lon
+						// Tentar geocodificação com Google Maps como fallback
+						if address, err := s.reverseGeocodeWithGoogle(lat, lon); err == nil && address != "" {
+							destData.geocode = GeocodeResult{FormattedAddress: address}
+						} else {
+							// Fallback final: endereço descritivo baseado nas coordenadas
+							destData.geocode = GeocodeResult{FormattedAddress: s.createDescriptiveAddress(lat, lon)}
+						}
+					}
+				}
+
 				// Verificar se há zonas de atenção no caminho direto (apenas para reportar)
 				attentionOffs, hasAttention := s.CheckRouteForAllAttentionZones(riskAtentions, originData.lat, originData.lon, destData.lat, destData.lon)
 
@@ -3490,8 +3525,8 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 				segmentChan <- segmentResult{
 					index: i,
 					route: DetailedRoute{
-						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
-						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.address},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.address},
 						HasRisk:             false,
 						LocationHisk:        locations,
 						Summaries:           summaries,
@@ -3514,6 +3549,40 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 
 				originData := coordinateData[originKey]
 				destData := coordinateData[destKey]
+
+				// Verificar se as coordenadas foram processadas corretamente
+				if originData.lat == 0 && originData.lon == 0 {
+					// Fallback: usar as coordenadas originais se não foram processadas
+					lat, err1 := strconv.ParseFloat(strings.ReplaceAll(originCoord.Lat, ",", "."), 64)
+					lon, err2 := strconv.ParseFloat(strings.ReplaceAll(originCoord.Lng, ",", "."), 64)
+					if err1 == nil && err2 == nil {
+						originData.lat = lat
+						originData.lon = lon
+						// Tentar geocodificação com Google Maps como fallback
+						if address, err := s.reverseGeocodeWithGoogle(lat, lon); err == nil && address != "" {
+							originData.geocode = GeocodeResult{FormattedAddress: address}
+						} else {
+							// Fallback final: endereço descritivo baseado nas coordenadas
+							originData.geocode = GeocodeResult{FormattedAddress: s.createDescriptiveAddress(lat, lon)}
+						}
+					}
+				}
+				if destData.lat == 0 && destData.lon == 0 {
+					// Fallback: usar as coordenadas originais se não foram processadas
+					lat, err1 := strconv.ParseFloat(strings.ReplaceAll(destCoord.Lat, ",", "."), 64)
+					lon, err2 := strconv.ParseFloat(strings.ReplaceAll(destCoord.Lng, ",", "."), 64)
+					if err1 == nil && err2 == nil {
+						destData.lat = lat
+						destData.lon = lon
+						// Tentar geocodificação com Google Maps como fallback
+						if address, err := s.reverseGeocodeWithGoogle(lat, lon); err == nil && address != "" {
+							destData.geocode = GeocodeResult{FormattedAddress: address}
+						} else {
+							// Fallback final: endereço descritivo baseado nas coordenadas
+							destData.geocode = GeocodeResult{FormattedAddress: s.createDescriptiveAddress(lat, lon)}
+						}
+					}
+				}
 
 				// Verificar se há zonas de risco no caminho direto
 				riskOffs, hasRisk := s.CheckRouteForAllRiskZones(riskZones, originData.lat, originData.lon, destData.lat, destData.lon)
@@ -3566,8 +3635,8 @@ func (s *Service) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinate
 				segmentChan <- segmentResult{
 					index: i,
 					route: DetailedRoute{
-						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.geocode.FormattedAddress},
-						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.geocode.FormattedAddress},
+						LocationOrigin:      AddressInfo{Location: Location{Latitude: originData.lat, Longitude: originData.lon}, Address: originData.address},
+						LocationDestination: AddressInfo{Location: Location{Latitude: destData.lat, Longitude: destData.lon}, Address: destData.address},
 						HasRisk:             hasRisk,
 						LocationHisk:        locations,
 						Summaries:           summaries,
@@ -3752,7 +3821,14 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 				resp, err = fastClient.Get(u)
 			}
 
-			defer resp.Body.Close()
+			if err != nil || resp == nil {
+				log.Printf("ERRO: requisição OSRM falhou nas duas tentativas - err=%v", err)
+				return OSRMRoute{}, false
+			}
+
+			if resp.Body != nil {
+				defer resp.Body.Close()
+			}
 			var r OSRMResponse
 			if json.NewDecoder(resp.Body).Decode(&r) != nil || len(r.Routes) == 0 {
 				return OSRMRoute{}, false
@@ -4055,16 +4131,31 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 
 			routeSummary := s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, s.convertCoordinatesToCEPRequest(data))
 
-			// Força o uso dos valores acumulados dos segmentos para duração e distância mais precisos
-			distText, distVal := formatDistance(totalDistance)
-			durText, durVal := formatDuration(totalDuration)
-			routeSummary.TotalDistance = Distance{Text: distText, Value: distVal}
-			routeSummary.TotalDuration = Duration{Text: durText, Value: durVal}
+			// Usa os valores da rota OSRM (que são mais precisos para a rota total)
+			// Se a rota OSRM retornar valores válidos, usa eles; senão usa os acumulados como fallback
+			if route.Distance > 0 && route.Duration > 0 {
+				// Usa valores da rota OSRM (mais precisos)
+				distText, distVal := formatDistance(route.Distance)
+				durText, durVal := formatDuration(route.Duration)
+				routeSummary.TotalDistance = Distance{Text: distText, Value: distVal}
+				routeSummary.TotalDuration = Duration{Text: durText, Value: durVal}
 
-			// Recalcula custo de combustível com a distância correta
-			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
-			totalKm := totalDistance / 1000
-			routeSummary.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+				// Recalcula custo de combustível com a distância correta
+				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+				totalKm := route.Distance / 1000
+				routeSummary.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+			} else {
+				// Fallback para valores acumulados se OSRM retornar valores inválidos
+				distText, distVal := formatDistance(totalDistance)
+				durText, durVal := formatDuration(totalDuration)
+				routeSummary.TotalDistance = Distance{Text: distText, Value: distVal}
+				routeSummary.TotalDuration = Duration{Text: durText, Value: durVal}
+
+				// Recalcula custo de combustível com a distância correta
+				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+				totalKm := totalDistance / 1000
+				routeSummary.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+			}
 
 			// Adiciona categoria da rota
 			routeSummary.RouteType = routeCategory
@@ -4148,12 +4239,13 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 
 		var tolls []Toll
 		var totalTollCost float64
+		var osrmRoute OSRMRoute
 		if resp, err := client.Get(urlBase); err == nil {
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
 			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
-				route := osrmResp.Routes[0]
-				tolls, _ = s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				osrmRoute = osrmResp.Routes[0]
+				tolls, _ = s.findTollsOnRoute(ctx, osrmRoute.Geometry, data.Type, float64(data.Axles))
 				for _, toll := range tolls {
 					totalTollCost += toll.CashCost
 				}
@@ -4181,22 +4273,6 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 			currentTimeMillis,
 		)
 
-		// Instruções básicas para rota de fallback agregada
-		fallbackInstructions := []Instruction{
-			{
-				Text: "Inicie sua viagem",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-			{
-				Text: "Siga em direção ao destino - rota estimada baseada em segmentos",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-			{
-				Text: "Chegue ao seu destino",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-		}
-
 		totalRoute = TotalSummary{
 			LocationOrigin: AddressInfo{
 				Location: originLocation,
@@ -4214,7 +4290,7 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 			TotalTolls:    math.Round(totalTollCost*100) / 100,
 			Polyline:      "",
 			TotalFuelCost: totalFuelCost,
-			Instructions:  fallbackInstructions,
+			Instructions:  s.processOSRMStepsToInstructions(osrmRoute),
 		}
 	}
 
@@ -5548,22 +5624,6 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 		neturl.QueryEscape(originGeocode.PlaceID),
 	)
 
-	// Instruções básicas para rota direta com aviso de risco
-	basicInstructions := []Instruction{
-		{
-			Text: "Inicie sua viagem",
-			Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-		},
-		{
-			Text: "⚠️ ATENÇÃO: Esta rota pode passar por zonas de risco. Recomendamos cautela extra.",
-			Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/warning.png",
-		},
-		{
-			Text: "Chegue ao seu destino",
-			Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-		},
-	}
-
 	return RouteSummary{
 		RouteType:     data.TypeRoute,
 		HasTolls:      false,
@@ -5575,7 +5635,7 @@ func (s *Service) createRouteSummaryWithRiskWarning(originLat, originLon, destLa
 		Tolls:         nil,
 		TotalTolls:    0,
 		Polyline:      "", // Sem polyline para rota direta
-		Instructions:  basicInstructions,
+		Instructions:  []Instruction{},
 	}
 }
 
@@ -5590,7 +5650,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 	var originLocation, destinationLocation Location
 
 	for idx, cep := range ceps {
-		lat, lon, err := s.getCoordByCEP(ctx, cep)
+		lat, lon, _, err := s.getCoordByCEP(ctx, cep)
 		if err != nil {
 			continue
 		}
@@ -5981,16 +6041,31 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 			}
 			totalRoute = s.createTotalSummaryWithURLWaypoints(route, originLocation, destinationLocation, waypoints, waypointsForURL, data)
 
-			// Força o uso dos valores acumulados dos segmentos para duração e distância mais precisos
-			distText, distVal := formatDistance(totalDistance)
-			durText, durVal := formatDuration(totalDuration)
-			totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
-			totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
+			// Usa os valores da rota OSRM (que são mais precisos para a rota total)
+			// Se a rota OSRM retornar valores válidos, usa eles; senão usa os acumulados como fallback
+			if route.Distance > 0 && route.Duration > 0 {
+				// Usa valores da rota OSRM (mais precisos)
+				distText, distVal := formatDistance(route.Distance)
+				durText, durVal := formatDuration(route.Duration)
+				totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
+				totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
 
-			// Recalcula custo de combustível com a distância correta
-			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
-			totalKm := totalDistance / 1000
-			totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+				// Recalcula custo de combustível com a distância correta
+				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+				totalKm := route.Distance / 1000
+				totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+			} else {
+				// Fallback para valores acumulados se OSRM retornar valores inválidos
+				distText, distVal := formatDistance(totalDistance)
+				durText, durVal := formatDuration(totalDuration)
+				totalRoute.TotalDistance = Distance{Text: distText, Value: distVal}
+				totalRoute.TotalDuration = Duration{Text: durText, Value: durVal}
+
+				// Recalcula custo de combustível com a distância correta
+				avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+				totalKm := totalDistance / 1000
+				totalRoute.TotalFuelCost = math.Round((data.Price / avgConsumption) * totalKm)
+			}
 
 			// Caso precise expor os pontos do desvio, habilite:
 			// totalRoute.DetourPoints = detourPtsTotal
@@ -6045,12 +6120,13 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 
 		var tolls []Toll
 		var totalTollCost float64
+		var osrmRoute OSRMRoute
 		if resp, err := client.Get(urlBase); err == nil {
 			defer resp.Body.Close()
 			var osrmResp OSRMResponse
 			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
-				route := osrmResp.Routes[0]
-				tolls, _ = s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+				osrmRoute = osrmResp.Routes[0]
+				tolls, _ = s.findTollsOnRoute(ctx, osrmRoute.Geometry, data.Type, float64(data.Axles))
 				for _, toll := range tolls {
 					totalTollCost += toll.CashCost
 				}
@@ -6078,22 +6154,6 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 			currentTimeMillis,
 		)
 
-		// Instruções básicas para rota de fallback agregada
-		fallbackInstructions := []Instruction{
-			{
-				Text: "Inicie sua viagem",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-			{
-				Text: "Siga em direção ao destino - rota estimada baseada em segmentos",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-			{
-				Text: "Chegue ao seu destino",
-				Img:  "https://plates-routes.s3.us-east-1.amazonaws.com/reto.png",
-			},
-		}
-
 		totalRoute = TotalSummary{
 			LocationOrigin: AddressInfo{
 				Location: originLocation,
@@ -6111,7 +6171,7 @@ func (s *Service) calculateTotalRouteWithAvoidance(ctx context.Context, client h
 			TotalTolls:    math.Round(totalTollCost*100) / 100,
 			Polyline:      "",
 			TotalFuelCost: totalFuelCost,
-			Instructions:  fallbackInstructions,
+			Instructions:  s.processOSRMStepsToInstructions(osrmRoute),
 		}
 	}
 

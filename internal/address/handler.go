@@ -2,8 +2,9 @@ package address
 
 import (
 	"geolocation/validation"
-	"github.com/labstack/echo/v4"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -103,6 +104,14 @@ func (h *Handler) FindAddressByCEPHandler(c echo.Context) error {
 	result, err := h.InterfaceService.FindAddressesByCEPService(c.Request().Context(), cep)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) FindTwoRandomCEPsHandler(c echo.Context) error {
+	result, err := h.InterfaceService.FindTwoRandomCEPsService(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, result)
 }

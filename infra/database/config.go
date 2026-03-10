@@ -9,5 +9,4 @@ type Config struct {
 	SSLMode     string
 	Driver      string
 	Environment string
-	DatabaseSP  string
 }

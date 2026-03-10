@@ -18,6 +18,7 @@ type InterfaceRepository interface {
 	FindStateAll(context.Context) ([]db.State, error)
 	FindCityAll(context.Context, int32) ([]db.City, error)
 	FindUniqueAddressesByCEPRepository(ctx context.Context, arg string) ([]db.FindUniqueAddressByCEPRow, error)
+	FindFindTwoRandomCEPsRepository(ctx context.Context) ([]string, error)
 }
 type Repository struct {
 	Conn    *sql.DB
@@ -61,6 +62,10 @@ func (r *Repository) FindNeighborhoodsByNameRepository(ctx context.Context, arg 
 
 func (r *Repository) FindAddressGroupedByCEPRepository(ctx context.Context, arg string) (db.FindAddressGroupedByCEPRow, error) {
 	return r.Queries.FindAddressGroupedByCEP(ctx, arg)
+}
+
+func (r *Repository) FindFindTwoRandomCEPsRepository(ctx context.Context) ([]string, error) {
+	return r.Queries.FindTwoRandomCEPs(ctx)
 }
 
 func (r *Repository) FindStateAll(ctx context.Context) ([]db.State, error) {

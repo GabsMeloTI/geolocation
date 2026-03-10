@@ -147,6 +147,13 @@ SELECT
 FROM public.unique_ceps
 WHERE cep = $1 LIMIT 1;
 
+-- name: FindTwoRandomCEPs :many
+SELECT
+    cep::text AS cep
+FROM public.unique_ceps
+ORDER BY RANDOM()
+    LIMIT 2;
+
 -- name: FindAddressByStreetID :many
 SELECT * FROM addresses a
 WHERE a.street_id = $1;
