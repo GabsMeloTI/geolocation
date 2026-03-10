@@ -43,6 +43,7 @@ type InterfaceService interface {
 	RemoveFavoriteRouteService(ctx context.Context, id, idUser int64) error
 	GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, error)
 	GetCoordinatesFromAddress(ctx context.Context, street, number, city, state, cep string) (AddressCoordinatesResponse, error)
+	CalculateRoutesWithCEPOnly(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutputPrecision, error)
 }
 
 type Service struct {
@@ -61,6 +62,25 @@ func NewRoutesNewService(interfaceService routes.InterfaceRepository, interfaceR
 		RiskZonesRepository:      RiskZonesRepository,
 		CEPRepository:            CEPRepository,
 	}
+}
+
+type LocationPrecision struct {
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lng"`
+	Address   string  `json:"address"`
+	IsPrecise bool    `json:"is_preciso"`
+}
+
+type SummaryPrecision struct {
+	TotalDistance       string            `json:"total_distance"`
+	TotalTime           string            `json:"total_time"`
+	LocationOrigin      LocationPrecision `json:"location_origin"`
+	LocationDestination LocationPrecision `json:"location_destination"`
+}
+
+type FinalOutputPrecision struct {
+	Summary SummaryPrecision `json:"summary"`
+	Routes  []interface{}    `json:"routes"`
 }
 
 // normalizeAddress normaliza endereços removendo caracteres especiais e corrigindo codificação
@@ -3027,6 +3047,181 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	}
 
 	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, nil
+}
+func (s *Service) getCoordByCEPV2(ctx context.Context, cep string) (lat float64, lon float64, end string, isPrecise bool, error error) {
+	cepRegex := regexp.MustCompile(`^\d{8}$`)
+	normalizedQuery := strings.ReplaceAll(strings.ReplaceAll(cep, "-", ""), " ", "")
+	isCEP := cepRegex.MatchString(normalizedQuery)
+	if !isCEP {
+		return 0, 0, "", false, errors.New("CEP inválido")
+	}
+
+	// Implementar cache para CEPs
+	cacheKey := fmt.Sprintf("cep_coords_v5:%s", normalizedQuery)
+	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var coords struct {
+			Lat       float64 `json:"lat"`
+			Lon       float64 `json:"lon"`
+			Address   string  `json:"address"`
+			IsPrecise bool    `json:"is_preciso"`
+		}
+		if json.Unmarshal([]byte(cached), &coords) == nil {
+			if coords.Lat != 0 && coords.Lon != 0 && coords.Address != "" {
+				return coords.Lat, coords.Lon, coords.Address, coords.IsPrecise, nil
+			}
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (cep_coords_v5): %v", err)
+	}
+
+	infoCep, err := s.CEPRepository.FindAddressGroupedByCEPRepository(ctx, normalizedQuery)
+	if err != nil {
+		addressApi, apiErr := address.FindCEPByAPIBrasil(ctx, normalizedQuery)
+		if apiErr != nil {
+			log.Printf("erro ao buscar CEP em ambas base de dados: %v", apiErr)
+			return 0, 0, "", false, apiErr
+		}
+
+		formattedCEP := fmt.Sprintf("%s-%s, Brazil", normalizedQuery[:5], normalizedQuery[5:])
+		fullAddressApi := formattedCEP
+		if addressApi.StreetName != "" {
+			fullAddressApi = fmt.Sprintf("%s, %s, %s, %s", addressApi.StreetName, addressApi.NeighborhoodName, addressApi.CityName, addressApi.StateUf)
+		}
+
+		lat, lon := addressApi.Latitude, addressApi.Longitude
+		if lat == 0 && lon == 0 {
+			geocode, errGeo := s.getGeocodeAddress(ctx, fullAddressApi)
+			if errGeo == nil && geocode.Location.Latitude != 0 {
+				lat, lon = geocode.Location.Latitude, geocode.Location.Longitude
+			}
+		}
+
+		// Save fallback cache
+		coords := struct {
+			Lat       float64 `json:"lat"`
+			Lon       float64 `json:"lon"`
+			Address   string  `json:"address"`
+			IsPrecise bool    `json:"is_preciso"`
+		}{lat, lon, fullAddressApi, false}
+
+		if data, errCache := json.Marshal(coords); errCache == nil {
+			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+		}
+
+		return lat, lon, fullAddressApi, false, nil
+	}
+
+	formattedCEP := fmt.Sprintf("%s-%s, Brazil", normalizedQuery[:5], normalizedQuery[5:])
+	addressStr := formattedCEP
+
+	// Save precise local DB cache
+	coords := struct {
+		Lat       float64 `json:"lat"`
+		Lon       float64 `json:"lon"`
+		Address   string  `json:"address"`
+		IsPrecise bool    `json:"is_preciso"`
+	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, true}
+
+	if data, err := json.Marshal(coords); err == nil {
+		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+	}
+
+	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, true, nil
+}
+
+func (s *Service) CalculateRoutesWithCEPOnly(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutputPrecision, error) {
+	if strings.ToLower(frontInfo.PublicOrPrivate) == "public" {
+		if err := s.updateNumberOfRequest(ctx, idPublicToken); err != nil {
+			return FinalOutputPrecision{}, err
+		}
+	}
+
+	cepOrigin := frontInfo.OriginCEP
+	if frontInfo.Enterprise {
+		resultOrg, errOrg := s.InterfaceRouteEnterprise.GetOrganizationByTenant(ctx, db.GetOrganizationByTenantParams{
+			AccessID: sql.NullInt64{Int64: payloadSimp.AccessID, Valid: true},
+			TenantID: uuid.NullUUID{UUID: payloadSimp.TenantID, Valid: true},
+			Cnpj:     payloadSimp.Document,
+		})
+		if errOrg != nil {
+			return FinalOutputPrecision{}, errOrg
+		}
+		cepOrigin = resultOrg.String
+	}
+
+	originLat, originLon, originAddress, isOriginPrecise, err := s.getCoordByCEPV2(ctx, cepOrigin)
+	if err != nil {
+		return FinalOutputPrecision{}, err
+	}
+	destLat, destLon, destinationAddress, isDestPrecise, err := s.getCoordByCEPV2(ctx, frontInfo.DestinationCEP)
+	if err != nil {
+		return FinalOutputPrecision{}, err
+	}
+
+	originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
+	if err != nil {
+		return FinalOutputPrecision{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
+	}
+	originGeocode.Location = Location{Latitude: originLat, Longitude: originLon}
+
+	destinationGeocode, err := s.getGeocodeAddress(ctx, destinationAddress)
+	if err != nil {
+		return FinalOutputPrecision{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
+	}
+	destinationGeocode.Location = Location{Latitude: destLat, Longitude: destLon}
+
+	coords := fmt.Sprintf("%f,%f;%f,%f", originGeocode.Location.Longitude, originGeocode.Location.Latitude, destinationGeocode.Location.Longitude, destinationGeocode.Location.Latitude)
+	baseOSRMURL := "http://34.207.174.233:5000/route/v1/driving/" + neturl.PathEscape(coords)
+	client := http.Client{Timeout: 120 * time.Second}
+
+	osrmURLEfficient := baseOSRMURL + "?" + neturl.Values{
+		"alternatives": {"3"},
+		"steps":        {"false"},
+		"overview":     {"full"},
+	}.Encode()
+
+	resp, err := client.Get(osrmURLEfficient)
+	if err != nil {
+		return FinalOutputPrecision{}, fmt.Errorf("erro na requisição OSRM: %w", err)
+	}
+	defer resp.Body.Close()
+	var osrmResp OSRMResponse
+	if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+		return FinalOutputPrecision{}, fmt.Errorf("erro ao decodificar resposta OSRM: %w", err)
+	}
+	if osrmResp.Code != "Ok" || len(osrmResp.Routes) == 0 {
+		return FinalOutputPrecision{}, fmt.Errorf("OSRM retornou erro ou nenhuma rota encontrada")
+	}
+
+	var routes []interface{}
+	for _, route := range osrmResp.Routes {
+		routes = append(routes, map[string]interface{}{
+			"distance": route.Distance,
+			"duration": route.Duration,
+			"geometry": route.Geometry,
+		})
+	}
+
+	return FinalOutputPrecision{
+		Summary: SummaryPrecision{
+			TotalDistance: fmt.Sprintf("%.2f km", osrmResp.Routes[0].Distance/1000.0),
+			TotalTime:     fmt.Sprintf("%s", time.Duration(osrmResp.Routes[0].Duration)*time.Second),
+			LocationOrigin: LocationPrecision{
+				Latitude:  originLat,
+				Longitude: originLon,
+				Address:   originAddress,
+				IsPrecise: isOriginPrecise,
+			},
+			LocationDestination: LocationPrecision{
+				Latitude:  destLat,
+				Longitude: destLon,
+				Address:   destinationAddress,
+				IsPrecise: isDestPrecise,
+			},
+		},
+		Routes: routes,
+	}, nil
 }
 
 // -- new function

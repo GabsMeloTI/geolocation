@@ -195,6 +195,45 @@ func (h *Handler) CalculateRoutesWithCEP(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// @Summary Calcula rota por CEP retornando se o endereço mapeado é preciso (DB local) ou aproximado (APIs Publicas)
+// @Description Calcula a rota baseado nos CEPs de origem e destino, validando e indicando is_preciso para cada localização.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEP true "Requisição para cálculo de rota por CEP"
+// @Success 200 {object} FinalOutputPrecision "Informações calculadas da rota com detalhe de precisão"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /check-route-cep [post]
+// @Security ApiKeyAuth
+func (h *Handler) CalculateRoutesWithCEPOnly(e echo.Context) error {
+	var frontInfo FrontInfoCEP
+	if err := e.Bind(&frontInfo); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err := validation.Validate(frontInfo)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	payloadPublic := get_token.GetPublicPayloadToken(e)
+	payloadSimp := get_token.GetPayloadToken(e)
+	payload := get_token.GetUserPayloadToken(e)
+
+	result, err := h.InterfaceService.CalculateRoutesWithCEPOnly(e.Request().Context(), frontInfo, payloadPublic.ID, payload.ID, payloadSimp)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, echo.ErrNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return e.JSON(statusCode, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 func (h *Handler) CalculateRoutesCEP(e echo.Context) error {
 	var frontInfo FrontInfoCEPRequest
 	if err := e.Bind(&frontInfo); err != nil {
