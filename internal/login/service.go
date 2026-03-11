@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -97,6 +98,23 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		Profile: profile.Name,
 	}
 
+	payloadMap := map[string]interface{}{
+		"id":        result.ID,
+		"name":      result.Name,
+		"email":     result.Email,
+		"profileId": result.ProfileID.Int64,
+		"document":  result.Document.String,
+	}
+	payloadBytes, _ := json.Marshal(payloadMap)
+
+	_, _ = s.repository.CreateUserTokenHist(ctx, db.CreateUserTokenHistParams{
+		UserID:    result.ID,
+		Token:     tokenStr,
+		Payload:   payloadBytes,
+		ExpiredAt: time.Now().Add(24 * time.Hour).UTC(),
+		Origin:    "V1",
+	})
+
 	return responseData, err
 }
 
@@ -160,6 +178,23 @@ func (s *Service) LoginV2(ctx context.Context, data RequestLogin) (response Resp
 		Token:   tokenStr,
 		Profile: profile.Name,
 	}
+
+	payloadMap := map[string]interface{}{
+		"id":        result.ID,
+		"name":      result.Name,
+		"email":     result.Email,
+		"profileId": result.ProfileID.Int64,
+		"document":  result.Document.String,
+	}
+	payloadBytes, _ := json.Marshal(payloadMap)
+
+	_, _ = s.repository.CreateUserTokenHist(ctx, db.CreateUserTokenHistParams{
+		UserID:    result.ID,
+		Token:     tokenStr,
+		Payload:   payloadBytes,
+		ExpiredAt: time.Now().Add(30 * 24 * time.Hour).UTC(),
+		Origin:    "V2",
+	})
 
 	return responseData, err
 }
