@@ -14,6 +14,7 @@ type RepositoryInterface interface {
 	GetUserByEmail(ctx context.Context, email string) (db.User, error)
 	CreateUserClient(ctx context.Context, arg db.CreateUserClientParams) (db.User, error)
 	CreateUserTokenHist(ctx context.Context, arg db.CreateUserTokenHistParams) (db.UserTokensHist, error)
+	CreateUserRequestHist(ctx context.Context, arg db.CreateUserRequestHistParams) (db.UserRequestHist, error)
 }
 
 type Repository struct {
@@ -55,4 +56,8 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (db.User,
 
 func (r *Repository) CreateUserTokenHist(ctx context.Context, arg db.CreateUserTokenHistParams) (db.UserTokensHist, error) {
 	return r.Queries.CreateUserTokenHist(ctx, arg)
+}
+
+func (r *Repository) CreateUserRequestHist(ctx context.Context, arg db.CreateUserRequestHistParams) (db.UserRequestHist, error) {
+	return r.Queries.CreateUserRequestHist(ctx, arg)
 }

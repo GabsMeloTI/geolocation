@@ -48,6 +48,9 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 		}
 	}()
 
+	// Automatic tracking of User endpoint execution speeds and status
+	e.Use(_midlleware.RequestLogger(container.LoginRepository))
+
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{

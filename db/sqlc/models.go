@@ -530,6 +530,17 @@ type UserPlan struct {
 	ExpirationDate time.Time `json:"expiration_date"`
 }
 
+type UserRequestHist struct {
+	ID              int64         `json:"id"`
+	UserID          sql.NullInt64 `json:"user_id"`
+	Token           string        `json:"token"`
+	Endpoint        string        `json:"endpoint"`
+	Method          string        `json:"method"`
+	StatusCode      int32         `json:"status_code"`
+	ExecutionTimeMs int32         `json:"execution_time_ms"`
+	CreatedAt       time.Time     `json:"created_at"`
+}
+
 type UserTokensHist struct {
 	ID        int64           `json:"id"`
 	UserID    int64           `json:"user_id"`
