@@ -158,6 +158,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	e.POST("/google-route-tolls-public", container.HandlerRoutes.CheckRouteTolls, _midlleware.CheckPublicAuthorization)
 	e.POST("/google-route-tolls", container.HandlerRoutes.CheckRouteTolls)
 	e.POST("/login", container.LoginHandler.Login)
+	e.POST("/v2/login", container.LoginHandler.LoginV2)
 	e.POST("/create", container.LoginHandler.CreateUser)
 	e.POST("/create/client", container.LoginHandler.CreateUserClient, _midlleware.CheckUserAuthorization)
 	e.POST("/webhook/stripe", container.HandlerPayment.StripeWebhookHandler)

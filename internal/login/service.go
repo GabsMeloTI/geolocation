@@ -20,6 +20,7 @@ var (
 
 type ServiceInterface interface {
 	Login(context.Context, RequestLogin) (ResponseLogin, error)
+	LoginV2(context.Context, RequestLogin) (ResponseLogin, error)
 	CreateUser(context.Context, RequestCreateUser) (ResponseCreateUser, error)
 	CreateUserClient(ctx context.Context, data RequestCreateUser, id int64) (response ResponseCreateUser, err error)
 }
@@ -78,6 +79,70 @@ func (s *Service) Login(ctx context.Context, data RequestLogin) (response Respon
 		result.Document.String,
 		result.GoogleID.String,
 		time.Now().Add(24*time.Hour).UTC(),
+	)
+	if err != nil {
+		return response, err
+	}
+
+	profile, err := s.repository.GetProfileById(ctx, result.ProfileID.Int64)
+	if err != nil {
+		return response, err
+	}
+
+	responseData := ResponseLogin{
+		ID:      result.ID,
+		Name:    result.Name,
+		Email:   result.Email,
+		Token:   tokenStr,
+		Profile: profile.Name,
+	}
+
+	return responseData, err
+}
+
+func (s *Service) LoginV2(ctx context.Context, data RequestLogin) (response ResponseLogin, err error) {
+	var emailSearch string
+	var googleIDSearch string
+	emailSearch = data.Username
+	googleIDSearch = ""
+	if data.Token != "" {
+		googleToken, err := s.googleToken.Validation(ctx, data.Token)
+		if err != nil {
+			return response, err
+		}
+		emailSearch = googleToken.Email
+		googleIDSearch = googleToken.UserId
+
+		if googleToken.Audience != s.googleClientID {
+			return response, ErrInvalidClientID
+		}
+	}
+
+	result, err := s.repository.GetUser(ctx, db.LoginParams{
+		Email:    emailSearch,
+		GoogleID: sql.NullString{String: googleIDSearch, Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return response, ErrUserNotFound
+		}
+		return response, err
+	}
+
+	if data.Token == "" {
+		if !crypt.CheckPasswordHash(data.Password, result.Password.String) {
+			return response, ErrInvalidCredentials
+		}
+	}
+
+	tokenStr, err := s.maker.CreateTokenUser(
+		result.ID,
+		result.Name,
+		result.Email,
+		result.ProfileID.Int64,
+		result.Document.String,
+		result.GoogleID.String,
+		time.Now().Add(30*24*time.Hour).UTC(),
 	)
 	if err != nil {
 		return response, err

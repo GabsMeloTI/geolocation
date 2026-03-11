@@ -43,6 +43,31 @@ func (h *Handler) Login(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// LoginV2 godoc
+// @Summary Autenticar um usuário (v2).
+// @Description Autentica um usuário utilizando email e senha com validade de 30 dias.
+// @Tags Usuários
+// @Accept json
+// @Produce json
+// @Param request body RequestLogin true "Requisição de Login V2"
+// @Success 200 {object} ResponseLogin "Informações do Usuário Autenticado"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /v2/login [post]
+func (h *Handler) LoginV2(e echo.Context) error {
+	var request RequestLogin
+	if err := e.Bind(&request); err != nil {
+		return e.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	result, err := h.service.LoginV2(e.Request().Context(), request)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return e.JSON(http.StatusOK, result)
+}
+
 // CreateUser godoc
 // @Summary Criar um novo usuário.
 // @Description Registra um novo usuário no sistema.
