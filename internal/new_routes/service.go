@@ -35,6 +35,7 @@ type InterfaceService interface {
 	CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPublicToken int64, idSimp int64) (FinalOutput, error)
 	CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error)
 	CalculateDistancesBetweenPoints(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
+	CalculateDistancesBetweenPointsV2(ctx context.Context, data FrontInfoCEPRequestV2) (Response, error)
 	CalculateDistancesBetweenPointsWithRiskAvoidance(ctx context.Context, data FrontInfoCEPRequest) (Response, error)
 	CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinates(ctx context.Context, data FrontInfoCoordinatesRequest) (Response, error)
 	CalculateDistancesFromOrigin(ctx context.Context, data FrontInfoCEPRequest) ([]DetailedRoute, error)
@@ -7465,4 +7466,281 @@ func (s *Service) processOSRMStepsToInstructions(route OSRMRoute) []Instruction 
 	}
 
 	return instructions
+}
+
+func (s *Service) CalculateDistancesBetweenPointsV2(ctx context.Context, data FrontInfoCEPRequestV2) (Response, error) {
+	if len(data.CEPs) < 2 {
+		return Response{}, fmt.Errorf("é necessário pelo menos dois pontos para calcular distâncias")
+	}
+
+	client := http.Client{Timeout: 30 * time.Second}
+	var resultRoutes []DetailedRoute
+	var totalDistance float64
+	var totalDuration float64
+
+	for i := 0; i < len(data.CEPs)-1; i++ {
+		originCEP := data.CEPs[i]
+		destCEP := data.CEPs[i+1]
+
+		originLat, originLon, originAddress, err := s.getCoordByCEP(ctx, originCEP)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas da origem %s: %w", originCEP, err)
+		}
+		destLat, destLon, destAddress, err := s.getCoordByCEP(ctx, destCEP)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas do destino %s: %w", destCEP, err)
+		}
+
+		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
+		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
+
+		coords := fmt.Sprintf("%f,%f;%f,%f", originLon, originLat, destLon, destLat)
+		baseURL := "http://34.207.174.233:5000/route/v1/driving/" + neturl.PathEscape(coords)
+
+		type osrmResult struct {
+			resp     OSRMResponse
+			category string
+			err      error
+		}
+		resultsCh := make(chan osrmResult, 3)
+
+		makeRequest := func(params neturl.Values, category string) {
+			fullURL := baseURL + "?" + params.Encode()
+			resp, err := client.Get(fullURL)
+			if err != nil {
+				resultsCh <- osrmResult{err: err, category: category}
+				return
+			}
+			defer resp.Body.Close()
+			var osrmResp OSRMResponse
+			if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err != nil {
+				resultsCh <- osrmResult{err: err, category: category}
+				return
+			}
+			if osrmResp.Code != "Ok" {
+				resultsCh <- osrmResult{err: fmt.Errorf("erro OSRM %s", category), category: category}
+				return
+			}
+			resultsCh <- osrmResult{resp: osrmResp, category: category}
+		}
+
+		var routeTypes []string
+		if strings.TrimSpace(strings.ToLower(data.TypeRoute)) == "" {
+			go makeRequest(neturl.Values{
+				"alternatives":      {"3"},
+				"steps":             {"true"},
+				"overview":          {"full"},
+				"continue_straight": {"false"},
+			}, "fastest")
+			go makeRequest(neturl.Values{
+				"alternatives": {"3"},
+				"steps":        {"true"},
+				"overview":     {"full"},
+				"exclude":      {"toll"},
+			}, "cheapest")
+			go makeRequest(neturl.Values{
+				"alternatives": {"3"},
+				"steps":        {"true"},
+				"overview":     {"full"},
+				"exclude":      {"motorway"},
+			}, "efficient")
+			routeTypes = []string{"fastest", "cheapest", "efficient"}
+		} else {
+			routeTypes = []string{strings.ToLower(data.TypeRoute)}
+			switch routeTypes[0] {
+			case "rapida", "fastest":
+				makeRequest(neturl.Values{
+					"alternatives":      {"3"},
+					"steps":             {"true"},
+					"overview":          {"full"},
+					"continue_straight": {"false"},
+				}, "fastest")
+			case "barata", "cheapest":
+				makeRequest(neturl.Values{
+					"alternatives": {"3"},
+					"steps":        {"true"},
+					"overview":     {"full"},
+					"exclude":      {"toll"},
+				}, "cheapest")
+			case "eficiente", "efficient":
+				makeRequest(neturl.Values{
+					"alternatives": {"3"},
+					"steps":        {"true"},
+					"overview":     {"full"},
+					"exclude":      {"motorway"},
+				}, "efficient")
+			}
+		}
+
+		var summaries []RouteSummary
+
+		for range routeTypes {
+			res := <-resultsCh
+			if res.err != nil || len(res.resp.Routes) == 0 {
+				continue
+			}
+
+			route := res.resp.Routes[0]
+			distText, distVal := formatDistance(route.Distance)
+			durText, durVal := formatDuration(route.Duration)
+			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+			totalKm := route.Distance / 1000
+			totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+			googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
+				neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
+				neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
+			)
+			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
+				neturl.QueryEscape(destGeocode.PlaceID),
+				neturl.QueryEscape(originGeocode.PlaceID),
+				currentTimeMillis,
+			)
+
+			rawTolls, err := s.findTollsOnRoute(ctx, res.resp.Routes[0].Geometry, data.Type, float64(data.Axles))
+			if err != nil {
+				log.Printf("Erro ao filtrar pedágios: %v", err)
+				rawTolls = nil
+			}
+			var routeTolls []Toll
+			for _, t := range rawTolls {
+				routeTolls = append(routeTolls, t)
+			}
+
+			var totalTollCost float64
+			for _, toll := range routeTolls {
+				totalTollCost += toll.CashCost
+			}
+
+			summaries = append(summaries, RouteSummary{
+				RouteType:     res.category,
+				HasTolls:      len(routeTolls) > 0,
+				Distance:      Distance{Text: distText, Value: distVal},
+				Duration:      Duration{Text: durText, Value: durVal},
+				URL:           googleURL,
+				URLWaze:       wazeURL,
+				TotalFuelCost: totalFuelCost,
+				Tolls:         routeTolls,
+				TotalTolls:    math.Round(totalTollCost*100) / 100,
+				Polyline:      res.resp.Routes[0].Geometry,
+			})
+
+			totalDistance += route.Distance
+			totalDuration += route.Duration
+		}
+
+		resultRoutes = append(resultRoutes, DetailedRoute{
+			LocationOrigin: AddressInfo{
+				Location: Location{Latitude: originLat, Longitude: originLon},
+				Address:  normalizeAddress(originGeocode.FormattedAddress),
+			},
+			LocationDestination: AddressInfo{
+				Location: Location{Latitude: destLat, Longitude: destLon},
+				Address:  normalizeAddress(destGeocode.FormattedAddress),
+			},
+			Summaries: summaries,
+		})
+	}
+
+	var totalRoute TotalSummary
+	var allCoords []string
+	var waypoints []string
+	var originLocation, destinationLocation Location
+	for idx, cep := range data.CEPs {
+		coordLat, coordLon, _, err := s.getCoordByCEP(ctx, cep)
+		if err != nil {
+			return Response{}, fmt.Errorf("erro ao buscar coordenadas para total_route no CEP %s: %w", cep, err)
+		}
+		allCoords = append(allCoords, fmt.Sprintf("%f,%f", coordLon, coordLat))
+
+		reverse, err := s.reverseGeocode(coordLat, coordLon)
+		if err != nil || reverse == "" {
+			reverse = fmt.Sprintf("%.6f,%.6f", coordLat, coordLon)
+		}
+
+		geocode, err := s.getGeocodeAddress(ctx, reverse)
+		address := geocode.FormattedAddress
+		if err != nil || address == "" {
+			address = reverse
+		}
+
+		waypoints = append(waypoints, address)
+
+		if idx == 0 {
+			originLocation = Location{Latitude: coordLat, Longitude: coordLon}
+		}
+		if idx == len(data.CEPs)-1 {
+			destinationLocation = Location{Latitude: coordLat, Longitude: coordLon}
+		}
+	}
+
+	coordsStr := strings.Join(allCoords, ";")
+	urlTotal := fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false", neturl.PathEscape(coordsStr))
+
+	resp, err := client.Get(urlTotal)
+	if err == nil {
+		defer resp.Body.Close()
+		var osrmResp OSRMResponse
+		if err := json.NewDecoder(resp.Body).Decode(&osrmResp); err == nil && len(osrmResp.Routes) > 0 {
+			route := osrmResp.Routes[0]
+
+			distText, distVal := formatDistance(totalDistance)
+			durText, durVal := formatDuration(totalDuration)
+
+			avgConsumption := (data.ConsumptionCity + data.ConsumptionHwy) / 2
+			totalKm := route.Distance / 1000
+			totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
+
+			tolls, _ := s.findTollsOnRoute(ctx, route.Geometry, data.Type, float64(data.Axles))
+			var totalTollCost float64
+			for _, toll := range tolls {
+				totalTollCost += toll.CashCost
+			}
+
+			originAddress := waypoints[0]
+			destAddress := waypoints[len(waypoints)-1]
+			waypointStr := ""
+			if len(waypoints) > 2 {
+				waypointStr = "&waypoints=" + neturl.QueryEscape(strings.Join(waypoints[1:len(waypoints)-1], "|"))
+			}
+
+			googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s%s&travelmode=driving",
+				neturl.QueryEscape(originAddress),
+				neturl.QueryEscape(destAddress),
+				waypointStr,
+			)
+
+			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
+			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
+				neturl.QueryEscape(destAddress),
+				neturl.QueryEscape(originAddress),
+				currentTimeMillis,
+			)
+
+			totalRoute = TotalSummary{
+				LocationOrigin: AddressInfo{
+					Location: originLocation,
+					Address:  originAddress,
+				},
+				LocationDestination: AddressInfo{
+					Location: destinationLocation,
+					Address:  normalizeAddress(destAddress),
+				},
+				TotalDistance: Distance{Text: distText, Value: distVal},
+				TotalDuration: Duration{Text: durText, Value: durVal},
+				URL:           googleURL,
+				URLWaze:       wazeURL,
+				Tolls:         tolls,
+				TotalTolls:    math.Round(totalTollCost*100) / 100,
+				Polyline:      route.Geometry,
+				TotalFuelCost: totalFuelCost,
+			}
+		}
+	}
+
+	return Response{
+		Routes:     resultRoutes,
+		TotalRoute: totalRoute,
+	}, nil
 }
