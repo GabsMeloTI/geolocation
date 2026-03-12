@@ -19,8 +19,14 @@ var (
 )
 
 func init() {
+	redisAddr := os.Getenv("REDIS_URL")
+	if redisAddr == "" {
+		// Fallback para o IP anterior caso a env não esteja definida
+		redisAddr = "3.238.87.0:6379"
+	}
+
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "3.238.87.0:6379",
+		Addr:     redisAddr,
 		Password: "",
 		DB:       0,
 	})
