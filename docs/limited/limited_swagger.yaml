@@ -2092,7 +2092,13 @@ definitions:
         type: boolean
     type: object
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: https://simpplify.com.br/contact
+  description: Document API
+  title: Geolocation
+  version: "1.0"
 paths:
   /address/city/{idState}:
     get:
@@ -4386,4 +4392,12 @@ paths:
       summary: Atualizar Zona de Risco
       tags:
       - ZonasRisco
+schemes:
+- https
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

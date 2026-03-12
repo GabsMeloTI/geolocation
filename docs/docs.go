@@ -9,11 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {
-            "name": "API Support",
-            "url": "https://simpplify.com.br/contact",
-            "email": "support@swagger.io"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -89,6 +85,58 @@ const docTemplate = `{
                     "Endereços"
                 ],
                 "summary": "Buscar Endereço por Consulta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Consulta do Endereço",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Endereço",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/address.AddressResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/find/cep/v2": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Buscar Endereço por Cep",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Endereços"
+                ],
+                "summary": "Buscar Endereço por Cep",
                 "parameters": [
                     {
                         "type": "string",
@@ -941,6 +989,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/check-route-cep": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Calcula a rota baseado nos CEPs de origem e destino, validando e indicando is_preciso para cada localização.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcula rota por CEP retornando se o endereço mapeado é preciso (DB local) ou aproximado (APIs Publicas)",
+                "parameters": [
+                    {
+                        "description": "Requisição para cálculo de rota por CEP",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEP"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações calculadas da rota com detalhe de precisão",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FinalOutputPrecision"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/check-route-tolls-cep": {
             "post": {
                 "security": [
@@ -1099,6 +1204,59 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/coordinates": {
+            "get": {
+                "description": "Obtém latitude e longitude a partir de uma rua e número",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Obter coordenadas de um endereço",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"Rua das Flores\"",
+                        "description": "Nome da rua",
+                        "name": "street",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"123\"",
+                        "description": "Número da casa",
+                        "name": "number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Coordenadas do endereço",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.Location"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
                         "schema": {
                             "type": "string"
                         }
@@ -1556,6 +1714,107 @@ const docTemplate = `{
                 }
             }
         },
+        "/nearby-location": {
+            "post": {
+                "description": "Calcula as distâncias de um ponto de origem para múltiplos destinos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcular distâncias a partir de uma origem.",
+                "parameters": [
+                    {
+                        "description": "Requisição para cálculo de distâncias a partir da origem",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações detalhadas das rotas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/new_routes.DetailedRoute"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/new-routes/calculate-with-risk-avoidance": {
+            "post": {
+                "description": "Calcula rotas entre múltiplos pontos evitando zonas de risco cadastradas",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NewRoutes"
+                ],
+                "summary": "Calcular Rotas Evitando Zonas de Risco",
+                "parameters": [
+                    {
+                        "description": "Dados para cálculo de rota",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rotas calculadas com desvios",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/payment-history": {
             "get": {
                 "security": [
@@ -1629,6 +1888,104 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/advertisement.AdvertisementResponseNoUser"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route-cep": {
+            "post": {
+                "description": "Calcula as distâncias entre múltiplos CEPs fornecidos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcular rotas com base em uma lista de CEPs.",
+                "parameters": [
+                    {
+                        "description": "Requisição para cálculo de rota por lista de CEPs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações calculadas da rota",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/route-coordinate-avoidance": {
+            "post": {
+                "description": "Calcula rotas entre múltiplos pontos (coordenadas) evitando zonas de risco cadastradas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcular Rotas Evitando Zonas de Risco por Coordenadas.",
+                "parameters": [
+                    {
+                        "description": "Dados para cálculo de rota por coordenadas",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCoordinatesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rotas calculadas com desvios",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -2749,6 +3106,104 @@ const docTemplate = `{
                 }
             }
         },
+        "/v2/login": {
+            "post": {
+                "description": "Autentica um usuário utilizando email e senha com validade de 30 dias.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Autenticar um usuário (v2).",
+                "parameters": [
+                    {
+                        "description": "Requisição de Login V2",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/login.RequestLogin"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do Usuário Autenticado",
+                        "schema": {
+                            "$ref": "#/definitions/login.ResponseLogin"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/route-cep": {
+            "post": {
+                "description": "Calcula as distâncias entre múltiplos CEPs fornecidos (Versão 2).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Routes"
+                ],
+                "summary": "Calcular rotas com base em uma lista de CEPs (V2).",
+                "parameters": [
+                    {
+                        "description": "Requisição para cálculo de rota por lista de CEPs V2",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.FrontInfoCEPRequestV2"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações calculadas da rota",
+                        "schema": {
+                            "$ref": "#/definitions/new_routes.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Não Encontrado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/webhook/stripe": {
             "post": {
                 "security": [
@@ -2822,6 +3277,218 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/zonas-risco/create": {
+            "post": {
+                "description": "Cria uma nova zona de risco",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ZonasRisco"
+                ],
+                "summary": "Criar Zona de Risco",
+                "parameters": [
+                    {
+                        "description": "Requisição de Zona de Risco",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/zonas_risco.CreateZonaRiscoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Zona de Risco criada",
+                        "schema": {
+                            "$ref": "#/definitions/zonas_risco.ZonaRiscoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/zonas-risco/delete/{id}": {
+            "put": {
+                "description": "Deleta logicamente uma zona de risco",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ZonasRisco"
+                ],
+                "summary": "Deletar Zona de Risco",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID da Zona de Risco",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/zonas-risco/list": {
+            "get": {
+                "description": "Lista todas as zonas de risco",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ZonasRisco"
+                ],
+                "summary": "Listar Zonas de Risco",
+                "responses": {
+                    "200": {
+                        "description": "Lista de Zonas de Risco",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/zonas_risco.ZonaRiscoResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/zonas-risco/update": {
+            "put": {
+                "description": "Atualiza uma zona de risco existente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ZonasRisco"
+                ],
+                "summary": "Atualizar Zona de Risco",
+                "parameters": [
+                    {
+                        "description": "Requisição de Atualização",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/zonas_risco.UpdateZonaRiscoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Zona de Risco atualizada",
+                        "schema": {
+                            "$ref": "#/definitions/zonas_risco.ZonaRiscoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/zonas-risco/{id}": {
+            "get": {
+                "description": "Recupera uma zona de risco pelo ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ZonasRisco"
+                ],
+                "summary": "Obter Zona de Risco por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID da Zona de Risco",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Zona de Risco",
+                        "schema": {
+                            "$ref": "#/definitions/zonas_risco.ZonaRiscoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição Inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro Interno do Servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -4127,6 +4794,70 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.AttentionZoneEvent": {
+            "type": "object",
+            "properties": {
+                "coordinates": {
+                    "description": "Coordenadas onde acontece a entrada/saída",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/new_routes.Location"
+                        }
+                    ]
+                },
+                "detection_type": {
+                    "description": "\"area\" ou \"street\" - como foi detectada",
+                    "type": "string"
+                },
+                "distance": {
+                    "description": "Distância do início da rota até este ponto",
+                    "type": "number"
+                },
+                "message": {
+                    "description": "Mensagem a ser exibida",
+                    "type": "string"
+                },
+                "street_name": {
+                    "description": "Nome da rua (se detectada por rua)",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"entry\" ou \"exit\"",
+                    "type": "string"
+                },
+                "zone_id": {
+                    "description": "ID da zona",
+                    "type": "integer"
+                },
+                "zone_name": {
+                    "description": "Nome da zona",
+                    "type": "string"
+                }
+            }
+        },
+        "new_routes.AttentionZoneInfo": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.AttentionZoneEvent"
+                    }
+                },
+                "has_attention_zones": {
+                    "type": "boolean"
+                },
+                "total_distance_in_zones": {
+                    "type": "number"
+                },
+                "zone_names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "new_routes.Coordinate": {
             "type": "object",
             "properties": {
@@ -4170,6 +4901,57 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.DetailedRoute": {
+            "type": "object",
+            "properties": {
+                "has_risk": {
+                    "type": "boolean"
+                },
+                "location_destination": {
+                    "$ref": "#/definitions/new_routes.AddressInfo"
+                },
+                "location_hisk": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.LocationHisk"
+                    }
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/new_routes.AddressInfo"
+                },
+                "summaries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.RouteSummary"
+                    }
+                }
+            }
+        },
+        "new_routes.DetourPlan": {
+            "type": "object",
+            "properties": {
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.DetourPoint"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "new_routes.DetourPoint": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "$ref": "#/definitions/new_routes.Location"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "new_routes.Distance": {
             "type": "object",
             "properties": {
@@ -4206,6 +4988,18 @@ const docTemplate = `{
                 },
                 "summary": {
                     "$ref": "#/definitions/new_routes.Summary"
+                }
+            }
+        },
+        "new_routes.FinalOutputPrecision": {
+            "type": "object",
+            "properties": {
+                "routes": {
+                    "type": "array",
+                    "items": {}
+                },
+                "summary": {
+                    "$ref": "#/definitions/new_routes.SummaryPrecision"
                 }
             }
         },
@@ -4330,6 +5124,112 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.FrontInfoCEPRequest": {
+            "type": "object",
+            "required": [
+                "organization_id",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "ceps": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "organization_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
+                    }
+                }
+            }
+        },
+        "new_routes.FrontInfoCEPRequestV2": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "ceps": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
+                    }
+                }
+            }
+        },
         "new_routes.FrontInfoCoordinate": {
             "type": "object",
             "required": [
@@ -4369,6 +5269,63 @@ const docTemplate = `{
                 },
                 "public_or_private": {
                     "type": "string"
+                },
+                "route_options": {
+                    "$ref": "#/definitions/new_routes.RouteOptions"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Truck",
+                        "Bus",
+                        "Auto",
+                        "Motorcycle",
+                        "truck",
+                        "bus",
+                        "auto",
+                        "motorcycle"
+                    ]
+                },
+                "typeRoute": {
+                    "type": "string"
+                },
+                "waypoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
+                    }
+                }
+            }
+        },
+        "new_routes.FrontInfoCoordinatesRequest": {
+            "type": "object",
+            "required": [
+                "coordinates",
+                "organization_id",
+                "type"
+            ],
+            "properties": {
+                "axles": {
+                    "type": "integer"
+                },
+                "consumptionCity": {
+                    "type": "number"
+                },
+                "consumptionHwy": {
+                    "type": "number"
+                },
+                "coordinates": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Coordinate"
+                    }
+                },
+                "organization_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "number"
                 },
                 "route_options": {
                     "$ref": "#/definitions/new_routes.RouteOptions"
@@ -4467,6 +5424,118 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.LocationHisk": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "new_routes.LocationPrecision": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "address_text": {
+                    "type": "string"
+                },
+                "is_preciso": {
+                    "type": "boolean"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                }
+            }
+        },
+        "new_routes.Response": {
+            "type": "object",
+            "properties": {
+                "routes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.DetailedRoute"
+                    }
+                },
+                "total_route": {
+                    "$ref": "#/definitions/new_routes.TotalSummary"
+                },
+                "total_routes_all": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.TotalSummary"
+                    }
+                }
+            }
+        },
+        "new_routes.RiskOffsets": {
+            "type": "object",
+            "properties": {
+                "after_5km": {
+                    "$ref": "#/definitions/new_routes.Location"
+                },
+                "before_5km": {
+                    "$ref": "#/definitions/new_routes.Location"
+                },
+                "entry": {
+                    "$ref": "#/definitions/new_routes.Location"
+                },
+                "entry_cum_m": {
+                    "type": "number"
+                },
+                "exit": {
+                    "$ref": "#/definitions/new_routes.Location"
+                },
+                "exit_cum_m": {
+                    "type": "number"
+                },
+                "zone": {
+                    "$ref": "#/definitions/new_routes.RiskZone"
+                }
+            }
+        },
+        "new_routes.RiskZone": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "integer"
+                },
+                "radius": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "zonas_atencao": {
+                    "type": "boolean"
+                }
+            }
+        },
         "new_routes.RouteOptions": {
             "type": "object",
             "properties": {
@@ -4536,6 +5605,12 @@ const docTemplate = `{
         "new_routes.RouteSummary": {
             "type": "object",
             "properties": {
+                "attention_zones": {
+                    "$ref": "#/definitions/new_routes.AttentionZoneInfo"
+                },
+                "detour": {
+                    "$ref": "#/definitions/new_routes.DetourPlan"
+                },
                 "distance": {
                     "$ref": "#/definitions/new_routes.Distance"
                 },
@@ -4545,8 +5620,17 @@ const docTemplate = `{
                 "hasTolls": {
                     "type": "boolean"
                 },
+                "instructions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Instruction"
+                    }
+                },
                 "polyline": {
                     "type": "string"
+                },
+                "risk_info": {
+                    "$ref": "#/definitions/new_routes.RiskOffsets"
                 },
                 "route_type": {
                     "type": "string"
@@ -4648,6 +5732,17 @@ const docTemplate = `{
                 }
             }
         },
+        "new_routes.SummaryPrecision": {
+            "type": "object",
+            "properties": {
+                "location_destination": {
+                    "$ref": "#/definitions/new_routes.LocationPrecision"
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/new_routes.LocationPrecision"
+                }
+            }
+        },
         "new_routes.Toll": {
             "type": "object",
             "properties": {
@@ -4712,6 +5807,57 @@ const docTemplate = `{
                     }
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "new_routes.TotalSummary": {
+            "type": "object",
+            "properties": {
+                "attention_zones": {
+                    "$ref": "#/definitions/new_routes.AttentionZoneInfo"
+                },
+                "balances": {},
+                "distance": {
+                    "$ref": "#/definitions/new_routes.Distance"
+                },
+                "duration": {
+                    "$ref": "#/definitions/new_routes.Duration"
+                },
+                "instructions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Instruction"
+                    }
+                },
+                "location_destination": {
+                    "$ref": "#/definitions/new_routes.AddressInfo"
+                },
+                "location_origin": {
+                    "$ref": "#/definitions/new_routes.AddressInfo"
+                },
+                "polyline": {
+                    "type": "string"
+                },
+                "route_type": {
+                    "type": "string"
+                },
+                "tolls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/new_routes.Toll"
+                    }
+                },
+                "total_fuel_cost": {
+                    "type": "number"
+                },
+                "total_tolls": {
+                    "type": "number"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "url_waze": {
                     "type": "string"
                 }
             }
@@ -5399,25 +6545,111 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
+        },
+        "zonas_risco.CreateZonaRiscoRequest": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "integer"
+                },
+                "radius": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "zona_atencao": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "zonas_risco.UpdateZonaRiscoRequest": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "integer"
+                },
+                "radius": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "zonas_risco.ZonaRiscoResponse": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "radius": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "zona_atencao": {
+                    "type": "boolean"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "",
 	Host:             "",
 	BasePath:         "",
-	Schemes:          []string{"https", "http"},
-	Title:            "Geolocation",
-	Description:      "Document API",
+	Schemes:          []string{},
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

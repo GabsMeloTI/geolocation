@@ -234,6 +234,18 @@ func (h *Handler) CalculateRoutesWithCEPOnly(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateRoutesCEP godoc
+// @Summary Calcular rotas com base em uma lista de CEPs.
+// @Description Calcula as distâncias entre múltiplos CEPs fornecidos.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEPRequest true "Requisição para cálculo de rota por lista de CEPs"
+// @Success 200 {object} Response "Informações calculadas da rota"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /route-cep [post]
 func (h *Handler) CalculateRoutesCEP(e echo.Context) error {
 	var frontInfo FrontInfoCEPRequest
 	if err := e.Bind(&frontInfo); err != nil {
@@ -252,6 +264,18 @@ func (h *Handler) CalculateRoutesCEP(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateRoutesCEPV2 godoc
+// @Summary Calcular rotas com base em uma lista de CEPs (V2).
+// @Description Calcula as distâncias entre múltiplos CEPs fornecidos (Versão 2).
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEPRequestV2 true "Requisição para cálculo de rota por lista de CEPs V2"
+// @Success 200 {object} Response "Informações calculadas da rota"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /v2/route-cep [post]
 func (h *Handler) CalculateRoutesCEPV2(e echo.Context) error {
 	var frontInfo FrontInfoCEPRequestV2
 	if err := e.Bind(&frontInfo); err != nil {
@@ -270,6 +294,18 @@ func (h *Handler) CalculateRoutesCEPV2(e echo.Context) error {
 	return e.JSON(http.StatusOK, result)
 }
 
+// CalculateDistancesFromOrigin godoc
+// @Summary Calcular distâncias a partir de uma origem.
+// @Description Calcula as distâncias de um ponto de origem para múltiplos destinos.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCEPRequest true "Requisição para cálculo de distâncias a partir da origem"
+// @Success 200 {array} DetailedRoute "Informações detalhadas das rotas"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 404 {string} string "Não Encontrado"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /nearby-location [post]
 func (h *Handler) CalculateDistancesFromOrigin(e echo.Context) error {
 	var frontInfo FrontInfoCEPRequest
 	if err := e.Bind(&frontInfo); err != nil {
@@ -406,6 +442,17 @@ func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceHandler(c echo
 	return c.JSON(http.StatusOK, result)
 }
 
+// CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler godoc
+// @Summary Calcular Rotas Evitando Zonas de Risco por Coordenadas.
+// @Description Calcula rotas entre múltiplos pontos (coordenadas) evitando zonas de risco cadastradas.
+// @Tags Routes
+// @Accept json
+// @Produce json
+// @Param request body FrontInfoCoordinatesRequest true "Dados para cálculo de rota por coordenadas"
+// @Success 200 {object} Response "Rotas calculadas com desvios"
+// @Failure 400 {string} string "Requisição Inválida"
+// @Failure 500 {string} string "Erro Interno do Servidor"
+// @Router /route-coordinate-avoidance [post]
 func (h *Handler) CalculateDistancesBetweenPointsWithRiskAvoidanceFromCoordinatesHandler(c echo.Context) error {
 	var req FrontInfoCoordinatesRequest
 	if err := c.Bind(&req); err != nil {
