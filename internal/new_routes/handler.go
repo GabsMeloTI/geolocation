@@ -4,6 +4,7 @@ import (
 	"errors"
 	"geolocation/internal/get_token"
 	"geolocation/validation"
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -170,6 +171,7 @@ func (h *Handler) CalculateRoutesWithCoordinate(e echo.Context) error {
 // @Router /check-route-tolls-cep [post]
 // @Security ApiKeyAuth
 func (h *Handler) CalculateRoutesWithCEP(e echo.Context) error {
+	log.Println("[HANDLER] CalculateRoutesWithCEP")
 	var frontInfo FrontInfoCEP
 	if err := e.Bind(&frontInfo); err != nil {
 		return e.JSON(http.StatusBadRequest, err.Error())
