@@ -2844,16 +2844,17 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
 	// Implementar cache para evitar chamadas repetidas
-	cacheKey := fmt.Sprintf("geocode:%s", address)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var result GeocodeResult
-		if json.Unmarshal([]byte(cached), &result) == nil {
-			return result, nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
-	}
+
+	//cacheKey := fmt.Sprintf("geocode:%s", address)
+	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	//if err == nil {
+	//	var result GeocodeResult
+	//	if json.Unmarshal([]byte(cached), &result) == nil {
+	//		return result, nil
+	//	}
+	//} else if !errors.Is(err, redis.Nil) {
+	//	log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
+	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
@@ -2891,12 +2892,13 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	}
 
 	// Salvar no cache para futuras consultas
-	data, err := json.Marshal(result)
-	if err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
-			log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
-		}
-	}
+	_, err = json.Marshal(result)
+	//if err == nil {
+	//	if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+	//		log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
+	//	}
+	//	log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
+	//}
 	return result, nil
 }
 
