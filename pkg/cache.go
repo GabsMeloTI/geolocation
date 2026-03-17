@@ -17,6 +17,11 @@ var (
 
 func InitRedis(environment string, saveRedis bool) {
 	SaveRedis = saveRedis
+	
+	if !SaveRedis {
+		return
+	}
+
 	if environment == "PROD" {
 		redisAddr := os.Getenv("REDIS_URL")
 		if redisAddr == "" {
