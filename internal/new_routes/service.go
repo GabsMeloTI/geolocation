@@ -741,23 +741,18 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	//	return FinalOutput{}, fmt.Errorf("erro Lat obter endereço reverso do destino: %w", err)
 	//}
 
-	//originGeocode, err := s.getGeocodeAddress(ctx, originAddress)
-	//if err != nil {
-	//	return FinalOutput{}, fmt.Errorf("erro ao geocodificar a origem: %w", err)
-	//}
+	originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
+	destGeocode, _ := s.getGeocodeAddress(ctx, destinationAddress)
+
 	origin := GeocodeResult{
 		FormattedAddress: originAddress,
-		PlaceID:          "",
+		PlaceID:          originGeocode.PlaceID,
 		Location:         Location{Latitude: originLat, Longitude: originLon},
 	}
 
-	//destinationGeocode, err := s.getGeocodeAddress(ctx, destinationAddress)
-	//if err != nil {
-	//	return FinalOutput{}, fmt.Errorf("erro ao geocodificar o destino: %w", err)
-	//}
 	destination := GeocodeResult{
 		FormattedAddress: destinationAddress,
-		PlaceID:          "",
+		PlaceID:          destGeocode.PlaceID,
 		Location:         Location{Latitude: destLat, Longitude: destLon},
 	}
 
@@ -1398,8 +1393,8 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			totalFuelCost := math.Round((data.Price / avgConsumption) * totalKm)
 
 			googleURL := fmt.Sprintf("https://www.google.com/maps/dir/?api=1&origin=%s&destination=%s",
-				neturl.QueryEscape(normalizeAddress(originGeocode.FormattedAddress)),
-				neturl.QueryEscape(normalizeAddress(destGeocode.FormattedAddress)),
+				neturl.QueryEscape(normalizeAddress(originAddress)),
+				neturl.QueryEscape(normalizeAddress(destAddress)),
 			)
 			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
 			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
@@ -1443,11 +1438,11 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		resultRoutes = append(resultRoutes, DetailedRoute{
 			LocationOrigin: AddressInfo{
 				Location: Location{Latitude: originLat, Longitude: originLon},
-				Address:  normalizeAddress(originGeocode.FormattedAddress),
+				Address:  normalizeAddress(originAddress),
 			},
 			LocationDestination: AddressInfo{
 				Location: Location{Latitude: destLat, Longitude: destLon},
-				Address:  normalizeAddress(destGeocode.FormattedAddress),
+				Address:  normalizeAddress(destAddress),
 			},
 			Summaries: summaries,
 		})
