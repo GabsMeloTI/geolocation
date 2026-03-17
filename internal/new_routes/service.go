@@ -656,7 +656,6 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 }
 
 func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInfoCEP, idPublicToken int64, idSimp int64, payloadSimp get_token.PayloadDTO) (FinalOutput, error) {
-	log.Println("[SERVICE] CalculateRoutesWithCEP")
 	if strings.ToLower(frontInfo.PublicOrPrivate) == "public" {
 		if err := s.updateNumberOfRequest(ctx, idPublicToken); err != nil {
 			return FinalOutput{}, err
