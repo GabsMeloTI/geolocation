@@ -3,16 +3,20 @@ package pkg
 import (
 	"os"
 
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"golang.org/x/net/context"
 )
 
 var (
-	Rdb *redis.Client
-	Ctx = context.Background()
+	Rdb       *redis.Client
+	Ctx       = context.Background()
+	SaveRedis bool
 )
 
-func InitRedis(environment string) {
+func InitRedis(environment string, saveRedis bool) {
+	SaveRedis = saveRedis
 	if environment == "PROD" {
 		redisAddr := os.Getenv("REDIS_URL")
 		if redisAddr == "" {
@@ -30,4 +34,18 @@ func InitRedis(environment string) {
 
 		return
 	}
+}
+
+func CacheGet(ctx context.Context, key string) (string, error) {
+	if !SaveRedis || Rdb == nil {
+		return "", redis.Nil
+	}
+	return Rdb.Get(ctx, key).Result()
+}
+
+func CacheSet(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	if !SaveRedis || Rdb == nil {
+		return nil
+	}
+	return Rdb.Set(ctx, key, value, expiration).Err()
 }

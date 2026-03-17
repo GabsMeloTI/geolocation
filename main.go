@@ -22,6 +22,6 @@ func main() {
 
 	loadingEnv := infra.NewConfig()
 	container := infra.NewContainerDI(loadingEnv)
-	pkg.InitRedis(loadingEnv.Environment)
+	pkg.InitRedis(loadingEnv.Environment, loadingEnv.SaveRedis)
 	cmd.StartAPI(ctx, container)
 }

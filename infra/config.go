@@ -39,6 +39,7 @@ type Config struct {
 	EmailPort          string
 	MeiliHttp          string
 	MeiliKey           string
+	SaveRedis          bool
 }
 
 func NewConfig() Config {
@@ -81,5 +82,6 @@ func NewConfig() Config {
 		AwsBucketName:      os.Getenv("AWS_BUCKET_NAME"),
 		MeiliHttp:          os.Getenv("MEILI_HTTP_ADDR"),
 		MeiliKey:           os.Getenv("MEILI_MASTER_KEY"),
+		SaveRedis:          os.Getenv("SAVE_REDIS") == "true",
 	}
 }

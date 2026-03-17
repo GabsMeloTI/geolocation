@@ -52,7 +52,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 		strings.ToLower(strings.Join(frontInfo.Waypoints, ",")),
 	)
 
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var cachedResponse Response
 		if json.Unmarshal([]byte(cached), &cachedResponse) == nil {
@@ -108,7 +108,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	if err == nil && savedRoute.ExpiredAt.After(time.Now()) {
 		var dbResponse Response
 		if json.Unmarshal(savedRoute.Response, &dbResponse) == nil {
-			cache.Rdb.Set(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
+			cache.CacheSet(ctx, cacheKey, savedRoute.Response, 30*24*time.Hour)
 			return RecalculateCosts(dbResponse, frontInfo), nil
 		}
 	}
@@ -367,7 +367,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 	}
 
 	responseJSON, _ := json.Marshal(response)
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour).Err(); err != nil {
+	if err := cache.CacheSet(cache.Ctx, cacheKey, responseJSON, 30*24*time.Hour); err != nil {
 		return Response{}, errors.New("erro ao salvar cache do Redis")
 	}
 
@@ -395,7 +395,7 @@ func (s *Service) CheckRouteTolls(ctx context.Context, frontInfo FrontInfo, id i
 
 func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origin, destination string) (Arrival, error) {
 	cacheKey := fmt.Sprintf("timeWithClient:%s|%s", origin, destination)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var arrival Arrival
 		if json.Unmarshal([]byte(cached), &arrival) == nil {
@@ -427,7 +427,7 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 	}
 	data, err := json.Marshal(arrival)
 	if err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour); err != nil {
 		}
 	}
 	return arrival, nil
@@ -436,7 +436,7 @@ func (s *Service) timeWithClient(ctx context.Context, client *maps.Client, origi
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
 	address = StateToCapital(strings.ToLower(address))
 	cacheKey := fmt.Sprintf("geocode:%s", address)
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(cache.Ctx, cacheKey)
 	if err == nil {
 		var result GeocodeResult
 		if json.Unmarshal([]byte(cached), &result) == nil {
@@ -483,7 +483,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 
 	data, err := json.Marshal(result)
 	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(cache.Ctx, cacheKey, data, 30*24*time.Hour); err != nil {
 		}
 	}
 	return result, nil
@@ -888,7 +888,7 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 //			avgLng := sumLng / float64(len(chunkPoints))
 //
 //			cacheKey := fmt.Sprintf("gasStationsMid:%.6f:%.6f", avgLat, avgLng)
-//			cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+//			cached, err := cache.CacheGet(ctx, cacheKey)
 //			if err == nil {
 //				var cachedStations []GasStation
 //				if json.Unmarshal([]byte(cached), &cachedStations) == nil {
@@ -959,7 +959,7 @@ func (s *Service) findBalancaInRoute(ctx context.Context, routes []maps.Route) (
 //
 //			if len(resultCached) > 0 {
 //				data, _ := json.Marshal(resultCached)
-//				_ = cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err()
+//				_ = cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 //			}
 //
 //		}(chunk)
@@ -1011,7 +1011,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 			defer wg.Done()
 			for _, point := range points {
 				cacheKey := fmt.Sprintf("gasStations:%.6f:%.6f", point.Lat, point.Lng)
-				cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+				cached, err := cache.CacheGet(ctx, cacheKey)
 				if err == nil {
 					var cachedStations []GasStation
 					if json.Unmarshal([]byte(cached), &cachedStations) == nil {
@@ -1069,7 +1069,7 @@ func (s *Service) findGasStationsAlongAllRoutes(ctx context.Context, client *map
 					if len(cachedResult) > 0 {
 						data, err := json.Marshal(cachedResult)
 						if err == nil {
-							cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+							cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 						}
 					}
 				}

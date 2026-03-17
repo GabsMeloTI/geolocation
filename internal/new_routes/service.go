@@ -168,7 +168,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 		frontInfo.Axles,
 		strings.ToLower(frontInfo.Type),
 	)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var cachedOutput FinalOutput
 
@@ -635,7 +635,7 @@ func (s *Service) CalculateRoutes(ctx context.Context, frontInfo FrontInfo, idPu
 	}
 
 	if data, err := json.Marshal(finalOutput); err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(ctx, cacheKey, data, 10000*24*time.Hour); err != nil {
 			// Erro ao salvar cache do Redis
 		}
 	}
@@ -690,7 +690,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 		frontInfo.Axles,
 		strings.ToLower(frontInfo.Type),
 	)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
@@ -1216,7 +1216,7 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	}
 
 	if data, err := json.Marshal(finalOutput); err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(ctx, cacheKey, data, 10000*24*time.Hour); err != nil {
 			// Erro ao salvar cache do Redis
 		}
 	}
@@ -1666,7 +1666,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 		frontInfo.Axles,
 		strings.ToLower(frontInfo.Type),
 	)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var cachedOutput FinalOutput
 		if json.Unmarshal([]byte(cached), &cachedOutput) == nil {
@@ -2171,7 +2171,7 @@ func (s *Service) CalculateRoutesWithCoordinate(ctx context.Context, frontInfo F
 	}
 
 	if data, err := json.Marshal(finalOutput); err == nil {
-		if err := cache.Rdb.Set(ctx, cacheKey, data, 10000*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(ctx, cacheKey, data, 10000*24*time.Hour); err != nil {
 			// Erro ao salvar cache do Redis
 		}
 	}
@@ -2297,7 +2297,7 @@ func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, 
 func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	// Implementar cache para coordenadas
 	cacheKey := fmt.Sprintf("reverse_geocode:%.6f,%.6f", lat, lng)
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(cache.Ctx, cacheKey)
 	if err == nil {
 		return cached, nil
 	} else if !errors.Is(err, redis.Nil) {
@@ -2326,7 +2326,7 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	}
 
 	// Salvar no cache para futuras consultas
-	if err := cache.Rdb.Set(cache.Ctx, cacheKey, result.DisplayName, 7*24*time.Hour).Err(); err != nil {
+	if err := cache.CacheSet(cache.Ctx, cacheKey, result.DisplayName, 7*24*time.Hour); err != nil {
 		log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", err)
 	}
 
@@ -2846,7 +2846,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	// Implementar cache para evitar chamadas repetidas
 
 	//cacheKey := fmt.Sprintf("geocode:%s", address)
-	//cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	//cached, err := cache.CacheGet(ctx, cacheKey)
 	//if err == nil {
 	//	var result GeocodeResult
 	//	if json.Unmarshal([]byte(cached), &result) == nil {
@@ -2894,7 +2894,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	// Salvar no cache para futuras consultas
 	_, err = json.Marshal(result)
 	//if err == nil {
-	//	if err := cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+	//	if err := cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour); err != nil {
 	//		log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
 	//	}
 	//	log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
@@ -2935,7 +2935,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 
 	// Implementar cache para CEPs
 	cacheKey := fmt.Sprintf("cep_coords:%s", normalizedQuery)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var coords struct {
 			Lat float64 `json:"lat"`
@@ -2963,7 +2963,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 		}{address.Latitude, address.Longitude}
 
 		if data, err := json.Marshal(coords); err == nil {
-			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+			cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 		}
 
 		return address.Latitude, address.Longitude, "", nil
@@ -2978,7 +2978,7 @@ func (s *Service) getCoordByCEP(ctx context.Context, cep string) (lat float64, l
 	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64}
 
 	if data, err := json.Marshal(coords); err == nil {
-		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+		cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
 	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, address, nil
@@ -2994,7 +2994,7 @@ func (s *Service) getCoordByCEPV2(ctx context.Context, cep string) (lat float64,
 
 	// Implementar cache para CEPs
 	cacheKey := fmt.Sprintf("cep_coords_v5:%s", normalizedQuery)
-	cached, err := cache.Rdb.Get(ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(ctx, cacheKey)
 	if err == nil {
 		var coords struct {
 			Lat       float64 `json:"lat"`
@@ -3042,7 +3042,7 @@ func (s *Service) getCoordByCEPV2(ctx context.Context, cep string) (lat float64,
 		}{lat, lon, fullAddressApi, false}
 
 		if data, errCache := json.Marshal(coords); errCache == nil {
-			cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+			cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 		}
 
 		return lat, lon, fullAddressApi, false, nil
@@ -3060,7 +3060,7 @@ func (s *Service) getCoordByCEPV2(ctx context.Context, cep string) (lat float64,
 	}{infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, true}
 
 	if data, err := json.Marshal(coords); err == nil {
-		cache.Rdb.Set(ctx, cacheKey, data, 30*24*time.Hour)
+		cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour)
 	}
 
 	return infoCep.Latitude.Float64, infoCep.Longitude.Float64, addressStr, true, nil
@@ -7308,7 +7308,7 @@ func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number,
 	cacheKey := fmt.Sprintf("geocode_address:%s", address)
 
 	// Tenta buscar no cache primeiro [[memory:7626964]]
-	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	cached, err := cache.CacheGet(cache.Ctx, cacheKey)
 	if err == nil {
 		var location AddressCoordinatesResponse
 		if json.Unmarshal([]byte(cached), &location) == nil {
@@ -7372,7 +7372,7 @@ func (s *Service) GetCoordinatesFromAddress(ctx context.Context, street, number,
 	// Salva no cache por 30 dias [[memory:7626964]]
 	data, err := json.Marshal(location)
 	if err == nil {
-		if err := cache.Rdb.Set(cache.Ctx, cacheKey, data, 30*24*time.Hour).Err(); err != nil {
+		if err := cache.CacheSet(cache.Ctx, cacheKey, data, 30*24*time.Hour); err != nil {
 			log.Printf("Erro ao salvar no cache: %v", err)
 		}
 	}
