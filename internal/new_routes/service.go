@@ -744,6 +744,11 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 	originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
 	destGeocode, _ := s.getGeocodeAddress(ctx, destinationAddress)
 
+	fmt.Println("originAddress:", originAddress)
+	fmt.Println("destinationAddress:", destinationAddress)
+	fmt.Println("originGeocode:", originGeocode.PlaceID)
+	fmt.Println("destGeocode:", destGeocode.PlaceID)
+
 	origin := GeocodeResult{
 		FormattedAddress: originAddress,
 		PlaceID:          originGeocode.PlaceID,
@@ -892,16 +897,16 @@ func (s *Service) CalculateRoutesWithCEP(ctx context.Context, frontInfo FrontInf
 
 	currentTimeMillis := (time.Now().UnixNano() + int64(osrmRespFast.Routes[0].Duration*float64(time.Second))) / int64(time.Millisecond)
 
-	wazeURL := ""
-	if origin.PlaceID != "" && destination.PlaceID != "" {
-		wazeURL = fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
-			neturl.QueryEscape(destination.PlaceID),
-			neturl.QueryEscape(origin.PlaceID),
-			currentTimeMillis,
+	wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=ll.%f,%f&from=ll.%f,%f&time=%d&reverse=yes",
+		destination.Location.Latitude, destination.Location.Longitude,
+		origin.Location.Latitude, origin.Location.Longitude,
+		currentTimeMillis,
+	)
+	if len(waypointResults) > 0 {
+		wazeURL += fmt.Sprintf("&via=ll.%f,%f",
+			waypointResults[0].Location.Latitude,
+			waypointResults[0].Location.Longitude,
 		)
-		if len(waypointResults) > 0 && waypointResults[0].PlaceID != "" {
-			wazeURL += "&via=place." + neturl.QueryEscape(waypointResults[0].PlaceID)
-		}
 	}
 
 	processRoutes := func(osrmResp OSRMResponse, routeCategory string) []RouteOutput {
@@ -1293,8 +1298,11 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 		//originAddress, _ := s.reverseGeocode(originLat, originLon)
 		//destAddress, _ := s.reverseGeocode(destLat, destLon)
 
-		originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
-		destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
+		fmt.Println("originAddress:", originAddress)
+		fmt.Println("destAddress:", destAddress)
+
+		//originGeocode, _ := s.getGeocodeAddress(ctx, originAddress)
+		//destGeocode, _ := s.getGeocodeAddress(ctx, destAddress)
 
 		coords := fmt.Sprintf("%f,%f;%f,%f",
 			originLon, originLat,
@@ -1397,9 +1405,9 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 				neturl.QueryEscape(normalizeAddress(destAddress)),
 			)
 			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
-			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=place.%s&from=place.%s&time=%d&reverse=yes",
-				neturl.QueryEscape(destGeocode.PlaceID),
-				neturl.QueryEscape(originGeocode.PlaceID),
+			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=ll.%f,%f&from=ll.%f,%f&time=%d&reverse=yes",
+				destLat, destLon,
+				originLat, originLon,
 				currentTimeMillis,
 			)
 
@@ -1519,9 +1527,9 @@ func (s *Service) CalculateDistancesBetweenPoints(ctx context.Context, data Fron
 			)
 
 			currentTimeMillis := (time.Now().UnixNano() + int64(route.Duration*float64(time.Second))) / int64(time.Millisecond)
-			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=%s&from=%s&time=%d&reverse=yes",
-				neturl.QueryEscape(destAddress),
-				neturl.QueryEscape(originAddress),
+			wazeURL := fmt.Sprintf("https://www.waze.com/pt-BR/live-map/directions/br?to=ll.%f,%f&from=ll.%f,%f&time=%d&reverse=yes",
+				destinationLocation.Latitude, destinationLocation.Longitude,
+				originLocation.Latitude, originLocation.Longitude,
 				currentTimeMillis,
 			)
 
@@ -2843,6 +2851,7 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 }
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
+	fmt.Println("getGeocodeAddress")
 	// Implementar cache para evitar chamadas repetidas
 
 	//cacheKey := fmt.Sprintf("geocode:%s", address)
@@ -2857,6 +2866,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	//}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
+	fmt.Println("err:", err)
 	if err != nil {
 		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
@@ -2878,9 +2888,12 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		Region:  "br",
 	}
 	results, err := client.Geocode(ctx, req)
+	fmt.Println("err2:", err)
 	if err != nil || len(results) == 0 {
 		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente", address)
 	}
+
+	fmt.Printf("%+v\n", results)
 
 	result := GeocodeResult{
 		FormattedAddress: normalizeAddress(results[0].FormattedAddress),

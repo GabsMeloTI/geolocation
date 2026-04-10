@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coordinate Viewer - Geolocation</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #panel {
+            width: 350px;
+            padding: 25px;
+            background-color: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+            color: #2c3e50;
+        }
+
+        p {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 0;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            font-size: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #2ecc71;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .clear-btn {
+            background-color: #e74c3c;
+        }
+        
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .marker-list {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+
+        .marker-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .marker-item:last-child {
+            border-bottom: none;
+        }
+
+        .marker-item span {
+            font-family: monospace;
+            color: #2980b9;
+        }
+
+        #error-msg {
+            color: #e74c3c;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="panel">
+        <h2>📍 Coordinate Viewer</h2>
+        <p>Insira latitude e longitude para visualizar a localização no mapa.</p>
+        
+        <div class="input-group">
+            <label for="lat-input">Latitude:</label>
+            <input type="number" id="lat-input" step="any" placeholder="Ex: -23.5505">
+        </div>
+
+        <div class="input-group">
+            <label for="lng-input">Longitude:</label>
+            <input type="number" id="lng-input" step="any" placeholder="Ex: -46.6333">
+        </div>
+
+        <div id="error-msg">Por favor, insira coordenadas válidas.</div>
+
+        <button onclick="addMarker()">Adicionar Marcador</button>
+        <button class="clear-btn" onclick="clearMap()">Limpar Mapa</button>
+        
+        <div style="margin-top: 15px;">
+            <label>Marcadores Ativos:</label>
+            <div id="marker-list" class="marker-list">
+                <div style="padding: 15px; color: #999; text-align: center; font-style: italic;">Nenhum marcador</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- API Key reutilizada do polyline_viewer.html -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgrvSisv4W1k9oWvt7F1dmRHYerX4xLu0"></script>
+<script>
+    let map;
+    let markers = [];
+
+    function initMap() {
+        const brazilCenter = { lat: -14.235, lng: -51.925 };
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 4,
+            center: brazilCenter,
+            mapTypeId: 'roadmap',
+            gestureHandling: 'cooperative',
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: true
+        });
+    }
+
+    window.onload = initMap;
+
+    function addMarker() {
+        const lat = parseFloat(document.getElementById("lat-input").value);
+        const lng = parseFloat(document.getElementById("lng-input").value);
+        const errorMsg = document.getElementById("error-msg");
+
+        if (isNaN(lat) || isNaN(lng)) {
+            errorMsg.style.display = "block";
+            return;
+        }
+
+        errorMsg.style.display = "none";
+        const position = { lat, lng };
+
+        const marker = new google.maps.Marker({
+            position: position,
+            map: map,
+            title: `Coord: ${lat}, ${lng}`,
+            animation: google.maps.Animation.DROP
+        });
+
+        markers.push(marker);
+        updateMarkerList(lat, lng);
+        
+        // Centraliza e dá zoom no novo marcador
+        map.setCenter(position);
+        map.setZoom(15);
+        
+        // Limpa inputs
+        document.getElementById("lat-input").value = '';
+        document.getElementById("lng-input").value = '';
+    }
+
+    function updateMarkerList(lat, lng) {
+        const list = document.getElementById("marker-list");
+        if (markers.length === 1) {
+            list.innerHTML = '';
+        }
+
+        const item = document.createElement("div");
+        item.className = "marker-item";
+        item.innerHTML = `
+            <span>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+            <button style="padding: 4px 8px; font-size: 10px; background-color: #95a5a6;" onclick="focusMarker(${lat}, ${lng})">Focar</button>
+        `;
+        list.appendChild(item);
+    }
+
+    function focusMarker(lat, lng) {
+        map.setCenter({ lat, lng });
+        map.setZoom(18);
+    }
+
+    function clearMap() {
+        markers.forEach(mark => mark.setMap(null));
+        markers = [];
+        document.getElementById("marker-list").innerHTML = '<div style="padding: 15px; color: #999; text-align: center; font-style: italic;">Nenhum marcador</div>';
+        document.getElementById("error-msg").style.display = "none";
+        
+        // Volta ao mapa original
+        map.setZoom(4);
+        map.setCenter({ lat: -14.235, lng: -51.925 });
+    }
+</script>
+
+</body>
+</html>

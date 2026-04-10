@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Tester - Geopy Logística</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 400px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .form-container {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        #results-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .route-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .route-card:hover {
+            border-color: #3498db;
+            background: #f0f7ff;
+        }
+
+        .route-card.active {
+            border-color: #3498db;
+            background: #e8f4fd;
+            box-shadow: 0 2px 5px rgba(52, 152, 219, 0.2);
+        }
+
+        .route-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .provider-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: #e9ecef;
+            border-radius: 4px;
+            color: #495057;
+        }
+
+        .route-info {
+            font-size: 13px;
+            color: #7f8c8d;
+            display: flex;
+            gap: 15px;
+        }
+
+        .instructions-list {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #555;
+            display: none;
+        }
+
+        .route-card.active .instructions-list {
+            display: block;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loader {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #3498db;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="sidebar">
+        <div class="header">
+            <h2 style="margin:0; font-size: 20px;">🛣️ Route Tester</h2>
+            <p style="margin:5px 0 0; font-size: 12px; opacity: 0.8;">Simulador de Rotas Geopy</p>
+        </div>
+
+        <div class="form-container">
+            <div class="input-group">
+                <label>CEP Origem</label>
+                <input type="text" id="origin-cep" placeholder="Ex: 81460225" value="81460225">
+            </div>
+            <div class="input-group">
+                <label>CEP Destino</label>
+                <input type="text" id="destination-cep" placeholder="Ex: 14732058" value="14732058">
+            </div>
+            <div class="input-group">
+                <label>Tipo de Veículo (Costing)</label>
+                <select id="costing-select">
+                    <option value="truck">Truck (Caminhão)</option>
+                    <option value="auto">Auto (Carro)</option>
+                    <option value="bicycle">Bicycle (Bicicleta)</option>
+                    <option value="pedestrian">Pedestrian (Pedestre)</option>
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0;">
+                <input type="checkbox" id="swap-lat-lng" style="width: 18px; height: 18px;">
+                <label for="swap-lat-lng" style="font-size: 12px; font-weight: normal; color: #333;">Inverter Coordenadas (Lon/Lat)</label>
+            </div>
+            <button onclick="calculateRoute()">Calcular Rota</button>
+            <div id="loader">Calculando...</div>
+        </div>
+
+        <div id="results-container">
+            <div id="location-summary" style="display:none; padding: 15px; background: #fdfae7; border: 1px solid #f1e4a1; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="margin:0 0 10px 0; color: #856404;">📍 Localização Resolvida</h4>
+                <p id="addr-origin" style="font-size: 12px; margin: 3px 0;"></p>
+                <p id="addr-dest" style="font-size: 12px; margin: 3px 0;"></p>
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <a id="lnk-google" target="_blank" style="flex:1; text-align:center; background:#4285F4; color:white; padding:8px; border-radius:4px; font-size:11px; text-decoration:none;">Google Maps</a>
+                    <a id="lnk-waze" target="_blank" style="flex:1; text-align:center; background:#33CCFF; color:white; padding:8px; border-radius:4px; font-size:11px; text-decoration:none;">Waze</a>
+                </div>
+            </div>
+            <div id="trips-list">
+                <p style="color: #999; text-align: center; margin-top: 50px;">Insira os CEPs para ver as opções de rota.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- API Key do Google Maps do seu container -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgrvSisv4W1k9oWvt7F1dmRHYerX4xLu0&libraries=geometry"></script>
+<script>
+    let map;
+    let currentPolyline = null;
+    let markers = [];
+    let responseData = null;
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 5,
+            center: { lat: -23.5505, lng: -46.6333 }, // São Paulo
+            mapTypeId: 'roadmap',
+            fullscreenControl: false,
+            streetViewControl: false
+        });
+    }
+
+    window.onload = initMap;
+
+    async function calculateRoute() {
+        const origin = document.getElementById('origin-cep').value;
+        const dest = document.getElementById('destination-cep').value;
+        const costing = document.getElementById('costing-select').value;
+        const loader = document.getElementById('loader');
+        const tripsList = document.getElementById('trips-list');
+        const locationSummary = document.getElementById('location-summary');
+
+        loader.style.display = 'block';
+        locationSummary.style.display = 'none';
+        tripsList.innerHTML = '';
+
+        try {
+            const response = await fetch('http://localhost:7070/location/route', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer v2.local.dS5MiETXPt-_vaCNAJsUJdnvYn1Tr8UEZJppa4zUnoE1UOOOd-lWWlfJ2xza1-nDSmuLIgYK6Ii1AicgQxACY2vc-LWWe_S44nELD81pDpWJ-A6WgyFaAg4wR1RH39lJ0iecmSYIxxKB_6nqD2jiTUaySiDfFYAx5cc0r7KNsJD40c2Jk1mQkIf6tgDtW9f1Fm1Ojaixi_b-SQDYN97kL1TmZQU28UEMLPco5_9WTBc0mv5d1Lec7I6ecWof6IB7Y9kcLRFa.bnVsbA'
+                },
+                body: JSON.stringify({
+                    origin: origin,
+                    destination: dest,
+                    costing: costing
+                })
+            });
+
+            if (!response.ok) throw new Error('Falha na resposta da API');
+
+            responseData = await response.json();
+            
+            // Exibir resumo da localização
+            document.getElementById('location-summary').style.display = 'block';
+            document.getElementById('addr-origin').innerHTML = `<b>De:</b> ${responseData.origin.address}`;
+            document.getElementById('addr-dest').innerHTML = `<b>Para:</b> ${responseData.destination.address}`;
+            document.getElementById('lnk-google').href = responseData.routes_link.google_maps_link;
+            document.getElementById('lnk-waze').href = responseData.routes_link.waze_link;
+
+            displayResults(responseData.trip_info);
+        } catch (error) {
+            console.error(error);
+            tripsList.innerHTML = `<p style="color: red; text-align: center;">Erro: ${error.message}</p>`;
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    function displayResults(trips) {
+        const tripsList = document.getElementById('trips-list');
+        tripsList.innerHTML = '';
+        
+        if (!trips || trips.length === 0) {
+            tripsList.innerHTML = '<p style="text-align: center;">Nenhuma rota encontrada.</p>';
+            return;
+        }
+
+        trips.forEach((trip, index) => {
+            const card = document.createElement('div');
+            card.className = 'route-card';
+            if (index === 0) card.classList.add('active');
+
+            card.onclick = () => {
+                document.querySelectorAll('.route-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                renderRoute(trip);
+            };
+
+            card.innerHTML = `
+                <div class="route-title">
+                    <span>Rota #${index + 1}</span>
+                    <span class="provider-tag">${trip.provider} (v${trip.polyline_precision})</span>
+                </div>
+                <div class="route-info">
+                    <span>📏 ${trip.distance_km.toFixed(1)} km</span>
+                    <span>⏱️ ${trip.duration_minutes.toFixed(0)} min</span>
+                </div>
+                <div class="instructions-list">
+                    <strong>Instruções:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        ${trip.instructions ? trip.instructions.map(i => `<li>${i}</li>`).join('') : '<li>Sem instruções</li>'}
+                    </ul>
+                </div>
+            `;
+            tripsList.appendChild(card);
+        });
+
+        // Renderiza a primeira rota por padrão
+        renderRoute(trips[0]);
+    }
+
+    function renderRoute(trip) {
+        clearMap();
+        const shouldSwap = document.getElementById('swap-lat-lng').checked;
+
+        console.log(`Renderizando ${trip.provider} (precisão v${trip.polyline_precision}, Swap=${shouldSwap})`);
+
+        try {
+            let path;
+            const rawPolyline = trip.polyline;
+
+            if (trip.polyline_precision === 5 && !shouldSwap) {
+                path = google.maps.geometry.encoding.decodePath(rawPolyline);
+            } else {
+                path = decodePolyline(rawPolyline, trip.polyline_precision, shouldSwap);
+            }
+
+            console.log(`Caminho decodificado: ${path.length} pontos.`);
+
+            currentPolyline = new google.maps.Polyline({
+                path: path,
+                geodesic: true,
+                strokeColor: trip.provider.includes('VALHALLA') ? '#e67e22' : '#3498db',
+                strokeOpacity: 0.8,
+                strokeWeight: 6,
+                map: map
+            });
+
+            const bounds = new google.maps.LatLngBounds();
+            
+            // Coordenadas OFICIAIS da API
+            const officialOrigin = { lat: parseFloat(responseData.origin.lat), lng: parseFloat(responseData.origin.lon) };
+            const officialDest = { lat: parseFloat(responseData.destination.lat), lng: parseFloat(responseData.destination.lon) };
+
+            // Marcador A (Verde - Oficial)
+            markers.push(new google.maps.Marker({ 
+                position: officialOrigin, 
+                map: map, 
+                label: 'A', 
+                title: 'Origem Oficial',
+                icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+            }));
+            
+            // Marcador B (Vermelho - Oficial)
+            markers.push(new google.maps.Marker({ 
+                position: officialDest, 
+                map: map, 
+                label: 'B', 
+                title: 'Destino Oficial',
+                icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            }));
+
+            // Marcadores de início/fim da Polyline Real (para debug)
+            if (path.length > 0) {
+                // Início da polyline (Preto pequeno)
+                markers.push(new google.maps.Marker({
+                    position: path[0],
+                    map: map,
+                    title: 'Início Real da Polyline',
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: "#000", fillOpacity: 0.5, strokeWeight: 1 }
+                }));
+
+                // Fim da polyline (Preto pequeno)
+                markers.push(new google.maps.Marker({
+                    position: path[path.length - 1],
+                    map: map,
+                    title: 'Fim Real da Polyline',
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: "#000", fillOpacity: 0.5, strokeWeight: 1 }
+                }));
+            }
+
+            path.forEach(p => bounds.extend(p));
+            bounds.extend(officialOrigin);
+            bounds.extend(officialDest);
+            map.fitBounds(bounds);
+
+        } catch (e) {
+            console.error('Erro ao renderizar:', e);
+            alert('Erro ao decodificar a polyline desta rota.');
+        }
+    }
+
+    function clearMap() {
+        if (currentPolyline) currentPolyline.setMap(null);
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+    }
+
+    function decodePolyline(encoded, precision, swap) {
+        let points = [];
+        let index = 0, len = encoded.length;
+        let lat = 0, lng = 0;
+        const multiplier = Math.pow(10, precision);
+
+        while (index < len) {
+            let b, shift = 0, result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            const finalLat = lat / multiplier;
+            const finalLng = lng / multiplier;
+
+            if (swap) {
+                points.push(new google.maps.LatLng(finalLng, finalLat));
+            } else {
+                points.push(new google.maps.LatLng(finalLat, finalLng));
+            }
+        }
+        return points;
+    }
+</script>
+
+</body>
+</html>

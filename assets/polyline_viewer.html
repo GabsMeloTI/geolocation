@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyline Viewer - Geolocation</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #panel {
+            width: 350px;
+            padding: 25px;
+            background-color: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+            color: #2c3e50;
+        }
+
+        p {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 0;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            resize: vertical;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            font-size: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #3498db;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .clear-btn {
+            background-color: #e74c3c;
+        }
+        
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .info-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-box span {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        #error-msg {
+            color: #e74c3c;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="panel">
+        <h2>🗺️ Polyline Viewer</h2>
+        <p>Cole a sua string de polyline (encoded path) abaixo para visualizar a rota desenhada no mapa.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
+            <label for="polyline-input">Encoded Polyline:</label>
+            <textarea id="polyline-input" rows="10" placeholder="Cole a polyline aqui... (ex: _p~iF~ps|U_ulLnnqC_mqNvxq`@)"></textarea>
+            <div id="error-msg">Polyline inválida ou erro ao decodificar.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label for="precision-select">Precisão (OSRM):</label>
+            <select id="precision-select" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                <option value="5">Polyline 5 (Padrão Google/OSRM v5)</option>
+                <option value="6">Polyline 6 (Novo Padrão OSRM v6)</option>
+            </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="swap-lat-lng" style="width: 20px; height: 20px;">
+            <label for="swap-lat-lng">Inverter Latitude/Longitude (Lon, Lat)</label>
+        </div>
+
+        <button onclick="renderPolyline()">Renderizar Rota</button>
+        <button class="clear-btn" onclick="clearMap()">Limpar Mapa</button>
+        
+        <div class="info-box">
+            <p style="margin-bottom: 5px; color: #333;">Estatísticas da Rota</p>
+            <p style="margin-bottom: 5px;">Coordenadas: <span id="nodes-count">0</span></p>
+            <p style="margin-bottom: 0;">Precisão utilizada: <span id="precision-applied">N/A</span></p>
+        </div>
+    </div>
+    
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- Lembre-se que essa chave é da var GOOGLE_MAPS_KEY do .env.local -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgrvSisv4W1k9oWvt7F1dmRHYerX4xLu0&libraries=geometry"></script>
+<script>
+    let map;
+    let currentPolyline = null;
+    let markers = [];
+
+    // Inicializa o mapa centralizado no Brasil
+    function initMap() {
+        const brazilCenter = { lat: -14.235, lng: -51.925 };
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 4,
+            center: brazilCenter,
+            mapTypeId: 'roadmap',
+            gestureHandling: 'cooperative',
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: true
+        });
+    }
+
+    // Aguarda o carregamento para inicializar
+    window.onload = initMap;
+
+    function renderPolyline() {
+        let input = document.getElementById("polyline-input").value.trim();
+        const errorMsg = document.getElementById("error-msg");
+        const nodesCount = document.getElementById("nodes-count");
+        const precisionApplied = document.getElementById("precision-applied");
+        const precision = parseInt(document.getElementById("precision-select").value);
+        const swap = document.getElementById("swap-lat-lng").checked;
+
+        if (!input) {
+            errorMsg.innerText = "Por favor, cole uma polyline.";
+            errorMsg.style.display = "block";
+            return;
+        }
+
+        // Auto-fix: Remove escapes de JSON (\\ para \)
+        if (input.includes('\\\\')) {
+            console.log("Auto-fix: Removendo barras duplas detectadas.");
+            input = input.replace(/\\\\/g, '\\');
+        }
+
+        clearMap();
+
+        try {
+            let decodedPath;
+            if (precision === 5 && !swap) {
+                // Decodifica a polyline usando a API do Google (v5 nativo)
+                decodedPath = google.maps.geometry.encoding.decodePath(input);
+            } else {
+                // Decodifica manualmente (para precisão 6 ou swap de coordenadas)
+                decodedPath = decodePolyline(input, precision, swap);
+            }
+
+            nodesCount.innerText = decodedPath.length;
+            precisionApplied.innerText = "v" + precision + (swap ? " (Swapped)" : "");
+            errorMsg.style.display = "none";
+
+            if (decodedPath.length === 0) {
+                throw new Error("Path decodificado está vazio");
+            }
+
+            currentPolyline = new google.maps.Polyline({
+                path: decodedPath,
+                geodesic: true,
+                strokeColor: "#2980b9",
+                strokeOpacity: 0.8,
+                strokeWeight: 5,
+                map: map
+            });
+
+            const bounds = new google.maps.LatLngBounds();
+            decodedPath.forEach(latLng => bounds.extend(latLng));
+            map.fitBounds(bounds);
+
+            const origin = decodedPath[0];
+            const destination = decodedPath[decodedPath.length - 1];
+
+            markers.push(new google.maps.Marker({
+                position: origin,
+                map: map,
+                title: 'Origem',
+                label: 'A'
+            }));
+
+            markers.push(new google.maps.Marker({
+                position: destination,
+                map: map,
+                title: 'Destino',
+                label: 'B'
+            }));
+
+        } catch (error) {
+            console.error(error);
+            errorMsg.innerText = "Erro ao decodificar polyline. Verifique a precisão ou o formato.";
+            errorMsg.style.display = "block";
+            nodesCount.innerText = "0";
+            precisionApplied.innerText = "Erro";
+        }
+    }
+
+    // Função de decodificação manual que suporta diferentes precisões e inversão de coordenadas
+    function decodePolyline(encoded, precision, swap) {
+        let points = [];
+        let index = 0, len = encoded.length;
+        let lat = 0, lng = 0;
+        const multiplier = Math.pow(10, precision);
+
+        while (index < len) {
+            let b, shift = 0, result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            if (swap) {
+                // Inverte se a polyline foi gerada como Lon, Lat em vez de Lat, Lon
+                points.push({ lat: lng / multiplier, lng: lat / multiplier });
+            } else {
+                points.push({ lat: lat / multiplier, lng: lng / multiplier });
+            }
+        }
+        return points;
+    }
+
+    function clearMap() {
+        if (currentPolyline) {
+            currentPolyline.setMap(null);
+            currentPolyline = null;
+        }
+        
+        // Remove todos os marcadores do mapa
+        markers.forEach(mark => mark.setMap(null));
+        markers = [];
+        
+        document.getElementById("error-msg").style.display = "none";
+        document.getElementById("nodes-count").innerText = "0";
+    }
+</script>
+
+</body>
+</html>

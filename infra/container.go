@@ -2,6 +2,7 @@ package infra
 
 import (
 	"database/sql"
+	"geolocation/internal/geocoding"
 	meiliaddress "geolocation/internal/meili_address"
 	"geolocation/internal/route_enterprise"
 
@@ -93,6 +94,9 @@ type ContainerDI struct {
 	HandlerZonasRisco         *zonas_risco.Handler
 	ServiceZonasRisco         *zonas_risco.Service
 	RepositoryZonasRisco      *zonas_risco.Repository
+	HandlerGeoCoding          *geocoding.Handler
+	ServiceGeoCoding          *geocoding.Service
+	RepositoryGeoCoding       *geocoding.Repository
 }
 
 func NewContainerDI(config Config) *ContainerDI {
@@ -162,6 +166,7 @@ func (c *ContainerDI) buildRepository() {
 	c.RepositoryLocation = location.NewLocationsRepository(c.ConnDB)
 	c.RepositoryRouteEnterprise = route_enterprise.NewRouteEnterpriseRepository(c.ConnDBSP)
 	c.RepositoryZonasRisco = zonas_risco.NewZonasRiscoRepository(c.ConnDB)
+	c.RepositoryGeoCoding = geocoding.NewRepository(c.ConnDB)
 
 }
 
@@ -192,6 +197,7 @@ func (c *ContainerDI) buildService() {
 	c.ServiceAppointment = appointments.NewAppointmentsService(c.RepositoryAppointment)
 	c.ServiceAddress = address.NewAddressService(c.RepositoryAddress, c.RepositoryMeiliAddress, c.Config.GoogleMapsKey)
 	c.ServiceLocation = location.NewLocationsService(c.RepositoryLocation)
+	c.ServiceGeoCoding = geocoding.NewService(c.RepositoryGeoCoding, c.Config.GoogleMapsKey)
 }
 
 func (c *ContainerDI) buildHandler() {
@@ -215,4 +221,5 @@ func (c *ContainerDI) buildHandler() {
 	c.HandlerAddress = address.NewAddressHandler(c.ServiceAddress)
 	c.HandlerLocation = location.NewLocationHandler(c.ServiceLocation)
 	c.HandlerZonasRisco = zonas_risco.NewZonasRiscoHandler(c.ServiceZonasRisco)
+	c.HandlerGeoCoding = geocoding.NewHandler(c.ServiceGeoCoding)
 }

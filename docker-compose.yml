@@ -1,36 +1,33 @@
 version: "3.9"
 
 services:
-  go-geolocation:
+  api:
     build: .
-    container_name: go-geolocation-container
+    container_name: ${CONTAINER_NAME:-go-geolocation}
     restart: always
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
     ports:
-      - "7777:8080"
-    volumes:
-      - .:/app
+      - "${PORT:-8080}:8080"
+    depends_on:
+      - redis
+    networks:
+      - geo-network
 
-  go-geolocation-dev:
-    build: .
-    container_name: go-geolocation-dev-container
+  redis:
+    image: redis:7-alpine
+    container_name: ${CONTAINER_NAME_REDIS:-geo-redis}
     restart: always
-    env_file:
-      - .env.dev
     ports:
-      - "7070:8080"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - .:/app
+      - redis_data:/data
+    networks:
+      - geo-network
 
-  go-geolocation-homolog:
-    build: .
-    container_name: go-geolocation-homolog-container
-    restart: always
-    env_file:
-      - .env.homolog
-    ports:
-      - "9089:8080"
-    volumes:
-      - .:/app
+networks:
+  geo-network:
+    driver: bridge
 
+volumes:
+  redis_data:

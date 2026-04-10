@@ -192,6 +192,8 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	locations.DELETE("/delete/:id", container.HandlerLocation.DeleteLocationHandler)
 	locations.GET("/list/:providerId", container.HandlerLocation.GetLocationHandler)
 
+	e.POST("/location/route", container.HandlerGeoCoding.LocationHandler, _midlleware.CheckUserAuthorization)
+
 	e.Logger.Fatal(e.Start(container.Config.ServerPort))
 }
 
