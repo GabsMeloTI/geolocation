@@ -259,6 +259,19 @@ type LatLng struct {
 	Lng float64
 }
 
+type coordDataStruct struct {
+	lat, lon float64
+	address  string
+	geocode  GeocodeResult
+}
+
+type ProcessedCoordinate struct {
+	Lat     float64
+	Lon     float64
+	Address string
+	Geocode GeocodeResult
+}
+
 type RouteOptions struct {
 	IncludeFuelStations  bool `json:"include_fuel_stations"`  // Se deve incluir postos de combustível
 	IncludeRouteMap      bool `json:"include_route_map"`      // Se deve incluir rotograma
