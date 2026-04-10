@@ -2314,7 +2314,9 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	req.Header.Set("User-Agent", "MeuSistemaLogistica/1.0 (suporte@meudominio.com)")
 
 	client := &http.Client{Timeout: 5 * time.Second}
+	start := time.Now()
 	resp, err := client.Do(req)
+	log.Printf("⏱️ Tempo de resposta Nominatim: %v", time.Since(start))
 
 	if err != nil || resp.StatusCode != http.StatusOK {
 		fallbackStr := fmt.Sprintf("%.6f,%.6f", lat, lng)
@@ -2858,62 +2860,44 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 }
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	// Implementar cache para evitar chamadas repetidas
+	// 1. Chave do cache (usando o endereço que veio do Nominatim)
+	cacheKey := fmt.Sprintf("geocode:%s", address)
 
-	//cacheKey := fmt.Sprintf("geocode:%s", address)
-	//cached, err := cache.CacheGet(ctx, cacheKey)
-	//if err == nil {
-	//	var result GeocodeResult
-	//	if json.Unmarshal([]byte(cached), &result) == nil {
-	//		return result, nil
-	//	}
-	//} else if !errors.Is(err, redis.Nil) {
-	//	log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
-	//}
-
-	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
-	if err != nil {
-		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
+	// 2. Tenta buscar no Redis primeiro
+	cached, err := cache.CacheGet(ctx, cacheKey)
+	if err == nil && cached != "" {
+		var result GeocodeResult
+		if err := json.Unmarshal([]byte(cached), &result); err == nil {
+			log.Printf("🚀 [CACHE HIT] Endereço recuperado do Redis: %s", address)
+			return result, nil
+		}
 	}
 
-	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
-	//	Input:    address,
-	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-	//	Radius:   1000000,
-	//	Language: "pt-BR",
-	//	Types:    "geocode",
-	//}
-	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-	//	address = autoCompleteResp.Predictions[0].Description
-	//}
+	log.Printf("⚠️ [GOOGLE BYPASS] Ignorando API do Google. Simulando resultado para: %s", address)
 
-	req := &maps.GeocodingRequest{
-		Address: address,
-		Region:  "br",
-	}
-	results, err := client.Geocode(ctx, req)
-	if err != nil || len(results) == 0 {
-		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente", address)
-	}
-
+	// 3. MOCK: Criamos um resultado fake usando os dados do Nominatim
+	// para que o resto do sistema continue funcionando.
 	result := GeocodeResult{
-		FormattedAddress: normalizeAddress(results[0].FormattedAddress),
-		PlaceID:          results[0].PlaceID,
+		FormattedAddress: normalizeAddress(address),
+		PlaceID:          "mock_id_" + fmt.Sprint(time.Now().Unix()),
 		Location: Location{
-			Latitude:  results[0].Geometry.Location.Lat,
-			Longitude: results[0].Geometry.Location.Lng,
+			Latitude:  -23.55052, // Coordenada genérica (São Paulo) para teste
+			Longitude: -46.63330,
 		},
 	}
 
-	// Salvar no cache para futuras consultas
-	_, err = json.Marshal(result)
-	//if err == nil {
-	//	if err := cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour); err != nil {
-	//		log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
-	//	}
-	//	log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
-	//}
+	// 4. SALVAR NO REDIS
+	// É aqui que validamos se o seu cache está funcionando!
+	jsonData, err := json.Marshal(result)
+	if err == nil {
+		err = cache.CacheSet(ctx, cacheKey, string(jsonData), 30*24*time.Hour)
+		if err != nil {
+			log.Printf("❌ [REDIS ERROR] Erro ao gravar: %v", err)
+		} else {
+			log.Printf("💾 [CACHE SET] Resultado simulado gravado no Redis com sucesso!")
+		}
+	}
+
 	return result, nil
 }
 
