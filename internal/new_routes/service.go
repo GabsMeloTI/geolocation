@@ -2296,10 +2296,11 @@ func (s *Service) GetSimpleRoute(data SimpleRouteRequest) (SimpleRouteResponse, 
 
 func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 	cacheKey := fmt.Sprintf("reverse_geocode:%.6f,%.6f", lat, lng)
+	var finalAddress string
 
 	cached, err := cache.CacheGet(cache.Ctx, cacheKey)
 	if err == nil && cached != "" {
-		return cached, nil
+		finalAddress = cached
 	} else if err != nil && !errors.Is(err, redis.Nil) {
 		log.Printf("Erro ao recuperar cache do Redis (reverse_geocode): %v", err)
 	}
@@ -2340,13 +2341,34 @@ func (s *Service) reverseGeocode(lat, lng float64) (string, error) {
 		return fallbackStr, nil
 	}
 
-	normalized := normalizeAddress(result.DisplayName)
+	finalAddress = normalizeAddress(result.DisplayName)
 
-	if err := cache.CacheSet(cache.Ctx, cacheKey, normalized, 7*24*time.Hour); err != nil {
+	if err := cache.CacheSet(cache.Ctx, cacheKey, finalAddress, 7*24*time.Hour); err != nil {
 		log.Printf("Erro ao salvar cache do Redis (reverse_geocode): %v", err)
 	}
 
-	return normalized, nil
+	fallbackStr := fmt.Sprintf("%.6f,%.6f", lat, lng)
+	if finalAddress != "" && finalAddress != fallbackStr {
+		go func(address string, latitude, longitude float64) {
+			forwardCacheKey := fmt.Sprintf("geocode:%s", address)
+
+			geocodeObj := GeocodeResult{
+				FormattedAddress: address,
+				PlaceID:          fmt.Sprintf("osm_rev_%d", time.Now().UnixNano()),
+				Location: Location{
+					Latitude:  latitude,
+					Longitude: longitude,
+				},
+			}
+
+			jsonData, errJson := json.Marshal(geocodeObj)
+			if errJson == nil {
+				_ = cache.CacheSet(context.Background(), forwardCacheKey, string(jsonData), 30*24*time.Hour)
+			}
+		}(finalAddress, lat, lng)
+	}
+
+	return finalAddress, nil
 }
 
 // reverseGeocodeWithGoogle tenta geocodificação reversa usando Google Maps API como fallback
