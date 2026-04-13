@@ -2858,35 +2858,23 @@ func (s *Service) calculateTollsArrivalTimes(origin string, tolls []Toll) (map[i
 }
 
 func (s *Service) getGeocodeAddress(ctx context.Context, address string) (GeocodeResult, error) {
-	// Implementar cache para evitar chamadas repetidas
+	cacheKey := fmt.Sprintf("geocode:%s", address)
 
-	//cacheKey := fmt.Sprintf("geocode:%s", address)
-	//cached, err := cache.CacheGet(ctx, cacheKey)
-	//if err == nil {
-	//	var result GeocodeResult
-	//	if json.Unmarshal([]byte(cached), &result) == nil {
-	//		return result, nil
-	//	}
-	//} else if !errors.Is(err, redis.Nil) {
-	//	log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
-	//}
+	cached, err := cache.CacheGet(ctx, cacheKey)
+	if err == nil && cached != "" {
+		var result GeocodeResult
+		if err := json.Unmarshal([]byte(cached), &result); err == nil {
+			log.Printf("🚀 [CACHE HIT] Endereço recuperado do Redis: %s", address)
+			return result, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		log.Printf("Erro ao recuperar cache do Redis (geocode): %v", err)
+	}
 
 	client, err := maps.NewClient(maps.WithAPIKey(s.GoogleMapsAPIKey))
 	if err != nil {
 		return GeocodeResult{}, fmt.Errorf("erro ao criar cliente Google Maps: %v", err)
 	}
-
-	//autoCompleteReq := &maps.PlaceAutocompleteRequest{
-	//	Input:    address,
-	//	Location: &maps.LatLng{Lat: -14.2350, Lng: -51.9253},
-	//	Radius:   1000000,
-	//	Language: "pt-BR",
-	//	Types:    "geocode",
-	//}
-	//autoCompleteResp, autoCompleteErr := client.PlaceAutocomplete(ctx, autoCompleteReq)
-	//if autoCompleteErr == nil && len(autoCompleteResp.Predictions) > 0 {
-	//	address = autoCompleteResp.Predictions[0].Description
-	//}
 
 	req := &maps.GeocodingRequest{
 		Address: address,
@@ -2894,7 +2882,7 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 	}
 	results, err := client.Geocode(ctx, req)
 	if err != nil || len(results) == 0 {
-		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente", address)
+		return GeocodeResult{}, fmt.Errorf("endereço não encontrado para: %s. Verifique se a pesquisa está escrita corretamente ou seja mais específico(Ex: %s, São Paulo)", address, address)
 	}
 
 	result := GeocodeResult{
@@ -2906,14 +2894,15 @@ func (s *Service) getGeocodeAddress(ctx context.Context, address string) (Geocod
 		},
 	}
 
-	// Salvar no cache para futuras consultas
-	_, err = json.Marshal(result)
-	//if err == nil {
-	//	if err := cache.CacheSet(ctx, cacheKey, data, 30*24*time.Hour); err != nil {
-	//		log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
-	//	}
-	//	log.Printf("Erro ao salvar cache do Redis (geocode): %v", err)
-	//}
+	jsonData, err := json.Marshal(result)
+	if err == nil {
+		err = cache.CacheSet(ctx, cacheKey, string(jsonData), 30*24*time.Hour)
+		if err != nil {
+			log.Printf("❌ [REDIS ERROR] Erro ao gravar: %v", err)
+		} else {
+			log.Printf("💾 [CACHE SET] Resultado REAL gravado no Redis com sucesso!")
+		}
+	}
 	return result, nil
 }
 
@@ -4045,14 +4034,12 @@ func (s *Service) calculateTotalRouteWithAvoidanceFromCoordinates(ctx context.Co
 
 			// Cliente com timeout reduzido para melhor performance
 			fastClient := http.Client{Timeout: 15 * time.Second}
-			startTime := time.Now()
 			resp, err := fastClient.Get(u)
 			if err != nil || resp.StatusCode != 200 {
 				u = fmt.Sprintf("http://34.207.174.233:5000/route/v1/driving/%s?alternatives=0&steps=true&overview=full&continue_straight=false",
 					neturl.PathEscape(coords))
 				resp, err = fastClient.Get(u)
 			}
-			log.Printf("Tempo da requisição OSRM: %v", time.Since(startTime))
 
 			if err != nil || resp == nil {
 				log.Printf("ERRO: requisição OSRM falhou nas duas tentativas - err=%v", err)

@@ -131,7 +131,7 @@ func StartAPI(ctx context.Context, container *infra.ContainerDI) {
 	public.GET("/advertisement/list", container.HandlerAdvertisement.GetAllAdvertisementPublicHandler)
 	public.GET("/advertisement/list/:id", container.HandlerAdvertisement.GetAdvertisementByIDPublicService)
 	// easyfrete no user
-	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes, _midlleware.CheckPublicAuthorization)
+	public.POST("/check-route-tolls", container.HandlerNewRoutes.CalculateRoutes) // _midlleware.CheckPublicAuthorization)
 
 	route := e.Group("/route", _midlleware.CheckUserAuthorization)
 	route.GET("/favorite/list", container.HandlerNewRoutes.GetFavoriteRouteHandler)
