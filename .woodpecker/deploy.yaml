@@ -53,7 +53,7 @@ steps:
           --name prod-redis \
           redis:alpine redis-server --requirepass "$REDIS_PASS"
 
-        docker run -d -p 9912:8080 \
+        docker run -d -p 7070:8080 \
           --env-file .env \
           --name go-geolocation-container \
           go-geolocation

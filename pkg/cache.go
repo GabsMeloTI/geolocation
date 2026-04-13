@@ -24,7 +24,8 @@ func InitRedis(environment string, saveRedis bool) {
 		}
 
 		Rdb = redis.NewClient(&redis.Options{
-			Addr: redisAddr,
+			Addr:     redisAddr,
+			Password: os.Getenv("REDIS_PASSWORD"),
 		})
 
 		_, err := Rdb.Ping(Ctx).Result()
